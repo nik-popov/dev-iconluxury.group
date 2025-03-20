@@ -266,13 +266,12 @@ const handleMappingConfirm = useCallback((confirm: boolean) => {
   resetMappingModal();
 }, [selectedColumn, selectedField, columnMapping]);
 
-// In prepareFormData, ensure all mapped columns are sent
 const prepareFormData = (): FormData => {
   const formData = new FormData();
   formData.append('fileUploadImage', file!);
-
+  
   const mappingToColumn = (key: keyof ColumnMapping, defaultVal: string) => 
-    columnMapping[key] !== null ? indexToColumnLetter(columnMapping[key]!) : defaultVal;
+      columnMapping[key] !== null ? indexToColumnLetter(columnMapping[key]!) : defaultVal;
 
   const styleCol = mappingToColumn('style', 'A');
   const brandCol = mappingToColumn('brand', 'B');
@@ -287,13 +286,12 @@ const prepareFormData = (): FormData => {
   formData.append('brandColImage', brandCol);
   if (colorCol) formData.append('ColorColImage', colorCol);
   if (categoryCol) formData.append('CategoryColImage', categoryCol);
-  if (imageAddCol) formData.append('imageAddColImage', imageAddCol); // Explicitly send imageAdd
-  if (readImageCol) formData.append('readImageColImage', readImageCol); // Explicitly send readImage
-  formData.append('header_index', String(headerRowIndex));
-
-  for (let pair of formData.entries()) {
-    console.log(`${pair[0]}: ${pair[1]}`);
+  // Ensure header_index is a valid 1-based number
+  if (headerRowIndex === null || headerRowIndex < 0) {
+      throw new Error("Invalid header row index");
   }
+  formData.append('header_index', String(headerRowIndex + 1));  // Convert 0-based to 1-based
+
   return formData;
 };
   const openMappingModal = useCallback((columnIndex: number) => {
