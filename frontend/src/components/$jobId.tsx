@@ -247,7 +247,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
   const handleDevRestart = () => {
     setIsRestarting(true);
-    showToast("Restart Initiated", "Restarting job in development mode", iconluxurygroup);
+    showToast("Restart Initiated", "Restarting job in development mode", "info");
     setTimeout(() => {
       setIsRestarting(false);
       showToast("Restart Complete", "Job restarted successfully", "success");
@@ -257,7 +257,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
   const handleCreateXLS = () => {
     setIsCreatingXLS(true);
-    showToast("XLS Creation Started", "Generating XLS file", iconluxurygroup);
+    showToast("XLS Creation Started", "Generating XLS file", "info");
     setTimeout(() => {
       setIsCreatingXLS(false);
       showToast("XLS Created", "XLS file generated successfully", "success");
@@ -978,7 +978,7 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
             colorScheme="blue"
             onClick={() => {
               setShowFileDetails(!showFileDetails);
-             
+            
             }}
           >
             {showFileDetails ? "- File Details" : "+ File Details"}
@@ -988,7 +988,7 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
             onClick={() => {
               if (job.records.length > 0) {
                 setHideEmptyRows(!hideEmptyRows);
-                
+               
               }
             }}
             colorScheme={job.records.length === 0 ? "gray" : "blue"}
