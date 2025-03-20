@@ -256,15 +256,15 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   };
 
   const handleDevRestart = (
-    fileId: string, // Removed default value of 194
+    fileId: string,
     setIsRestarting: (value: boolean) => void,
-    showToast: (title: string, message: string, type: string) => void,
+    showToast: (title: string, message: string, type: "info" | "success" | "error") => void,
     fetchJobData: () => void
   ) => {
     return async () => {
       setIsRestarting(true);
       showToast("Restart Initiated", "Restarting job in development mode", "info");
-
+  
       try {
         const response = await fetch(
           `https://dev-image-distro.popovtech.com/restart-failed-batch/?file_id_db=${fileId}`,
@@ -275,18 +275,28 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             },
           }
         );
-
+  
+        console.log("Response status:", response.status, "OK:", response.ok);
+        console.log("Response headers:", [...response.headers.entries()]);
+  
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorText = await response.text();
+          throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
         }
-
+  
         const data = await response.json();
+        console.log("Response data:", data);
         setIsRestarting(false);
         showToast("Restart Complete", data.message, "success");
         fetchJobData();
       } catch (error) {
+        console.error("Restart error:", error);
         setIsRestarting(false);
-        showToast("Restart Failed", `Error: ${error instanceof Error ? error.message : "Unknown error"}`, "error");
+        showToast(
+          "Restart Failed",
+          `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+          "error"
+        );
       }
     };
   };
