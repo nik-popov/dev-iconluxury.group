@@ -40,7 +40,7 @@ import {
   ModalHeader,
   ModalBody,
 } from "@chakra-ui/react";
-import useCustomToast from "../../../../hooks/useCustomToast";
+import useCustomToast from "../hooks/useCustomToast";
 
 interface JobDetails {
   id: number;
