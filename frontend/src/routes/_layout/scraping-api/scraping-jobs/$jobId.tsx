@@ -256,7 +256,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   };
 
   const handleDevRestart = (
-    fileId: number, // Removed default value of 194
+    fileId: string, // Removed default value of 194
     setIsRestarting: (value: boolean) => void,
     showToast: (title: string, message: string, type: string) => void,
     fetchJobData: () => void
@@ -291,7 +291,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     };
   };
 const handleRestartClick = handleDevRestart(
-  job.id,
+  String(job.id),
   setIsRestarting,
   showToast,
   fetchJobData
