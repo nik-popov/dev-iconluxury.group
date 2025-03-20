@@ -284,12 +284,15 @@ const prepareFormData = (): FormData => {
   if (imageColumnImage) formData.append('imageColumnImage', imageColumnImage);
   formData.append('searchColImage', styleCol);
   
-  // Handle manual brand
-  if (columnMapping.brand === null && manualBrand) {  // If brand isn't mapped but manualBrand is set
+  // Handle manual brand explicitly
+  if (manualBrand && manualBrand.trim() !== '') {  // If manualBrand is provided and not empty
       formData.append('brandColImage', 'MANUAL');
       formData.append('manualBrand', manualBrand);
-  } else {
+      console.log(`Manual brand set: ${manualBrand}`);  // Debug log
+  } else if (columnMapping.brand !== null) {
       formData.append('brandColImage', brandCol);
+  } else {
+      throw new Error("Brand column must be mapped or manual brand provided");
   }
 
   if (colorCol) formData.append('ColorColImage', colorCol);
