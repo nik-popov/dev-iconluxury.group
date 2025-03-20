@@ -255,44 +255,43 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     }, 2000);
   };
 
-// restartHandler.ts
   const handleDevRestart = (
-  fileId: number = 194,
-  setIsRestarting: (value: boolean) => void,
-  showToast: (title: string, message: string, type: string) => void,
-  fetchJobData: () => void
-) => {
-  return async () => {
-    setIsRestarting(true);
-    showToast("Restart Initiated", "Restarting job in development mode", "info");
+    fileId: number, // Removed default value of 194
+    setIsRestarting: (value: boolean) => void,
+    showToast: (title: string, message: string, type: string) => void,
+    fetchJobData: () => void
+  ) => {
+    return async () => {
+      setIsRestarting(true);
+      showToast("Restart Initiated", "Restarting job in development mode", "info");
 
-    try {
-      const response = await fetch(
-        `https://dev-image-distro.popovtech.com/restart-failed-batch/?file_id_db=${fileId}`,
-        {
-          method: "POST",
-          headers: {
-            "Accept": "application/json",
-          },
+      try {
+        const response = await fetch(
+          `https://dev-image-distro.popovtech.com/restart-failed-batch/?file_id_db=${fileId}`,
+          {
+            method: "POST",
+            headers: {
+              "Accept": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        setIsRestarting(false);
+        showToast("Restart Complete", data.message, "success");
+        fetchJobData();
+      } catch (error) {
+        setIsRestarting(false);
+        showToast("Restart Failed", `Error: ${error instanceof Error ? error.message : "Unknown error"}`, "error");
       }
-
-      const data = await response.json();
-      setIsRestarting(false);
-      showToast("Restart Complete", data.message, "success");
-      fetchJobData();
-    } catch (error) {
-      setIsRestarting(false);
-      showToast("Restart Failed", `Error: ${error.message}`, "error");
-    }
+    };
   };
-};
 const handleRestartClick = handleDevRestart(
-  job.id, // Use job.id instead of hardcoded 194 for flexibility
+  job.id,
   setIsRestarting,
   showToast,
   fetchJobData
