@@ -283,15 +283,26 @@ const prepareFormData = (): FormData => {
   const imageColumnImage = readImageCol || imageAddCol;
   if (imageColumnImage) formData.append('imageColumnImage', imageColumnImage);
   formData.append('searchColImage', styleCol);
-  formData.append('brandColImage', brandCol);
+  
+  // Handle manual brand
+  if (columnMapping.brand === null && manualBrand) {  // If brand isn't mapped but manualBrand is set
+      formData.append('brandColImage', 'MANUAL');
+      formData.append('manualBrand', manualBrand);
+  } else {
+      formData.append('brandColImage', brandCol);
+  }
+
   if (colorCol) formData.append('ColorColImage', colorCol);
   if (categoryCol) formData.append('CategoryColImage', categoryCol);
-  // Ensure header_index is a valid 1-based number
   if (headerRowIndex === null || headerRowIndex < 0) {
       throw new Error("Invalid header row index");
   }
-  formData.append('header_index', String(headerRowIndex + 1));  // Convert 0-based to 1-based
+  formData.append('header_index', String(headerRowIndex + 1));  // 1-based index
 
+  // Debug FormData
+  for (let pair of formData.entries()) {
+      console.log(`${pair[0]}: ${pair[1]}`);
+  }
   return formData;
 };
   const openMappingModal = useCallback((columnIndex: number) => {
