@@ -245,15 +245,36 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     setActiveTab(2);
   };
 
-  const handleDevRestart = () => {
-    setIsRestarting(true);
-    showToast("Restart Initiated", "Restarting job in development mode", "info");
-    setTimeout(() => {
-      setIsRestarting(false);
-      showToast("Restart Complete", "Job restarted successfully", "success");
-      fetchJobData();
-    }, 2000);
-  };
+  function handleDevRestart(fileId = 194) {
+    return async (setIsRestarting, showToast, fetchJobData) => {
+      setIsRestarting(true);
+      showToast("Restart Initiated", "Restarting job in development mode", "info");
+  
+      try {
+        const response = await fetch(
+          `https://dev-image-distro.popovtech.com/restart-failed-batch/?file_id_db=${fileId}`,
+          {
+            method: "POST",
+            headers: {
+              "Accept": "application/json",
+            },
+          }
+        );
+  
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+  
+        const data = await response.json();
+        setIsRestarting(false);
+        showToast("Restart Complete", data.message, "success"); // e.g., "Processing restart initiated for FileID: 194"
+        fetchJobData(); // Refresh job data after success
+      } catch (error) {
+        setIsRestarting(false);
+        showToast("Restart Failed", `Error: ${error.message}`, "error");
+      }
+    };
+  }
 
   const handleCreateXLS = () => {
     setIsCreatingXLS(true);
