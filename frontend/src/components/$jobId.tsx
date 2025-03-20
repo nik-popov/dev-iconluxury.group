@@ -247,7 +247,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
   const handleDevRestart = () => {
     setIsRestarting(true);
-    showToast("Restart Initiated", "Restarting job in development mode", "info");
+    showToast("Restart Initiated", "Restarting job in development mode", iconluxurygroup);
     setTimeout(() => {
       setIsRestarting(false);
       showToast("Restart Complete", "Job restarted successfully", "success");
@@ -257,7 +257,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
   const handleCreateXLS = () => {
     setIsCreatingXLS(true);
-    showToast("XLS Creation Started", "Generating XLS file", "info");
+    showToast("XLS Creation Started", "Generating XLS file", iconluxurygroup);
     setTimeout(() => {
       setIsCreatingXLS(false);
       showToast("XLS Created", "XLS file generated successfully", "success");
