@@ -254,8 +254,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       showToast("XLS Created", "XLS file generated successfully", "success");
     }, 2000);
   };
+
 // restartHandler.ts
-export const handleDevRestart = (
+  const handleDevRestart = (
   fileId: number = 194,
   setIsRestarting: (value: boolean) => void,
   showToast: (title: string, message: string, type: string) => void,
@@ -290,12 +291,18 @@ export const handleDevRestart = (
     }
   };
 };
+const handleRestartClick = handleDevRestart(
+  job.id, // Use job.id instead of hardcoded 194 for flexibility
+  setIsRestarting,
+  showToast,
+  fetchJobData
+);
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4} flexWrap="wrap" gap={3}>
         <Text fontSize="lg" fontWeight="bold" color="gray.800">Job Overview</Text>
         <Flex gap={3}>
-          <Button size="sm" colorScheme="red" onClick={handleDevRestart} isLoading={isRestarting}>
+          <Button size="sm" colorScheme="red" onClick={handleRestartClick} isLoading={isRestarting}>
             Dev Restart
           </Button>
           <Button size="sm" colorScheme="blue" onClick={handleCreateXLS} isLoading={isCreatingXLS}>
