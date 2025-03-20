@@ -246,51 +246,56 @@ const GoogleSerpForm: React.FC = () => {
     return true;
   };
 
-  const prepareFormData = (): FormData => {
-    const formData = new FormData();
-    formData.append('fileUploadImage', file!);
-    
-    const mappingToColumn = (key: keyof ColumnMapping, defaultVal: string) => 
-      columnMapping[key] !== null ? indexToColumnLetter(columnMapping[key]!) : defaultVal;
-
-    const styleCol = mappingToColumn('style', 'A');
-    const brandCol = mappingToColumn('brand', 'B');
-    const imageAddCol = mappingToColumn('imageAdd', '');
-    const readImageCol = mappingToColumn('readImage', '');
-    const colorCol = mappingToColumn('colorName', '');
-    const categoryCol = mappingToColumn('category', '');
-
-    const imageColumnImage = readImageCol || imageAddCol;
-    if (imageColumnImage) formData.append('imageColumnImage', imageColumnImage);
-    formData.append('searchColImage', styleCol);
-    formData.append('brandColImage', brandCol);
-    if (colorCol) formData.append('ColorColImage', colorCol);
-    if (categoryCol) formData.append('CategoryColImage', categoryCol);
-    formData.append('header_index', String(headerRowIndex));
-    
-    return formData;
-  };
-
-  // Column Mapping
-  const handleMappingConfirm = useCallback((confirm: boolean) => {
-    if (!confirm || selectedColumn === null) {
-      resetMappingModal();
-      return;
-    }
-
-    const newMapping = { ...columnMapping };
-    Object.keys(newMapping).forEach(key => {
-      if (newMapping[key as keyof ColumnMapping] === selectedColumn) {
-        newMapping[key as keyof ColumnMapping] = null;
-      }
-    });
-    if (selectedField) {
-      newMapping[selectedField as keyof ColumnMapping] = selectedColumn;
-    }
-    setColumnMapping(newMapping);
+// In handleMappingConfirm, ensure mappings are saved
+const handleMappingConfirm = useCallback((confirm: boolean) => {
+  if (!confirm || selectedColumn === null) {
     resetMappingModal();
-  }, [selectedColumn, selectedField, columnMapping]);
+    return;
+  }
+  const newMapping = { ...columnMapping };
+  Object.keys(newMapping).forEach(key => {
+    if (newMapping[key as keyof ColumnMapping] === selectedColumn) {
+      newMapping[key as keyof ColumnMapping] = null;
+    }
+  });
+  if (selectedField) {
+    newMapping[selectedField as keyof ColumnMapping] = selectedColumn;
+  }
+  setColumnMapping(newMapping);
+  console.log('New mapping:', newMapping); // Debug
+  resetMappingModal();
+}, [selectedColumn, selectedField, columnMapping]);
 
+// In prepareFormData, ensure all mapped columns are sent
+const prepareFormData = (): FormData => {
+  const formData = new FormData();
+  formData.append('fileUploadImage', file!);
+
+  const mappingToColumn = (key: keyof ColumnMapping, defaultVal: string) => 
+    columnMapping[key] !== null ? indexToColumnLetter(columnMapping[key]!) : defaultVal;
+
+  const styleCol = mappingToColumn('style', 'A');
+  const brandCol = mappingToColumn('brand', 'B');
+  const imageAddCol = mappingToColumn('imageAdd', '');
+  const readImageCol = mappingToColumn('readImage', '');
+  const colorCol = mappingToColumn('colorName', '');
+  const categoryCol = mappingToColumn('category', '');
+
+  const imageColumnImage = readImageCol || imageAddCol;
+  if (imageColumnImage) formData.append('imageColumnImage', imageColumnImage);
+  formData.append('searchColImage', styleCol);
+  formData.append('brandColImage', brandCol);
+  if (colorCol) formData.append('ColorColImage', colorCol);
+  if (categoryCol) formData.append('CategoryColImage', categoryCol);
+  if (imageAddCol) formData.append('imageAddColImage', imageAddCol); // Explicitly send imageAdd
+  if (readImageCol) formData.append('readImageColImage', readImageCol); // Explicitly send readImage
+  formData.append('header_index', String(headerRowIndex));
+
+  for (let pair of formData.entries()) {
+    console.log(`${pair[0]}: ${pair[1]}`);
+  }
+  return formData;
+};
   const openMappingModal = useCallback((columnIndex: number) => {
     setSelectedColumn(columnIndex);
     const currentField = Object.keys(columnMapping).find(key => columnMapping[key as keyof ColumnMapping] === columnIndex);
