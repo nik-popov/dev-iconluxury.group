@@ -4,7 +4,6 @@ import { Container, Flex, Text, Tabs, TabList, TabPanels, Tab, TabPanel } from "
 import OverviewGSerp from "../../../components/OverviewGSerp";
 import LogsGSerp from "../../../components/LogsGSerp"; 
 import PlaygroundGSerp from "../../../components/PlaygroundGSerp";
-import ApiKeyGSerp from "../../../components/ApiKeyGSerp";
 import WhitelistGSerp from "../../../components/WhitelistGSerp";
 
 const GoogleSerpPage = () => {
@@ -12,7 +11,6 @@ const GoogleSerpPage = () => {
     { title: "Overview", component: () => <OverviewGSerp /> },
     { title: "Logs", component: () => <LogsGSerp /> }, // Uses the tabbed LogsGSerp
     { title: "Playground", component: () => <PlaygroundGSerp /> },
-    { title: "API Key", component: () => <ApiKeyGSerp /> },
     { title: "Whitelist", component: () => <WhitelistGSerp /> },
   ];
 
