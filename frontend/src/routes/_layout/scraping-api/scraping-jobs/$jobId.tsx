@@ -244,8 +244,18 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     setSearchQuery(domain);
     setActiveTab(2);
   };
-// In a utility file, e.g., restartHandler.ts
- const handleDevRestart = (
+
+
+  const handleCreateXLS = () => {
+    setIsCreatingXLS(true);
+    showToast("XLS Creation Started", "Generating XLS file", "info");
+    setTimeout(() => {
+      setIsCreatingXLS(false);
+      showToast("XLS Created", "XLS file generated successfully", "success");
+    }, 2000);
+  };
+// restartHandler.ts
+export const handleDevRestart = (
   fileId: number = 194,
   setIsRestarting: (value: boolean) => void,
   showToast: (title: string, message: string, type: string) => void,
@@ -280,16 +290,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     }
   };
 };
-
-  const handleCreateXLS = () => {
-    setIsCreatingXLS(true);
-    showToast("XLS Creation Started", "Generating XLS file", "info");
-    setTimeout(() => {
-      setIsCreatingXLS(false);
-      showToast("XLS Created", "XLS file generated successfully", "success");
-    }, 2000);
-  };
-
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4} flexWrap="wrap" gap={3}>
