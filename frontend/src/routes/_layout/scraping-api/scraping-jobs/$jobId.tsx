@@ -412,6 +412,15 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               Dev Distro Image
             </Link>
           </StatHelpText>
+          <StatLabel color="gray.600">API Reference (dev service-distro-image)</StatLabel>
+          <StatHelpText wordBreak="break-all">
+          <Link href="https://dev-image-distro.popovtech.com/redoc" isExternal color="blue.600">
+              Redoc
+            </Link>
+            <Link href="https://dev-image-distro.popovtech.com/docs" isExternal color="blue.300">
+              Openapi
+            </Link>
+          </StatHelpText>
         </Stat>
         <Stat mt={4}>
           <StatLabel color="gray.600">Status</StatLabel>
