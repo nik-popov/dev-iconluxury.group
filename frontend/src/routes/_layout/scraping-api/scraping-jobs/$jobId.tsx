@@ -343,16 +343,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       "Process AI Analysis",
       { file_id: String(job.id) }
     );
-
-  const handleCreateXLS = () => {
-    setIsCreatingXLS(true);
-    showToast("XLS Creation Started", "Generating XLS file", "info");
-    setTimeout(() => {
-      setIsCreatingXLS(false);
-      showToast("XLS Created", "XLS file generated successfully", "success");
-    }, 2000);
-  };
-
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4} flexWrap="wrap" gap={3}>
@@ -360,9 +350,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         <Flex gap={3} flexWrap="wrap">
           <Button size="sm" colorScheme="red" onClick={handleRestartClick} isLoading={isRestarting}>
             Dev Restart
-          </Button>
-          <Button size="sm" colorScheme="blue" onClick={handleCreateXLS} isLoading={isCreatingXLS}>
-            Create XLS File
           </Button>
           <Button
             size="sm"
@@ -403,13 +390,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             isLoading={isProcessingAI}
           >
             Process AI
-          </Button>
-          <Button
-            size="sm"
-            colorScheme={sortBy === "linesheet" ? "blue" : "gray"}
-            onClick={() => setSortBy(sortBy === "linesheet" ? null : "linesheet")}
-          >
-            Sort by Linesheet Pic
           </Button>
         </Flex>
       </Flex>
