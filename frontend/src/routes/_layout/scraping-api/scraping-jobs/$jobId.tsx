@@ -339,15 +339,16 @@ const handleRestartClick = handleDevRestart(
               {job.inputFile}
             </Link>
           </StatHelpText>
-        </Stat>
-        <Stat mt={4}>
-          <StatLabel color="gray.600">Input File</StatLabel>
+          <StatLabel color="gray.600">Ray Dashboard</StatLabel>
           <StatHelpText wordBreak="break-all">
             <Link href="https://ray-distro-image.popovtech.com" isExternal color="blue.300">
-            Ray Dev Distro Image
+            Dev Distro Image
             </Link>
           </StatHelpText>
         </Stat>
+ 
+
+
 
         <Stat mt={4}>
           <StatLabel color="gray.600">Status</StatLabel>
