@@ -415,10 +415,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           <Link href="https://dev-image-distro.popovtech.com/redoc" isExternal color="blue.600">
               Redoc
             </Link>
-            <Link href="https://dev-image-distro.popovtech.com/docs" isExternal color="blue.300">
+          </StatHelpText>
+          <StatHelpText wordBreak="break-all">
+          <Link href="https://dev-image-distro.popovtech.com/docs" isExternal color="blue.300">
               Openapi
             </Link>
-          </StatHelpText>
+            </StatHelpText>
         </Stat>
         <Stat mt={4}>
           <StatLabel color="gray.600">Status</StatLabel>
