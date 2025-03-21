@@ -171,6 +171,11 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 }) => {
   const [isRestarting, setIsRestarting] = useState(false);
   const [isCreatingXLS, setIsCreatingXLS] = useState(false);
+  const [isMatchAISort, setIsMatchAISort] = useState(false);
+  const [isInitialSort, setIsInitialSort] = useState(false);
+  const [isSearchSort, setIsSearchSort] = useState(false);
+  const [isGeneratingDownload, setIsGeneratingDownload] = useState(false);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
   const showToast = useCustomToast();
 
   const [sortConfig, setSortConfig] = useState<{
@@ -245,6 +250,99 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     setActiveTab(2);
   };
 
+  const handleApiCall = async (
+    url: string,
+    method: "GET" | "POST",
+    setLoading: (value: boolean) => void,
+    successMessage: string,
+    body?: any
+  ) => {
+    setLoading(true);
+    showToast("Action Started", `Initiating ${successMessage.toLowerCase()}`, "info");
+
+    try {
+      const headers: Record<string, string> = {
+        Accept: "application/json",
+      };
+      if (method === "POST") {
+        headers["Content-Type"] = "application/json";
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers,
+        body: method === "POST" && body ? JSON.stringify(body) : undefined,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+      }
+
+      const data = await response.json();
+      setLoading(false);
+      showToast("Success", `${successMessage}: ${data.message || "Completed"}`, "success");
+      fetchJobData(); // Refresh job data after successful action
+    } catch (error) {
+      setLoading(false);
+      showToast(
+        "Error",
+        `Failed to ${successMessage.toLowerCase()}: ${error instanceof Error ? error.message : "Unknown error"}`,
+        "error"
+      );
+    }
+  };
+
+  const handleMatchAISort = () =>
+    handleApiCall(
+      `https://dev-image-distro.popovtech.com/match_ai_sort/${job.id}`,
+      "GET",
+      setIsMatchAISort,
+      "Match AI Sort"
+    );
+
+  const handleInitialSort = () =>
+    handleApiCall(
+      `https://dev-image-distro.popovtech.com/initial_sort/${job.id}`,
+      "GET",
+      setIsInitialSort,
+      "Initial Sort"
+    );
+
+  const handleSearchSort = () =>
+    handleApiCall(
+      `https://dev-image-distro.popovtech.com/search_sort/${job.id}`,
+      "GET",
+      setIsSearchSort,
+      "Search Sort"
+    );
+
+  const handleRestartClick = () =>
+    handleApiCall(
+      `https://dev-image-distro.popovtech.com/restart-failed-batch/`,
+      "POST",
+      setIsRestarting,
+      "Restart Failed Batch",
+      { file_id_db: String(job.id) }
+    );
+
+  const handleGenerateDownload = () =>
+    handleApiCall(
+      `https://dev-image-distro.popovtech.com/generate-download-file/`,
+      "POST",
+      setIsGeneratingDownload,
+      "Generate Download File",
+      { file_id: job.id }
+    );
+
+  const handleProcessAI = () =>
+    handleApiCall(
+      `https://dev-image-distro.popovtech.com/process-ai-analysis/`,
+      "POST",
+      setIsProcessingAI,
+      "Process AI Analysis",
+      { file_id: String(job.id) }
+    );
 
   const handleCreateXLS = () => {
     setIsCreatingXLS(true);
@@ -255,67 +353,56 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     }, 2000);
   };
 
-  const handleDevRestart = (
-    fileId: string,
-    setIsRestarting: (value: boolean) => void,
-    showToast: (title: string, message: string, type: "info" | "success" | "error") => void,
-    fetchJobData: () => void
-  ) => {
-    return async () => {
-      setIsRestarting(true);
-      showToast("Restart Initiated", "Restarting job in development mode", "info");
-  
-      try {
-        const response = await fetch(
-          `https://dev-image-distro.popovtech.com/restart-failed-batch/?file_id_db=${fileId}`,
-          {
-            method: "POST",
-            headers: {
-              "Accept": "application/json",
-            },
-          }
-        );
-  
-        console.log("Response status:", response.status, "OK:", response.ok);
-        console.log("Response headers:", [...response.headers.entries()]);
-  
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
-        }
-  
-        const data = await response.json();
-        console.log("Response data:", data);
-        setIsRestarting(false);
-        showToast("Restart Complete", data.message, "success");
-        fetchJobData();
-      } catch (error) {
-        console.error("Restart error:", error);
-        setIsRestarting(false);
-        showToast(
-          "Restart Failed",
-          `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
-          "error"
-        );
-      }
-    };
-  };
-const handleRestartClick = handleDevRestart(
-  String(job.id),
-  setIsRestarting,
-  showToast,
-  fetchJobData
-);
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4} flexWrap="wrap" gap={3}>
         <Text fontSize="lg" fontWeight="bold" color="gray.800">Job Overview</Text>
-        <Flex gap={3}>
+        <Flex gap={3} flexWrap="wrap">
           <Button size="sm" colorScheme="red" onClick={handleRestartClick} isLoading={isRestarting}>
             Dev Restart
           </Button>
           <Button size="sm" colorScheme="blue" onClick={handleCreateXLS} isLoading={isCreatingXLS}>
             Create XLS File
+          </Button>
+          <Button
+            size="sm"
+            colorScheme="green"
+            onClick={handleMatchAISort}
+            isLoading={isMatchAISort}
+          >
+            Match AI Sort
+          </Button>
+          <Button
+            size="sm"
+            colorScheme="green"
+            onClick={handleInitialSort}
+            isLoading={isInitialSort}
+          >
+            Initial Sort
+          </Button>
+          <Button
+            size="sm"
+            colorScheme="green"
+            onClick={handleSearchSort}
+            isLoading={isSearchSort}
+          >
+            Search Sort
+          </Button>
+          <Button
+            size="sm"
+            colorScheme="blue"
+            onClick={handleGenerateDownload}
+            isLoading={isGeneratingDownload}
+          >
+            Generate Download
+          </Button>
+          <Button
+            size="sm"
+            colorScheme="purple"
+            onClick={handleProcessAI}
+            isLoading={isProcessingAI}
+          >
+            Process AI
           </Button>
           <Button
             size="sm"
@@ -342,14 +429,10 @@ const handleRestartClick = handleDevRestart(
           <StatLabel color="gray.600">Ray Dashboard</StatLabel>
           <StatHelpText wordBreak="break-all">
             <Link href="https://ray-distro-image.popovtech.com" isExternal color="blue.300">
-            Dev Distro Image
+              Dev Distro Image
             </Link>
           </StatHelpText>
         </Stat>
- 
-
-
-
         <Stat mt={4}>
           <StatLabel color="gray.600">Status</StatLabel>
           <StatNumber>
