@@ -329,9 +329,7 @@ function Explore() {
                 >
                   Openapi
                 </Button>
-                <HStack spacing={2}>
                 <Text fontWeight="bold" color="black">API Reference (prod service-distro-image)</Text>
-              <HStack spacing={2}>
                 <Button
                   as="a"
                   href="https://dev-image-distro.popovtech.com/redoc"
@@ -353,8 +351,6 @@ function Explore() {
                   Openapi
                 </Button>
                 </HStack>
-                </HStack>
-              </HStack>
             </VStack>
           </Box>
         </Flex>
