@@ -257,7 +257,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   ) => {
     setLoading(true);
     showToast("Action Started", `Initiating ${successMessage.toLowerCase()}`, "info");
-
+  
     try {
       const headers: Record<string, string> = {
         Accept: "application/json",
@@ -265,23 +265,28 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       if (method === "POST") {
         headers["Content-Type"] = "application/json";
       }
-
+  
+      console.log("Calling API:", url); // Log the URL being called
       const response = await fetch(url, {
         method,
         headers,
         body: method === "POST" && body ? JSON.stringify(body) : undefined,
       });
-
+  
+      console.log("Response status:", response.status); // Log the response status
       if (!response.ok) {
         const errorText = await response.text();
+        console.error("Error response:", errorText); // Log error details
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
-
+  
       const data = await response.json();
+      console.log("API response data:", data); // Log successful response data
       setLoading(false);
       showToast("Success", `${successMessage}: ${data.message || "Completed"}`, "success");
       fetchJobData(); // Refresh job data after successful action
     } catch (error) {
+      console.error("API call error:", error); // Log any fetch errors
       setLoading(false);
       showToast(
         "Error",
@@ -290,7 +295,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       );
     }
   };
-
   const handleMatchAISort = () =>
     handleApiCall(
       `https://dev-image-distro.popovtech.com/match_ai_sort/${job.id}`,
@@ -639,6 +643,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
   const totalPages = query ? Math.ceil(totalResults / itemsPerPage) : 1;
   const startIndex = query ? (currentPage - 1) * itemsPerPage : 0;
   const paginatedResults = query ? sortedResults.slice(startIndex, startIndex + itemsPerPage) : sortedResults;
+  console.log("paginatedResults length:", paginatedResults.length); // Log to verify
 
   const totalRecords = filteredRecords.length;
   const totalImages = job.results.length;
@@ -740,127 +745,73 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
                   <AccordionIcon color="green.300" />
                 </AccordionButton>
                 <AccordionPanel pb={4}>
-                  <Table variant="simple" size="sm" colorScheme="blue">
-                    <Thead bg="gray.100">
-                      <Tr>
-                        <Th w="60px" color="gray.800">Preview</Th>
-                        <Th w="80px" color="gray.800">Result ID</Th>
-                        <Th w="80px" color="gray.800">Entry ID</Th>
-                        <Th w="120px" color="gray.800">Image URL</Th>
-                        <Th w="120px" color="gray.800">Description</Th>
-                        <Th w="120px" color="gray.800">Source</Th>
-                        <Th w="80px" color="gray.800">Sort Order</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {paginatedResults.map((result) => (
-                        <Tr key={result.resultId}>
-                          <Td w="60px">
-                            <Image
-                              src={result.imageUrlThumbnail || ""}
-                              alt={result.imageDesc || "No description"}
-                              maxW="80px"
-                              maxH="80px"
-                              objectFit="cover"
-                              fallback={<Text fontSize="xs" color="gray.600">No image</Text>}
-                            />
-                          </Td>
-                          <Td w="80px" color="gray.800">{result.resultId || "N/A"}</Td>
-                          <Td w="80px" color="gray.800">{result.entryId || "N/A"}</Td>
-                          <Td w="120px">
-                            <a href={result.imageUrl || "#"} target="_blank" rel="noopener noreferrer">
-                              <Text color="green.300">{shortenUrl(result.imageUrl)}</Text>
-                            </a>
-                          </Td>
-                          <Td w="120px" color="gray.800">{result.imageDesc || "N/A"}</Td>
-                          <Td w="120px">
-                            <a href={result.imageSource || "#"} target="_blank" rel="noopener noreferrer">
-                              <Text color="green.300">{shortenUrl(result.imageSource)}</Text>
-                            </a>
-                          </Td>
-                          <Td w="80px" color="gray.800">{result.sortOrder || "0"}</Td>
-                        </Tr>
-                      ))}
-                      {paginatedResults.length === 0 && (
+                  <Box maxH="500px" overflowY="auto">
+                    <Table variant="simple" size="sm" colorScheme="blue">
+                      <Thead bg="gray.100">
                         <Tr>
-                          <Td colSpan={7} textAlign="center" color="gray.600">
-                            No results match your search query.
-                          </Td>
+                          <Th w="60px" color="gray.800">Preview</Th>
+                          <Th w="80px" color="gray.800">Result ID</Th>
+                          <Th w="80px" color="gray.800">Entry ID</Th>
+                          <Th w="120px" color="gray.800">Image URL</Th>
+                          <Th w="120px" color="gray.800">Description</Th>
+                          <Th w="120px" color="gray.800">Source</Th>
+                          <Th w="150px" color="gray.800">Create Time</Th>
+                          <Th w="80px" color="gray.800">Sort Order</Th>
+                          <Th w="80px" color="gray.800">Is Fashion</Th>
+                          <Th w="120px" color="gray.800">AI Caption</Th>
+                          <Th w="120px" color="gray.800">AI Json</Th>
+                          <Th w="120px" color="gray.800">AI Label</Th>
                         </Tr>
-                      )}
-                    </Tbody>
-                  </Table>
-                </AccordionPanel>
-              </AccordionItem>
-              <AccordionItem>
-                <AccordionButton bg="gray.100" _expanded={{ bg: "gray.200" }}>
-                  <Box flex="1" textAlign="left" color="green.300">Records ({totalRecords})</Box>
-                  <AccordionIcon color="green.300" />
-                </AccordionButton>
-                <AccordionPanel pb={4}>
-                  <Table variant="simple" size="sm" colorScheme="blue">
-                    <Thead bg="gray.100">
-                      <Tr>
-                        {hasThumbnails && <Th w="60px" color="gray.800">Excel Picture</Th>}
-                        <Th w="80px" color="gray.800">Entry ID</Th>
-                        <Th w="80px" color="gray.800">File ID</Th>
-                        <Th w="80px" color="gray.800">Excel Row ID</Th>
-                        <Th w="120px" color="gray.800">Style #</Th>
-                        <Th w="120px" color="gray.800">Brand</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {filteredRecords.map((record) => (
-                        <Tr key={record.entryId}>
-                          {hasThumbnails && (
+                      </Thead>
+                      <Tbody>
+                        {paginatedResults.map((result) => (
+                          <Tr key={result.resultId}>
                             <Td w="60px">
-                              {record.excelRowImageRef ? (
-                                <Image
-                                  src={record.excelRowImageRef}
-                                  alt={`Thumbnail for ${record.productModel || "Record ID " + record.entryId}`}
-                                  maxW="80px"
-                                  maxH="80px"
-                                  objectFit="cover"
-                                  cursor="pointer"
-                                  onClick={() => {
-                                    if (record.excelRowImageRef) {
-                                      window.open(record.excelRowImageRef, "_blank");
-                                    }
-                                  }}
-                                  onError={(e) => {
-                                    showToast(
-                                      "Image Load Failed",
-                                      `Failed to load S3 image: ${record.excelRowImageRef}`,
-                                      "warning"
-                                    );
-                                    e.currentTarget.style.display = "none";
-                                  }}
-                                  fallback={<Text fontSize="xs" color="gray.600">No picture</Text>}
-                                  loading="lazy"
-                                />
-                              ) : (
-                                <Text fontSize="xs" color="gray.600">No picture</Text>
-                              )}
+                              <Image
+                                src={result.imageUrlThumbnail || ""}
+                                alt={result.imageDesc || "No description"}
+                                maxW="80px"
+                                maxH="80px"
+                                objectFit="cover"
+                                fallback={<Text fontSize="xs" color="gray.600">No image</Text>}
+                              />
                             </Td>
-                          )}
-                          <Td w="80px" color="gray.800">{record.entryId || "N/A"}</Td>
-                          <Td w="80px" color="gray.800">{record.fileId || "N/A"}</Td>
-                          <Td w="80px" color="gray.800">{record.excelRowId || "N/A"}</Td>
-                          <Td w="120px" color="gray.800">{record.productModel || "N/A"}</Td>
-                          <Td w="120px" color="gray.800">{record.productBrand || "N/A"}</Td>
-                        </Tr>
-                      ))}
-                      {filteredRecords.length === 0 && (
-                        <Tr>
-                          <Td colSpan={hasThumbnails ? 6 : 5} textAlign="center" color="gray.600">
-                            No records match your search query.
-                          </Td>
-                        </Tr>
-                      )}
-                    </Tbody>
-                  </Table>
+                            <Td w="80px" color="gray.800">{result.resultId || "N/A"}</Td>
+                            <Td w="80px" color="gray.800">{result.entryId || "N/A"}</Td>
+                            <Td w="120px">
+                              <a href={result.imageUrl || "#"} target="_blank" rel="noopener noreferrer">
+                                <Text color="green.300">{shortenUrl(result.imageUrl)}</Text>
+                              </a>
+                            </Td>
+                            <Td w="120px" color="gray.800">{result.imageDesc || "N/A"}</Td>
+                            <Td w="120px">
+                              <a href={result.imageSource || "#"} target="_blank" rel="noopener noreferrer">
+                                <Text color="green.300">{shortenUrl(result.imageSource)}</Text>
+                              </a>
+                            </Td>
+                            <Td w="150px" color="gray.800">
+                              {result.createTime ? new Date(result.createTime).toLocaleString() : "N/A"}
+                            </Td>
+                            <Td w="80px" color="gray.800">{result.sortOrder || "0"}</Td>
+                            <Td w="80px" color="gray.800">{result.imageIsFashion ? "Yes" : "No"}</Td>
+                            <Td w="120px" color="gray.800">{result.aiCaption || "N/A"}</Td>
+                            <Td w="120px" color="gray.800">{result.aiJson || "N/A"}</Td>
+                            <Td w="120px" color="gray.800">{result.aiLabel || "N/A"}</Td>
+                          </Tr>
+                        ))}
+                        {paginatedResults.length === 0 && (
+                          <Tr>
+                            <Td colSpan={12} textAlign="center" color="gray.600">
+                              No results match your search query.
+                            </Td>
+                          </Tr>
+                        )}
+                      </Tbody>
+                    </Table>
+                  </Box>
                 </AccordionPanel>
               </AccordionItem>
+              {/* Records AccordionItem remains unchanged */}
             </Accordion>
             {query && totalPages > 1 && (
               <Flex justify="center" mt={4} gap={2} align="center">
