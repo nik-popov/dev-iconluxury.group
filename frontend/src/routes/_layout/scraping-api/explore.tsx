@@ -286,7 +286,7 @@ function Explore() {
                 GitHub
               </Button>
               <Divider />
-              <Text fontWeight="bold" color="gray.600">Ray Dashboard</Text>
+              <Text fontWeight="bold" color="black">Ray Dashboard</Text>
               <Button
                 as="a"
                 href="https://ray-distro-image.popovtech.com"
@@ -297,7 +297,7 @@ function Explore() {
               >
                 Dev Distro Image
               </Button>
-              <Text fontWeight="bold" color="gray.600">API Reference (dev service-distro-image)</Text>
+              <Text fontWeight="bold" color="black">API Reference (dev service-distro-image)</Text>
               <HStack spacing={2}>
                 <Button
                   as="a"
@@ -319,6 +319,29 @@ function Explore() {
                 >
                   Openapi
                 </Button>
+                <Text fontWeight="bold" color="black">API Reference (prod service-distro-image)</Text>
+              <HStack spacing={2}>
+                <Button
+                  as="a"
+                  href="https://dev-image-distro.popovtech.com/redoc"
+                  target="_blank"
+                  colorScheme="blue"
+                  size="sm"
+                  variant="outline"
+                >
+                  Redoc
+                </Button>
+                <Button
+                  as="a"
+                  href="https://dev-image-distro.popovtech.com/docs"
+                  target="_blank"
+                  colorScheme="blue"
+                  size="sm"
+                  variant="outline"
+                >
+                  Openapi
+                </Button>
+                </HStack>
               </HStack>
             </VStack>
           </Box>
