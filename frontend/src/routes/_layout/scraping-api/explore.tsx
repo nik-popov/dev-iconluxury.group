@@ -275,19 +275,18 @@ function Explore() {
               >
                 Submit Form
               </Button>
-              <Divider />
               <Button
                 as="a"
                 href="https://github.com/iconluxurygroup"
                 leftIcon={<FiGithub />}
                 variant="outline"
                 size="sm"
-                colorScheme="green"
+                colorScheme="blue"
               >
                 GitHub
               </Button>
+              <Divider />
               <Text fontWeight="bold" color="black">Ray Dashboard</Text>
-              
               <Button
                 as="a"
                 href="https://ray-distro-image.popovtech.com"
