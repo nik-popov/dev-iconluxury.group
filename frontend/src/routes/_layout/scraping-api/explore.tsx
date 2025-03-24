@@ -308,7 +308,7 @@ function Explore() {
                 prod service-distro-image
               </Button>
               <Text fontWeight="bold" color="black">API Reference</Text>
-              <Text fontWeight="bold" color="gray.800">(dev service-distro-image)</Text>
+              <Text color="gray.700">(dev service-distro-image)</Text>
               <HStack spacing={2}>
                 <Button
                   as="a"
@@ -331,7 +331,7 @@ function Explore() {
                   Openapi
                 </Button>
                 </HStack>
-                <Text fontWeight="bold" color="gray.800">(prod service-distro-image)</Text>
+                <Text color="gray.700">(prod service-distro-image)</Text>
                 <HStack spacing={2}>
                 <Button
                   as="a"
