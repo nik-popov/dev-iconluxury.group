@@ -329,6 +329,7 @@ function Explore() {
                 >
                   Openapi
                 </Button>
+                <HStack spacing={2}>
                 <Text fontWeight="bold" color="black">API Reference (prod service-distro-image)</Text>
               <HStack spacing={2}>
                 <Button
@@ -351,6 +352,7 @@ function Explore() {
                 >
                   Openapi
                 </Button>
+                </HStack>
                 </HStack>
               </HStack>
             </VStack>
