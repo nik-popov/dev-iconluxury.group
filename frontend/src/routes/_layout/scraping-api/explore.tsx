@@ -336,7 +336,7 @@ function Explore() {
                 <HStack spacing={2}>
                 <Button
                   as="a"
-                  href="https://dev-image-distro.popovtech.com/redoc"
+                  href="https://image-backend-cms-icon-7.popovtech.com/redoc"
                   target="_blank"
                   colorScheme="blue"
                   size="sm"
@@ -346,7 +346,7 @@ function Explore() {
                 </Button>
                 <Button
                   as="a"
-                  href="https://dev-image-distro.popovtech.com/docs"
+                  href="https://image-backend-cms-icon-7.popovtech.com/docs"
                   target="_blank"
                   colorScheme="blue"
                   size="sm"
@@ -356,7 +356,7 @@ function Explore() {
                 </Button>
                 </HStack>
                 <Divider />
-                
+
             </VStack>
           </Box>
         </Flex>
