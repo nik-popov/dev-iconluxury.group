@@ -275,6 +275,7 @@ function Explore() {
               >
                 Submit Form
               </Button>
+              <Divider />
               <Button
                 as="a"
                 href="https://github.com/iconluxurygroup"
@@ -285,8 +286,8 @@ function Explore() {
               >
                 GitHub
               </Button>
-              <Divider />
               <Text fontWeight="bold" color="black">Ray Dashboard</Text>
+              
               <Button
                 as="a"
                 href="https://ray-distro-image.popovtech.com"
