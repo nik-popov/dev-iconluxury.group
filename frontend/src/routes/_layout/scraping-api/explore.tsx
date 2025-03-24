@@ -295,7 +295,17 @@ function Explore() {
                 size="sm"
                 variant="outline"
               >
-                Dev Distro Image
+               dev service-distro-image
+              </Button>
+              <Button
+                as="a"
+                href="https://ray-distro-image.popovtech.com"
+                target="_blank"
+                colorScheme="blue"
+                size="sm"
+                variant="outline"
+              >
+                prod service-distro-image
               </Button>
               <Text fontWeight="bold" color="black">API Reference (dev service-distro-image)</Text>
               <HStack spacing={2}>
