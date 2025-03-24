@@ -307,6 +307,7 @@ function Explore() {
               >
                 prod service-distro-image
               </Button>
+              <Divider />
               <Text fontWeight="bold" color="black">API Reference</Text>
               <Text color="gray.700">(dev service-distro-image)</Text>
               <HStack spacing={2}>
@@ -354,6 +355,8 @@ function Explore() {
                   Openapi
                 </Button>
                 </HStack>
+                <Divider />
+                
             </VStack>
           </Box>
         </Flex>
