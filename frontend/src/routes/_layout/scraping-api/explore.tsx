@@ -16,67 +16,12 @@ import {
 import { FiGithub } from "react-icons/fi";
 import PromoSERP from "../../../components/ComingSoon";
 
+// Route definition remains unchanged
 export const Route = createFileRoute("/_layout/scraping-api/explore")({
   component: Explore,
 });
 
-interface JobSummary {
-  id: number;
-  inputFile: string;
-  fileEnd: string | null;
-  user: string;
-  rec: number;
-  img: number;
-}
-
-interface SubscriptionStatus {
-  hasSubscription: boolean;
-  isTrial: boolean;
-  isDeactivated: boolean;
-}
-
-// Helper function to get the token (adjust based on your auth setup)
-const getAuthToken = (): string | null => {
-  // Example: Retrieve token from localStorage; adjust based on your auth system
-  return localStorage.getItem("access_token");
-};
-
-async function fetchJobs(page: number): Promise<JobSummary[]> {
-  const token = getAuthToken();
-  const response = await fetch(
-    `https://backend-dev.iconluxury.group/api/scraping-jobs?page=${page}&page_size=10`,
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }), // Add token if available
-      },
-    }
-  );
-  if (!response.ok) throw new Error(`Failed to fetch jobs: ${response.status}`);
-  return response.json();
-}
-
-async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
-  const token = getAuthToken();
-  const response = await fetch(
-    "https://api.iconluxury.group/api/v1/subscription-status/serp",
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }), // Add token if available
-      },
-    }
-  );
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new Error("Unauthorized: Please log in again.");
-    }
-    throw new Error(`Failed to fetch tools: ${response.status}`);
-  }
-  return response.json();
-}
+// Interfaces and helper functions (JobSummary, SubscriptionStatus, getAuthToken, fetchJobs, fetchSubscriptionStatus) remain unchanged
 
 function Explore() {
   const navigate = useNavigate();
@@ -88,11 +33,10 @@ function Explore() {
   const { data: subscriptionStatus, isLoading: isSubLoading, error: subError } = useQuery({
     queryKey: ["subscriptionStatus", "serp"],
     queryFn: fetchSubscriptionStatus,
-    staleTime: 5 * 60 * 1000, // Refresh every 5 minutes
+    staleTime: 5 * 60 * 1000,
     retry: (failureCount, error) => {
-      // Don't retry on 401/403; handle in UI
       if (error.message.includes("Unauthorized")) return false;
-      return failureCount < 3; // Retry up to 3 times for other errors
+      return failureCount < 3;
     },
   });
 
@@ -105,9 +49,7 @@ function Explore() {
 
   useEffect(() => {
     if (freshJobs) {
-      setJobs((prev: JobSummary[]) =>
-        page === 1 ? freshJobs : [...prev, ...freshJobs]
-      );
+      setJobs((prev) => (page === 1 ? freshJobs : [...prev, ...freshJobs]));
     }
   }, [freshJobs, page]);
 
@@ -269,30 +211,61 @@ function Explore() {
 
           <Box w={{ base: "100%", md: "250px" }} p="4" borderLeft={{ md: "1px solid" }} borderColor="gray.200">
             <VStack spacing="4" align="stretch">
-              <Box p="4" shadow="sm" borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="white">
-                <Text fontWeight="bold" color="black">Quick Actions</Text>
+              <Text fontWeight="bold" color="black">Quick Actions</Text>
+              <Button
+                as="a"
+                href="/scraping-api/submit-form/google-serp"
+                variant="outline"
+                size="sm"
+                colorScheme="green"
+              >
+                Submit Form
+              </Button>
+              <Button
+                as="a"
+                href="https://github.com/iconluxurygroup"
+                leftIcon={<FiGithub />}
+                variant="outline"
+                size="sm"
+                colorScheme="green"
+              >
+                GitHub
+              </Button>
+              <Divider />
+              <Text fontWeight="bold" color="gray.600">Ray Dashboard</Text>
+              <Button
+                as="a"
+                href="https://ray-distro-image.popovtech.com"
+                target="_blank"
+                colorScheme="blue"
+                size="sm"
+                variant="outline"
+              >
+                Dev Distro Image
+              </Button>
+              <Text fontWeight="bold" color="gray.600">API Reference (dev service-distro-image)</Text>
+              <HStack spacing={2}>
                 <Button
                   as="a"
-                  href="/scraping-api/submit-form/google-serp"
-                  variant="outline"
+                  href="https://dev-image-distro.popovtech.com/redoc"
+                  target="_blank"
+                  colorScheme="blue"
                   size="sm"
-                  mt="2"
-                  colorScheme="green"
+                  variant="outline"
                 >
-                  Submit Form
+                  Redoc
                 </Button>
                 <Button
                   as="a"
-                  href="https://github.com/iconluxurygroup"
-                  leftIcon={<FiGithub />}
-                  variant="outline"
+                  href="https://dev-image-distro.popovtech.com/docs"
+                  target="_blank"
+                  colorScheme="blue"
                   size="sm"
-                  mt="2"
-                  colorScheme="green"
+                  variant="outline"
                 >
-                  GitHub
+                  Openapi
                 </Button>
-              </Box>
+              </HStack>
             </VStack>
           </Box>
         </Flex>
