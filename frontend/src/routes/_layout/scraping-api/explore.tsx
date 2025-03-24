@@ -355,6 +355,30 @@ function Explore() {
                   Openapi
                 </Button>
                 </HStack>
+                <Text color="gray.700">(beta service-distro-image)</Text>
+                <HStack spacing={2}>
+                <Button
+                  as="a"
+                  href="https://beta-image-backend-cms-icon-7.popovtech.com/redoc"
+                  target="_blank"
+                  colorScheme="blue"
+                  size="sm"
+                  variant="outline"
+                >
+                  Redoc
+                </Button>
+                <Button
+                  as="a"
+                  href="https://beta-image-backend-cms-icon-7.popovtech.com/docs"
+                  target="_blank"
+                  colorScheme="blue"
+                  size="sm"
+                  variant="outline"
+                >
+                  Openapi
+                </Button>
+                </HStack>
+               
                 <Divider />
 
             </VStack>
