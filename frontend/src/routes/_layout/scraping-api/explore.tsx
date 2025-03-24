@@ -16,12 +16,66 @@ import {
 import { FiGithub } from "react-icons/fi";
 import PromoSERP from "../../../components/ComingSoon";
 
-// Route definition remains unchanged
+// Define the JobSummary interface
+interface JobSummary {
+  id: number;
+  inputFile: string;
+  fileEnd: string | null;
+  user: string;
+  rec: number;
+  img: number;
+}
+
+// Define the SubscriptionStatus interface
+interface SubscriptionStatus {
+  hasSubscription: boolean;
+  isTrial: boolean;
+  isDeactivated: boolean;
+}
+
+// Function to get the auth token (adjust based on your auth setup)
+const getAuthToken = (): string | null => {
+  // Example: Retrieve token from localStorage; adjust based on your auth system
+  return localStorage.getItem("access_token");
+};
+
+// Function to fetch subscription status
+async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
+  const token = getAuthToken();
+  const response = await fetch("https://api.iconluxury.group/api/v1/subscription-status/serp", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("Unauthorized: Please log in again.");
+    }
+    throw new Error(`Failed to fetch subscription status: ${response.status}`);
+  }
+  return response.json();
+}
+
+// Function to fetch jobs
+async function fetchJobs(page: number): Promise<JobSummary[]> {
+  const token = getAuthToken();
+  const response = await fetch(`https://backend-dev.iconluxury.group/api/scraping-jobs?page=${page}&page_size=10`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!response.ok) throw new Error(`Failed to fetch jobs: ${response.status}`);
+  return response.json();
+}
+
+// Route definition
 export const Route = createFileRoute("/_layout/scraping-api/explore")({
   component: Explore,
 });
-
-// Interfaces and helper functions (JobSummary, SubscriptionStatus, getAuthToken, fetchJobs, fetchSubscriptionStatus) remain unchanged
 
 function Explore() {
   const navigate = useNavigate();
@@ -33,7 +87,7 @@ function Explore() {
   const { data: subscriptionStatus, isLoading: isSubLoading, error: subError } = useQuery({
     queryKey: ["subscriptionStatus", "serp"],
     queryFn: fetchSubscriptionStatus,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
     retry: (failureCount, error) => {
       if (error.message.includes("Unauthorized")) return false;
       return failureCount < 3;
