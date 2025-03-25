@@ -12,7 +12,7 @@ const GoogleSerpPage = () => {
 
 // Inside GoogleSerpPage component
 const tabsConfig = [
-  { title: "Overview", component: () => <OverviewGSerp /> },
+  // { title: "Overview", component: () => <OverviewGSerp /> },
   { title: "Logs", component: () => <LogsGSerp /> },
   { title: "Playground", component: () => <PlaygroundGSerp /> },
   { title: "Whitelist", component: () => <WhitelistGSerp /> },
