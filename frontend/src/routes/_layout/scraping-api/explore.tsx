@@ -16,11 +16,8 @@ import {
 } from "@chakra-ui/react";
 import { FiGithub } from "react-icons/fi";
 import PromoSERP from "../../../components/ComingSoon";
+import ApiStatusManagement from "../../../components/UserSettings/ApiStatusManagement";
 
-// Import the ApiStatusManagement component (adjust path as needed)
-import ApiStatusManagement from "../../../components/UserSettings/ApiStatusManagement"; // Assuming it's in the same directory
-
-// Define the JobSummary interface
 interface JobSummary {
   id: number;
   inputFile: string;
@@ -30,19 +27,16 @@ interface JobSummary {
   img: number;
 }
 
-// Define the SubscriptionStatus interface
 interface SubscriptionStatus {
   hasSubscription: boolean;
   isTrial: boolean;
   isDeactivated: boolean;
 }
 
-// Function to get the auth token (adjust based on your auth setup)
 const getAuthToken = (): string | null => {
   return localStorage.getItem("access_token");
 };
 
-// Function to fetch subscription status
 async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
   const token = getAuthToken();
   const response = await fetch("https://api.iconluxury.group/api/v1/subscription-status/serp", {
@@ -61,7 +55,6 @@ async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
   return response.json();
 }
 
-// Function to fetch jobs
 async function fetchJobs(page: number): Promise<JobSummary[]> {
   const token = getAuthToken();
   const response = await fetch(`https://backend-dev.iconluxury.group/api/scraping-jobs?page=${page}&page_size=10`, {
@@ -75,7 +68,6 @@ async function fetchJobs(page: number): Promise<JobSummary[]> {
   return response.json();
 }
 
-// Route definition
 export const Route = createFileRoute("/_layout/scraping-api/explore")({
   component: Explore,
 });
@@ -90,7 +82,7 @@ function Explore() {
   const { data: subscriptionStatus, isLoading: isSubLoading, error: subError } = useQuery({
     queryKey: ["subscriptionStatus", "serp"],
     queryFn: fetchSubscriptionStatus,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     retry: (failureCount, error) => {
       if (error.message.includes("Unauthorized")) return false;
       return failureCount < 3;
@@ -104,7 +96,6 @@ function Explore() {
     enabled: !!subscriptionStatus?.hasSubscription || !!subscriptionStatus?.isTrial,
   });
 
-  // Fetch API status settings
   const { data: apiStatusSettings } = useQuery({
     queryKey: ["apiStatusSettings"],
     queryFn: () => {
@@ -167,9 +158,8 @@ function Explore() {
   const apiStatus = apiStatusSettings?.["service-distro-image"] || { isActive: true, isLimited: false, isDeactivated: false };
   const isApiDeactivated = apiStatus.isDeactivated;
 
-  // Determine status badge properties
   const getStatusBadge = () => {
-    if (apiStatus.isDeactivated) return { text: "Deactivated", color: "gray" };
+    if (apiStatus.isDeactivated) return { text: "Down", color: "red" };
     if (apiStatus.isLimited) return { text: "Limited", color: "yellow" };
     if (apiStatus.isActive) return { text: "Active", color: "green" };
     return { text: "Unknown", color: "red" };
@@ -392,9 +382,6 @@ function Explore() {
                   colorScheme="blue"
                   size="sm"
                   variant="outline"
-                  isDisabled={isApiDeactivated}
-                  bg={isApiDeactivated ? "gray.300" : undefined}
-                  _hover={isApiDeactivated ? {} : { bg: "blue.50" }}
                 >
                   Redoc
                 </Button>
@@ -405,15 +392,11 @@ function Explore() {
                   colorScheme="blue"
                   size="sm"
                   variant="outline"
-                  isDisabled={isApiDeactivated}
-                  bg={isApiDeactivated ? "gray.300" : undefined}
-                  _hover={isApiDeactivated ? {} : { bg: "blue.50" }}
                 >
                   Openapi
                 </Button>
               </HStack>
               <Divider />
-              {/* Optionally add ApiStatusManagement for admin users */}
               <Text fontWeight="bold" color="black">API Status Management</Text>
               <ApiStatusManagement />
             </VStack>
