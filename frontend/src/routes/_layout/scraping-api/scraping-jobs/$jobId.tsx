@@ -617,17 +617,28 @@ interface DetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  data: Record<string, any> | null; // Allow null explicitly
+  data: Record<string, any> | null;
 }
+
 const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, data }) => {
+  const capitalizeKey = (key: string) =>
+    key
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (str) => str.toUpperCase())
+      .trim();
+
   if (!data) {
     return (
-      <Modal isOpen={isOpen} onClose={onClose} size="xl">
+      <Modal isOpen={isOpen} onClose={onClose} size="full">
         <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>{title}</ModalHeader>
+        <ModalContent maxW="90vw" mx="auto" my={4}>
+          <ModalHeader fontSize="xl" fontWeight="bold">
+            {title}
+          </ModalHeader>
           <ModalBody>
-            <Text>No data available</Text>
+            <Text fontSize="md" color="gray.600">
+              No data available
+            </Text>
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -635,20 +646,42 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+    <Modal isOpen={isOpen} onClose={onClose} size="full">
       <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>{title}</ModalHeader>
+      <ModalContent maxW="90vw" mx="auto" my={4} borderRadius="md">
+        <ModalHeader fontSize="xl" fontWeight="bold" pb={2}>
+          {title}
+        </ModalHeader>
         <ModalBody>
-          <Table variant="simple" size="sm">
+          <Table variant="simple" size="md" colorScheme="gray">
             <Tbody>
               {Object.entries(data).map(([key, value]) => (
                 <Tr key={key}>
-                  <Td fontWeight="bold">{key}</Td>
-                  <Td wordBreak="break-word">
-                    {typeof value === "object" && value !== null
-                      ? JSON.stringify(value)
-                      : value || "N/A"}
+                  <Td fontWeight="semibold" color="gray.700" w="25%" py={3}>
+                    {capitalizeKey(key)}
+                  </Td>
+                  <Td wordBreak="break-word" color="gray.800" py={3}>
+                    {key.toLowerCase().includes("json") && value ? (
+                      <Box
+                        maxH="300px"
+                        overflowY="auto"
+                        bg="gray.50"
+                        p={3}
+                        borderRadius="md"
+                        border="1px solid"
+                        borderColor="gray.200"
+                      >
+                        <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                          {JSON.stringify(
+                            typeof value === "string" ? JSON.parse(value) : value,
+                            null,
+                            2
+                          )}
+                        </pre>
+                      </Box>
+                    ) : (
+                      <Text>{value || "N/A"}</Text>
+                    )}
                   </Td>
                 </Tr>
               ))}
