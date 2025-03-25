@@ -9,8 +9,12 @@ type ApiStatusSettings = {
   isDeactivated: boolean;
 };
 
-// Define API services
-const API_SERVICES = ["service-distro-image"] as const;
+// Define API services for dev, prod, and beta
+const API_SERVICES = [
+  "dev-service-distro-image",
+  "prod-service-distro-image",
+  "beta-service-distro-image",
+] as const;
 type ApiServiceType = (typeof API_SERVICES)[number];
 
 const STORAGE_KEY = "apiStatusSettings"; // Key for localStorage
@@ -61,7 +65,7 @@ const ApiStatusManagement = () => {
   // Determine status badge properties
   const getStatusBadge = (service: ApiServiceType) => {
     const { isActive, isLimited, isDeactivated } = settings[service];
-    if (isDeactivated) return { text: "Deactivated", color: "gray" };
+    if (isDeactivated) return { text: "Down", color: "red" };
     if (isLimited) return { text: "Limited", color: "yellow" };
     if (isActive) return { text: "Active", color: "green" };
     return { text: "Unknown", color: "red" };
