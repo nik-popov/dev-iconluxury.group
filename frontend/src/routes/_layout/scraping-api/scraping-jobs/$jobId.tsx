@@ -630,7 +630,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
     return (
       <Modal isOpen={isOpen} onClose={onClose} size="full">
         <ModalOverlay />
-        <ModalContent maxW="90vw" maxH="80vh" mx="auto" my={4}>
+        <ModalContent maxW="90vw" maxH="70vh" mx="auto" my={4}>
           <ModalHeader fontSize="xl" fontWeight="bold">
             {title}
           </ModalHeader>
