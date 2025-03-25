@@ -38,8 +38,8 @@ import {
   ModalOverlay,
   ModalContent,
   ModalHeader,
-  ModalBody
-  } from "@chakra-ui/react";
+  ModalBody,
+} from "@chakra-ui/react";
 import useCustomToast from "../../../../hooks/useCustomToast";
 
 interface JobDetails {
@@ -102,12 +102,13 @@ interface ResultsTabProps {
   searchQuery: string;
   setSearchQuery: (value: string) => void;
 }
+
 interface LogDisplayProps {
   logUrl: string | null;
 }
 
 const LogDisplay: React.FC<LogDisplayProps> = ({ logUrl }) => {
-  const [logContent, setLogContent] = useState('');
+  const [logContent, setLogContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const showToast = useCustomToast();
@@ -118,11 +119,11 @@ const LogDisplay: React.FC<LogDisplayProps> = ({ logUrl }) => {
       setIsLoading(true);
       try {
         const response = await fetch(logUrl);
-        if (!response.ok) throw new Error('Failed to fetch log');
+        if (!response.ok) throw new Error("Failed to fetch log");
         const text = await response.text();
         setLogContent(text);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+        const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
         setError(errorMessage);
         showToast("Log Fetch Error", errorMessage, "error");
       } finally {
@@ -229,7 +230,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       const bValue = b.domain.toLowerCase();
       return sortConfig.direction === "ascending"
         ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+        : bValue.localeComparative(aValue);
     } else if (sortConfig.key === "totalResults") {
       return sortConfig.direction === "ascending"
         ? a.totalResults - b.totalResults
@@ -242,7 +243,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     return 0;
   });
 
-  const handleSort = (key: "domain" | "totalResults" | "positiveSortOrderCount") => {
+  const handleSort = (
+    key: "domain" | "totalResults" | "positiveSortOrderCount"
+  ) => {
     setSortConfig((prev) => {
       if (prev.key === key) {
         return {
@@ -291,7 +294,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       const data = await response.json();
       setLoading(false);
       showToast("Success", `${successMessage}: ${data.message || "Completed"}`, "success");
-      fetchJobData(); // Refresh job data after successful action
+      fetchJobData();
     } catch (error) {
       setLoading(false);
       showToast(
@@ -337,7 +340,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
   const handleGenerateDownload = () =>
     handleApiCall(
-      `https://dev-image-distro.popovtech.com/generate-download-file/`,
+      `https://dev-image-distro.popovtech.com erste-download-file/`,
       "POST",
       setIsGeneratingDownload,
       "Generate Download File",
@@ -352,6 +355,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       "Process AI Analysis",
       { file_id: String(job.id) }
     );
+
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4} flexWrap="wrap" gap={3}>
@@ -401,27 +405,27 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             Process AI
           </Button>
           <Button size="sm" onClick={() => setIsFileModalOpen(true)}>
-          View File Details
-        </Button>
-        <DetailsModal
-        isOpen={isFileModalOpen}
-        onClose={() => setIsFileModalOpen(false)}
-        title={`File ${job.id}`}
-        data={{
-          ID: job.id,
-          FileName: job.inputFile,
-          FileLocationUrl: job.fileLocationUrl,
-          FileLocationURLComplete: job.fileLocationURLComplete, // Ensure API provides this
-          ImageStartTime: job.imageStart,
-          ImageCompleteTime: job.imageEnd,
-          CreateFileStartTime: job.fileStart,
-          CreateFileCompleteTime: job.fileEnd,
-          UserID: job.userId, // Ensure API provides this
-          UserEmail: job.userEmail, // Ensure API provides this
-          LogFileURL: job.logFileUrl,
-          UserHeaderIndex: job.userHeaderIndex, // Ensure API provides this
-        }}
-      />
+            View File Details
+          </Button>
+          <DetailsModal
+            isOpen={isFileModalOpen}
+            onClose={() => setIsFileModalOpen(false)}
+            title={`File ${job.id}`}
+            data={{
+              ID: job.id,
+              FileName: job.inputFile,
+              FileLocationUrl: job.fileLocationUrl,
+              FileLocationURLComplete: job.fileLocationURLComplete,
+              ImageStartTime: job.imageStart,
+              ImageCompleteTime: job.imageEnd,
+              CreateFileStartTime: job.fileStart,
+              CreateFileCompleteTime: job.fileEnd,
+              UserID: job.userId,
+              UserEmail: job.userEmail,
+              LogFileURL: job.logFileUrl,
+              UserHeaderIndex: job.userHeaderIndex,
+            }}
+          />
         </Flex>
       </Flex>
 
@@ -446,7 +450,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             </Badge>
           </StatNumber>
         </Stat>
-      
+
         {job.fileEnd && (
           <Stat mt={4}>
             <StatLabel color="gray.600">Processing Duration</StatLabel>
@@ -525,18 +529,18 @@ const UsageTab = ({ job }: { job: JobDetails }) => {
   const completedRecords = job.records.filter((record) => record.completeTime).length;
   const pendingRecords = totalRecords - completedRecords;
   const totalImages = job.results.length;
-  const imagesPerRecord = totalRecords > 0 ? Math.round(totalImages / totalRecords) : 'N/A';
+  const imagesPerRecord = totalRecords > 0 ? Math.round(totalImages / totalRecords) : "N/A";
   const totalRequests = totalRecords;
   const successfulRequests = job.records.filter((record) =>
     job.results.some((result) => result.entryId === record.entryId)
   ).length;
-  const successRate = totalRequests > 0 ? `${((successfulRequests / totalRequests) * 100).toFixed(1)}%` : 'N/A';
+  const successRate = totalRequests > 0 ? `${((successfulRequests / totalRequests) * 100).toFixed(1)}%` : "N/A";
 
   const calculateAvgResponseTime = (): string => {
     const completedRecordsWithTimes = job.records.filter(
       (record) => record.createTime && record.completeTime
     );
-    if (completedRecordsWithTimes.length === 0) return 'N/A';
+    if (completedRecordsWithTimes.length === 0) return "N/A";
     const totalDuration = completedRecordsWithTimes.reduce((sum, record) => {
       const start = new Date(record.createTime!).getTime();
       const end = new Date(record.completeTime!).getTime();
@@ -629,21 +633,16 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
       .replace(/^./, (str) => str.toUpperCase())
       .trim();
 
-  // Function to detect URLs and make them clickable
   const renderValue = (key: string, value: any) => {
-    // Handle null or undefined values
     if (value === null || value === undefined) {
       return <Text color="gray.400">N/A</Text>;
     }
 
-    // Replace \u0026 with & for specific fields (e.g., description, aiCaption)
     let displayValue = value;
     if (typeof value === "string" && (key.toLowerCase().includes("description") || key.toLowerCase().includes("aicaption"))) {
-      displayValue = value.replace(/\\u0026/g, "&");
-      displayValue = value.replace(/\\\'/g, "'");
+      displayValue = value.replace(/\\u0026/g, "&").replace(/\\'/g, "'");
     }
 
-    // Handle JSON content
     if (key.toLowerCase().includes("json") && value) {
       const jsonValue = typeof value === "string" ? JSON.parse(value) : value;
       return (
@@ -655,7 +654,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
           borderRadius="md"
           border="1px solid"
           borderColor="gray.200"
-          fontSize="xs" // Smaller font size for JSON
+          fontSize="xs"
         >
           <pre style={{ margin: 0, whiteSpace: "pre-wrap", color: "blue.600" }}>
             {JSON.stringify(jsonValue, null, 2)}
@@ -664,7 +663,6 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
       );
     }
 
-    // Handle URLs
     if (typeof displayValue === "string" && /^(https?:\/\/[^\s]+)$/.test(displayValue)) {
       return (
         <Link href={displayValue} color="blue.500" isExternal>
@@ -673,7 +671,6 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
       );
     }
 
-    // Default text rendering
     return <Text>{displayValue}</Text>;
   };
 
@@ -695,7 +692,6 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
     );
   }
 
-  // Append ID to title if it exists in data
   const modalTitle = data.id ? `${title} (ID: ${data.id})` : title;
 
   return (
@@ -709,7 +705,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
           <Table variant="simple" size="md" colorScheme="gray">
             <Tbody>
               {Object.entries(data)
-                .filter(([key]) => key.toLowerCase() !== "id") // Exclude ID from table since it's in header
+                .filter(([key]) => key.toLowerCase() !== "id")
                 .map(([key, value]) => (
                   <Tr key={key}>
                     <Td fontWeight="semibold" color="gray.700" w="25%" py={3}>
@@ -728,7 +724,6 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
   );
 };
 
-
 const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSearchQuery }) => {
   const showToast = useCustomToast();
   const [selectedResult, setSelectedResult] = useState<ResultItem | null>(null);
@@ -736,6 +731,39 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
   const [selectedRecord, setSelectedRecord] = useState<RecordItem | null>(null);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const query = String(searchQuery || "").trim().toLowerCase();
+
+  const [sortConfigResults, setSortConfigResults] = useState<{
+    key: string;
+    direction: "ascending" | "descending";
+  } | null>(null);
+  const [sortConfigRecords, setSortConfigRecords] = useState<{
+    key: string;
+    direction: "ascending" | "descending";
+  } | null>(null);
+
+  const [currentPageResults, setCurrentPageResults] = useState(0);
+  const [currentPageRecords, setCurrentPageRecords] = useState(0);
+  const itemsPerPage = 100;
+
+  const handleSortResults = (key: string) => {
+    setSortConfigResults((prev) => {
+      if (prev && prev.key === key) {
+        return { key, direction: prev.direction === "ascending" ? "descending" : "ascending" };
+      }
+      return { key, direction: "ascending" };
+    });
+    setCurrentPageResults(0);
+  };
+
+  const handleSortRecords = (key: string) => {
+    setSortConfigRecords((prev) => {
+      if (prev && prev.key === key) {
+        return { key, direction: prev.direction === "ascending" ? "descending" : "ascending" };
+      }
+      return { key, direction: "ascending" };
+    });
+    setCurrentPageRecords(0);
+  };
 
   const filteredResults = job.results.filter(
     (result) =>
@@ -749,8 +777,20 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
       result.entryId.toString().includes(query) ||
       result.resultId.toString().includes(query)
   );
+
   const sortedResults = [...filteredResults].sort((a, b) => {
-    if (sortBy === "match" && query) {
+    if (sortConfigResults) {
+      const { key, direction } = sortConfigResults;
+      const aValue = a[key as keyof ResultItem];
+      const bValue = b[key as keyof ResultItem];
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return direction === "ascending" ? aValue - bValue : bValue - aValue;
+      } else {
+        const aStr = String(aValue).toLowerCase();
+        const bStr = String(bValue).toLowerCase();
+        return direction === "ascending" ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+      }
+    } else if (sortBy === "match" && query) {
       const aScore = (a.imageDesc || "").toLowerCase().indexOf(query);
       const bScore = (b.imageDesc || "").toLowerCase().indexOf(query);
       return aScore === -1 ? 1 : bScore === -1 ? -1 : aScore - bScore;
@@ -767,8 +807,44 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
       (record.excelRowId?.toString() || "").toLowerCase().includes(query)
   );
 
+  const sortedRecords = [...filteredRecords].sort((a, b) => {
+    if (sortConfigRecords) {
+      const { key, direction } = sortConfigRecords;
+      const aValue = a[key as keyof RecordItem];
+      const bValue = b[key as keyof RecordItem];
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return direction === "ascending" ? aValue - bValue : bValue - aValue;
+      } else {
+        const aStr = String(aValue).toLowerCase();
+        const bStr = String(bValue).toLowerCase();
+        return direction === "ascending" ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+      }
+    }
+    return 0;
+  });
+
+  const pageCountResults = Math.ceil(sortedResults.length / itemsPerPage);
+  const displayedResults = sortedResults.slice(
+    currentPageResults * itemsPerPage,
+    (currentPageResults + 1) * itemsPerPage
+  );
+
+  const pageCountRecords = Math.ceil(sortedRecords.length / itemsPerPage);
+  const displayedRecords = sortedRecords.slice(
+    currentPageRecords * itemsPerPage,
+    (currentPageRecords + 1) * itemsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPageResults(0);
+  }, [searchQuery, sortConfigResults]);
+
+  useEffect(() => {
+    setCurrentPageRecords(0);
+  }, [searchQuery, sortConfigRecords]);
+
   const totalResults = sortedResults.length;
-  const totalRecords = filteredRecords.length;
+  const totalRecords = sortedRecords.length;
   const totalImages = job.results.length;
   const totalAllRecords = job.records.length;
 
@@ -873,34 +949,30 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
                   <Table variant="simple" size="sm" colorScheme="blue">
                     <Thead bg="gray.100">
                       <Tr>
-                        <Th w="60px" color="gray.800">
-                          Preview
+                        <Th w="60px" color="gray.800">Preview</Th>
+                        <Th w="80px" onClick={() => handleSortResults('resultId')} cursor="pointer" color="gray.800">
+                          Result ID {sortConfigResults?.key === 'resultId' && (sortConfigResults.direction === 'ascending' ? '↑' : '↓')}
                         </Th>
-                        <Th w="80px" color="gray.800">
-                          Result ID
+                        <Th w="80px" onClick={() => handleSortResults('entryId')} cursor="pointer" color="gray.800">
+                          Entry ID {sortConfigResults?.key === 'entryId' && (sortConfigResults.direction === 'ascending' ? '↑' : '↓')}
                         </Th>
-                        <Th w="80px" color="gray.800">
-                          Entry ID
+                        <Th w="120px" onClick={() => handleSortResults('imageUrl')} cursor="pointer" color="gray.800">
+                          Image URL {sortConfigResults?.key === 'imageUrl' && (sortConfigResults.direction === 'ascending' ? '↑' : '↓')}
                         </Th>
-                        <Th w="120px" color="gray.800">
-                          Image URL
+                        <Th w="120px" onClick={() => handleSortResults('imageDesc')} cursor="pointer" color="gray.800">
+                          Description {sortConfigResults?.key === 'imageDesc' && (sortConfigResults.direction === 'ascending' ? '↑' : '↓')}
                         </Th>
-                        <Th w="120px" color="gray.800">
-                          Description
+                        <Th w="120px" onClick={() => handleSortResults('imageSource')} cursor="pointer" color="gray.800">
+                          Source {sortConfigResults?.key === 'imageSource' && (sortConfigResults.direction === 'ascending' ? '↑' : '↓')}
                         </Th>
-                        <Th w="120px" color="gray.800">
-                          Source
+                        <Th w="80px" onClick={() => handleSortResults('sortOrder')} cursor="pointer" color="gray.800">
+                          Sort Order {sortConfigResults?.key === 'sortOrder' && (sortConfigResults.direction === 'ascending' ? '↑' : '↓')}
                         </Th>
-                        <Th w="80px" color="gray.800">
-                          Sort Order
-                        </Th>
-                        <Th w="80px" color="gray.800">
-                          Actions
-                        </Th>
+                        <Th w="80px" color="gray.800">Actions</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
-                      {sortedResults.map((result) => (
+                      {displayedResults.map((result) => (
                         <Tr key={result.resultId}>
                           <Td w="60px">
                             <Image
@@ -963,15 +1035,32 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
                           </Td>
                         </Tr>
                       ))}
-                      {sortedResults.length === 0 && (
+                      {displayedResults.length === 0 && (
                         <Tr>
                           <Td colSpan={8} textAlign="center" color="gray.600">
-                            No results match your search query.
+                            No results match your search query on this page.
                           </Td>
                         </Tr>
                       )}
                     </Tbody>
                   </Table>
+                  {pageCountResults > 1 && (
+                    <Flex justify="center" mt={4} align="center">
+                      <Button size="sm" onClick={() => setCurrentPageResults(0)} isDisabled={currentPageResults === 0}>
+                        First
+                      </Button>
+                      <Button size="sm" onClick={() => setCurrentPageResults((prev) => Math.max(prev - 1, 0))} isDisabled={currentPageResults === 0}>
+                        Previous
+                      </Button>
+                      <Text mx={2}>Page {currentPageResults + 1} of {pageCountResults}</Text>
+                      <Button size="sm" onClick={() => setCurrentPageResults((prev) => Math.min(prev + 1, pageCountResults - 1))} isDisabled={currentPageResults === pageCountResults - 1}>
+                        Next
+                      </Button>
+                      <Button size="sm" onClick={() => setCurrentPageResults(pageCountResults - 1)} isDisabled={currentPageResults === pageCountResults - 1}>
+                        Last
+                      </Button>
+                    </Flex>
+                  )}
                 </AccordionPanel>
               </AccordionItem>
               <AccordionItem>
@@ -990,38 +1079,33 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
                             Excel Picture
                           </Th>
                         )}
-                        <Th w="80px" color="gray.800">
-                          Entry ID
+                        <Th w="80px" onClick={() => handleSortRecords('entryId')} cursor="pointer" color="gray.800">
+                          Entry ID {sortConfigRecords?.key === 'entryId' && (sortConfigRecords.direction === 'ascending' ? '↑' : '↓')}
                         </Th>
-                        <Th w="80px" color="gray.800">
-                          File ID
+                        <Th w="80px" onClick={() => handleSortRecords('fileId')} cursor="pointer" color="gray.800">
+                          File ID {sortConfigRecords?.key === 'fileId' && (sortConfigRecords.direction === 'ascending' ? '↑' : '↓')}
                         </Th>
-                        <Th w="80px" color="gray.800">
-                          Excel Row ID
+                        <Th w="80px" onClick={() => handleSortRecords('excelRowId')} cursor="pointer" color="gray.800">
+                          Excel Row ID {sortConfigRecords?.key === 'excelRowId' && (sortConfigRecords.direction === 'ascending' ? '↑' : '↓')}
                         </Th>
-                        <Th w="120px" color="gray.800">
-                          Style #
+                        <Th w="120px" onClick={() => handleSortRecords('productModel')} cursor="pointer" color="gray.800">
+                          Style # {sortConfigRecords?.key === 'productModel' && (sortConfigRecords.direction === 'ascending' ? '↑' : '↓')}
                         </Th>
-                        <Th w="120px" color="gray.800">
-                          Brand
+                        <Th w="120px" onClick={() => handleSortRecords('productBrand')} cursor="pointer" color="gray.800">
+                          Brand {sortConfigRecords?.key === 'productBrand' && (sortConfigRecords.direction === 'ascending' ? '↑' : '↓')}
                         </Th>
-                        <Th w="80px" color="gray.800">
-                          Actions
-                        </Th>
+                        <Th w="80px" color="gray.800">Actions</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
-                      {filteredRecords.map((record) => (
+                      {displayedRecords.map((record) => (
                         <Tr key={record.entryId}>
                           {hasThumbnails && (
                             <Td w="60px">
                               {record.excelRowImageRef ? (
                                 <Image
                                   src={record.excelRowImageRef}
-                                  alt={
-                                    record.productModel ||
-                                    "Record ID " + record.entryId
-                                  }
+                                  alt={record.productModel || "Record ID " + record.entryId}
                                   maxW="80px"
                                   maxH="80px"
                                   objectFit="cover"
@@ -1081,19 +1165,32 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
                           </Td>
                         </Tr>
                       ))}
-                      {filteredRecords.length === 0 && (
+                      {displayedRecords.length === 0 && (
                         <Tr>
-                          <Td
-                            colSpan={hasThumbnails ? 7 : 6}
-                            textAlign="center"
-                            color="gray.600"
-                          >
-                            No records match your search query.
+                          <Td colSpan={hasThumbnails ? 7 : 6} textAlign="center" color="gray.600">
+                            No records match your search query on this page.
                           </Td>
                         </Tr>
                       )}
                     </Tbody>
                   </Table>
+                  {pageCountRecords > 1 && (
+                    <Flex justify="center" mt={4} align="center">
+                      <Button size="sm" onClick={() => setCurrentPageRecords(0)} isDisabled={currentPageRecords === 0}>
+                        First
+                      </Button>
+                      <Button size="sm" onClick={() => setCurrentPageRecords((prev) => Math.max(prev - 1, 0))} isDisabled={currentPageRecords === 0}>
+                        Previous
+                      </Button>
+                      <Text mx={2}>Page {currentPageRecords + 1} of {pageCountRecords}</Text>
+                      <Button size="sm" onClick={() => setCurrentPageRecords((prev) => Math.min(prev + 1, pageCountRecords - 1))} isDisabled={currentPageRecords === pageCountRecords - 1}>
+                        Next
+                      </Button>
+                      <Button size="sm" onClick={() => setCurrentPageRecords(pageCountRecords - 1)} isDisabled={currentPageRecords === pageCountRecords - 1}>
+                        Last
+                      </Button>
+                    </Flex>
+                  )}
                 </AccordionPanel>
               </AccordionItem>
             </Accordion>
@@ -1116,7 +1213,6 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
   );
 };
 
-
 const LogsTab = ({ job }: { job: JobDetails }) => {
   return (
     <Box p={4} bg="white">
@@ -1126,7 +1222,7 @@ const LogsTab = ({ job }: { job: JobDetails }) => {
           <Button
             size="sm"
             colorScheme="blue"
-            onClick={() => window.open(job.logFileUrl as string, '_blank')}
+            onClick={() => window.open(job.logFileUrl as string, "_blank")}
           >
             Download Log File
           </Button>
@@ -1304,7 +1400,6 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
             colorScheme="blue"
             onClick={() => {
               setShowResultDetails(!showResultDetails);
-              
             }}
           >
             {showResultDetails ? "- Picture Details" : "+ Picture Details"}
@@ -1316,7 +1411,6 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
             colorScheme="blue"
             onClick={() => {
               setShowFileDetails(!showFileDetails);
-             
             }}
           >
             {showFileDetails ? "- File Details" : "+ File Details"}
@@ -1326,7 +1420,6 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
             onClick={() => {
               if (job.records.length > 0) {
                 setHideEmptyRows(!hideEmptyRows);
-                
               }
             }}
             colorScheme={job.records.length === 0 ? "gray" : "blue"}
