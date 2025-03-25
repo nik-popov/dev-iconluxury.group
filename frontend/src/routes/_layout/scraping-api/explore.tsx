@@ -420,8 +420,6 @@ function Explore() {
                 </Button>
               </HStack>
               <Divider />
-              <Text fontWeight="bold" color="black">API Status Management</Text>
-              <ApiStatusManagement />
             </VStack>
           </Box>
         </Flex>
