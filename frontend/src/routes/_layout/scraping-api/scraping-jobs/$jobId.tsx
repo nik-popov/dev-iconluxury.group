@@ -1642,7 +1642,7 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
                         cursor="pointer"
                         color="green.300"
                         _hover={{ textDecoration: "underline" }}
-                        onClick={(e) => handleRowIdClick(e, record.entryId)}
+                        onClick={(e) => handleRowIdClick(e, String(record.entryId))}
                       >
                         {record.excelRowId}
                       </Text>
