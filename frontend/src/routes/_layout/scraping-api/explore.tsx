@@ -18,7 +18,7 @@ import { FiGithub } from "react-icons/fi";
 import PromoSERP from "../../../components/ComingSoon";
 
 // Import the ApiStatusManagement component (adjust path as needed)
-import ApiStatusManagement from "./ApiStatusManagement"; // Assuming it's in the same directory
+import ApiStatusManagement from "../../../components/UserSettings/ApiStatusManagement"; // Assuming it's in the same directory
 
 // Define the JobSummary interface
 interface JobSummary {
