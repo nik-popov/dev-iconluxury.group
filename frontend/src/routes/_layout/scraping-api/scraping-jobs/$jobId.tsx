@@ -640,6 +640,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
     let displayValue = value;
     if (typeof value === "string" && (key.toLowerCase().includes("description") || key.toLowerCase().includes("aicaption"))) {
       displayValue = value.replace(/\\u0026/g, "&");
+      displayValue = value.replace(/\\\'/g, "'");
     }
 
     // Handle JSON content
