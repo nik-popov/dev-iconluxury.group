@@ -804,6 +804,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
     (record) =>
       (record.productModel || "").toLowerCase().includes(query) ||
       (record.productBrand || "").toLowerCase().includes(query) ||
+      (String(record.entryId) || "").toLowerCase().includes(query) ||
       (record.excelRowId?.toString() || "").toLowerCase().includes(query)
   );
 
