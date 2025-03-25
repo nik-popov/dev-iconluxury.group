@@ -26,7 +26,7 @@ const tabsConfig = [
   { title: "My profile", component: UserInformation },
   { title: "Password", component: ChangePassword },
   { title: "Appearance", component: Appearance },
-  { title: "ApI Status Management", component: () => <ApiStatusManagement /> },
+  { title: "API Status", component: () => <ApiStatusManagement /> },
   { title: "Close Account", component: DeleteAccount },
 ];
 

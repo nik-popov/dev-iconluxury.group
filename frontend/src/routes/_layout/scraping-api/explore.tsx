@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import {
   Box,
@@ -100,7 +100,11 @@ function Explore() {
     queryKey: ["apiStatusSettings"],
     queryFn: () => {
       const storedSettings = localStorage.getItem("apiStatusSettings");
-      return storedSettings ? JSON.parse(storedSettings) : { "service-distro-image": { isActive: true, isLimited: false, isDeactivated: false } };
+      return storedSettings ? JSON.parse(storedSettings) : {
+        "dev-service-distro-image": { isActive: true, isLimited: false, isDeactivated: false },
+        "prod-service-distro-image": { isActive: true, isLimited: false, isDeactivated: false },
+        "beta-service-distro-image": { isActive: true, isLimited: false, isDeactivated: false },
+      };
     },
     staleTime: Infinity,
   });
@@ -155,16 +159,21 @@ function Explore() {
   const isLocked = !hasSubscription && !isTrial;
   const isFullyDeactivated = isDeactivated && !hasSubscription;
 
-  const apiStatus = apiStatusSettings?.["service-distro-image"] || { isActive: true, isLimited: false, isDeactivated: false };
-  const isApiDeactivated = apiStatus.isDeactivated;
+  // Get status for each environment
+  const devStatus = apiStatusSettings?.["dev-service-distro-image"] || { isActive: true, isLimited: false, isDeactivated: false };
+  const prodStatus = apiStatusSettings?.["prod-service-distro-image"] || { isActive: true, isLimited: false, isDeactivated: false };
+  const betaStatus = apiStatusSettings?.["beta-service-distro-image"] || { isActive: true, isLimited: false, isDeactivated: false };
 
-  const getStatusBadge = () => {
-    if (apiStatus.isDeactivated) return { text: "Down", color: "red" };
-    if (apiStatus.isLimited) return { text: "Limited", color: "yellow" };
-    if (apiStatus.isActive) return { text: "Active", color: "green" };
+  const getStatusBadge = (status: { isActive: boolean; isLimited: boolean; isDeactivated: boolean }) => {
+    if (status.isDeactivated) return { text: "Down", color: "red" };
+    if (status.isLimited) return { text: "Limited", color: "yellow" };
+    if (status.isActive) return { text: "Active", color: "green" };
     return { text: "Unknown", color: "red" };
   };
-  const statusBadge = getStatusBadge();
+
+  const devBadge = getStatusBadge(devStatus);
+  const prodBadge = getStatusBadge(prodStatus);
+  const betaBadge = getStatusBadge(betaStatus);
 
   return (
     <Container maxW="full" bg="white" color="gray.800">
@@ -309,6 +318,7 @@ function Explore() {
                 colorScheme="blue"
                 size="sm"
                 variant="outline"
+                isDisabled={devStatus.isDeactivated}
               >
                 dev service-distro-image
               </Button>
@@ -319,12 +329,16 @@ function Explore() {
                 colorScheme="blue"
                 size="sm"
                 variant="outline"
+                isDisabled={prodStatus.isDeactivated}
               >
                 prod service-distro-image
               </Button>
               <Divider />
               <Text fontWeight="bold" color="black">API Reference</Text>
-              <Text color="gray.700">(dev service-distro-image)</Text>
+              <HStack justify="space-between" align="center">
+                <Text color="gray.700">(dev service-distro-image)</Text>
+                <Badge colorScheme={devBadge.color}>{devBadge.text}</Badge>
+              </HStack>
               <HStack spacing={2}>
                 <Button
                   as="a"
@@ -333,6 +347,7 @@ function Explore() {
                   colorScheme="blue"
                   size="sm"
                   variant="outline"
+                  isDisabled={devStatus.isDeactivated}
                 >
                   Redoc
                 </Button>
@@ -343,11 +358,15 @@ function Explore() {
                   colorScheme="blue"
                   size="sm"
                   variant="outline"
+                  isDisabled={devStatus.isDeactivated}
                 >
                   Openapi
                 </Button>
               </HStack>
-              <Text color="gray.700">(prod service-distro-image)</Text>
+              <HStack justify="space-between" align="center">
+                <Text color="gray.700">(prod service-distro-image)</Text>
+                <Badge colorScheme={prodBadge.color}>{prodBadge.text}</Badge>
+              </HStack>
               <HStack spacing={2}>
                 <Button
                   as="a"
@@ -356,6 +375,7 @@ function Explore() {
                   colorScheme="blue"
                   size="sm"
                   variant="outline"
+                  isDisabled={prodStatus.isDeactivated}
                 >
                   Redoc
                 </Button>
@@ -366,39 +386,42 @@ function Explore() {
                   colorScheme="blue"
                   size="sm"
                   variant="outline"
+                  isDisabled={prodStatus.isDeactivated}
                 >
                   Openapi
                 </Button>
               </HStack>
               <HStack justify="space-between" align="center">
                 <Text color="gray.700">(beta service-distro-image)</Text>
-                <Badge colorScheme={statusBadge.color}>{statusBadge.text}</Badge>
+                <Badge colorScheme={betaBadge.color}>{betaBadge.text}</Badge>
               </HStack>
               <HStack spacing={2}>
-  <Button
-    as="a"
-    href="https://beta-image-backend-cms-icon-7.popovtech.com/redoc"
-    target="_blank"
-    colorScheme="blue"
-    size="sm"
-    variant="outline"
-    isDisabled={isApiDeactivated}
-  >
-    Redoc
-  </Button>
-  <Button
-    as="a"
-    href="https://beta-image-backend-cms-icon-7.popovtech.com/docs"
-    target="_blank"
-    colorScheme="blue"
-    size="sm"
-    variant="outline"
-    isDisabled={isApiDeactivated}
-  >
-    Openapi
-  </Button>
-</HStack>
+                <Button
+                  as="a"
+                  href="https://beta-image-backend-cms-icon-7.popovtech.com/redoc"
+                  target="_blank"
+                  colorScheme="blue"
+                  size="sm"
+                  variant="outline"
+                  isDisabled={betaStatus.isDeactivated}
+                >
+                  Redoc
+                </Button>
+                <Button
+                  as="a"
+                  href="https://beta-image-backend-cms-icon-7.popovtech.com/docs"
+                  target="_blank"
+                  colorScheme="blue"
+                  size="sm"
+                  variant="outline"
+                  isDisabled={betaStatus.isDeactivated}
+                >
+                  Openapi
+                </Button>
+              </HStack>
               <Divider />
+              <Text fontWeight="bold" color="black">API Status Management</Text>
+              <ApiStatusManagement />
             </VStack>
           </Box>
         </Flex>
