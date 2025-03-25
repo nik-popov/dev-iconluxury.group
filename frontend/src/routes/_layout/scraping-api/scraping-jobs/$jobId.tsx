@@ -742,7 +742,6 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
       (result.aiJson || "").toLowerCase().includes(query) ||
       (result.imageUrl || "").toLowerCase().includes(query)
   );
-
   const sortedResults = [...filteredResults].sort((a, b) => {
     if (sortBy === "match" && query) {
       const aScore = (a.imageDesc || "").toLowerCase().indexOf(query);
