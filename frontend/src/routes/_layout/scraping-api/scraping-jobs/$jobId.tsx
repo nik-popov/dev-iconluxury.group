@@ -613,18 +613,67 @@ const UsageTab = ({ job }: { job: JobDetails }) => {
     </Box>
   );
 };
+
 interface DetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   data: Record<string, any> | null;
 }
+
 const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, data }) => {
   const capitalizeKey = (key: string) =>
     key
       .replace(/([A-Z])/g, " $1")
       .replace(/^./, (str) => str.toUpperCase())
       .trim();
+
+  // Function to detect URLs and make them clickable
+  const renderValue = (key: string, value: any) => {
+    // Handle null or undefined values
+    if (value === null || value === undefined) {
+      return <Text color="gray.400">N/A</Text>;
+    }
+
+    // Replace \u0026 with & for specific fields (e.g., description, aiCaption)
+    let displayValue = value;
+    if (typeof value === "string" && (key.toLowerCase().includes("description") || key.toLowerCase().includes("aicaption"))) {
+      displayValue = value.replace(/\\u0026/g, "&");
+    }
+
+    // Handle JSON content
+    if (key.toLowerCase().includes("json") && value) {
+      const jsonValue = typeof value === "string" ? JSON.parse(value) : value;
+      return (
+        <Box
+          maxH="500px"
+          overflowY="auto"
+          bg="gray.50"
+          p={3}
+          borderRadius="md"
+          border="1px solid"
+          borderColor="gray.200"
+          fontSize="xs" // Smaller font size for JSON
+        >
+          <pre style={{ margin: 0, whiteSpace: "pre-wrap", color: "blue.600" }}>
+            {JSON.stringify(jsonValue, null, 2)}
+          </pre>
+        </Box>
+      );
+    }
+
+    // Handle URLs
+    if (typeof displayValue === "string" && /^(https?:\/\/[^\s]+)$/.test(displayValue)) {
+      return (
+        <Link href={displayValue} color="blue.500" isExternal>
+          {displayValue}
+        </Link>
+      );
+    }
+
+    // Default text rendering
+    return <Text>{displayValue}</Text>;
+  };
 
   if (!data) {
     return (
@@ -644,47 +693,31 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
     );
   }
 
+  // Append ID to title if it exists in data
+  const modalTitle = data.id ? `${title} (ID: ${data.id})` : title;
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="full">
       <ModalOverlay />
       <ModalContent maxW="90vw" maxH="80vh" mx="auto" my={4} borderRadius="md">
         <ModalHeader fontSize="xl" fontWeight="bold" pb={2}>
-          {title}
+          {modalTitle}
         </ModalHeader>
         <ModalBody overflowY="auto">
           <Table variant="simple" size="md" colorScheme="gray">
             <Tbody>
-              {Object.entries(data).map(([key, value]) => (
-                <Tr key={key}>
-                  <Td fontWeight="semibold" color="gray.700" w="25%" py={3}>
-                    {capitalizeKey(key)}
-                  </Td>
-                  <Td wordBreak="break-word" color="gray.800" py={3}>
-                    {key.toLowerCase().includes("json") && value ? (
-                      <Box
-                        maxH="500px"
-                        overflowY="auto"
-                        bg="gray.50"
-                        p={3}
-                        borderRadius="md"
-                        border="1px solid"
-                        borderColor="gray.200"
-                        fontSize="sm"
-                      >
-                        <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
-                          {JSON.stringify(
-                            typeof value === "string" ? JSON.parse(value) : value,
-                            null,
-                            2
-                          )}
-                        </pre>
-                      </Box>
-                    ) : (
-                      <Text>{value || "N/A"}</Text>
-                    )}
-                  </Td>
-                </Tr>
-              ))}
+              {Object.entries(data)
+                .filter(([key]) => key.toLowerCase() !== "id") // Exclude ID from table since it's in header
+                .map(([key, value]) => (
+                  <Tr key={key}>
+                    <Td fontWeight="semibold" color="gray.700" w="25%" py={3}>
+                      {capitalizeKey(key)}
+                    </Td>
+                    <Td wordBreak="break-word" color="gray.800" py={3}>
+                      {renderValue(key, value)}
+                    </Td>
+                  </Tr>
+                ))}
             </Tbody>
           </Table>
         </ModalBody>
@@ -692,6 +725,8 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
     </Modal>
   );
 };
+
+
 const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSearchQuery }) => {
   const showToast = useCustomToast();
   const [selectedResult, setSelectedResult] = useState<ResultItem | null>(null);
