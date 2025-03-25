@@ -20,13 +20,13 @@ import Appearance from "../../components/UserSettings/Appearance";
 import ChangePassword from "../../components/UserSettings/ChangePassword";
 import DeleteAccount from "../../components/UserSettings/DeleteAccount";
 import UserInformation from "../../components/UserSettings/UserInformation";
-import SubscriptionManagement from "../../components/UserSettings/SubscriptionManagement";
+import ApiStatusManagement from "../../components/UserSettings/ApiStatusManagement";
 
 const tabsConfig = [
   { title: "My profile", component: UserInformation },
   { title: "Password", component: ChangePassword },
   { title: "Appearance", component: Appearance },
-  { title: "State Management", component: () => <SubscriptionManagement /> },
+  { title: "ApI Status Management", component: () => <ApiStatusManagement /> },
   { title: "Close Account", component: DeleteAccount },
 ];
 
