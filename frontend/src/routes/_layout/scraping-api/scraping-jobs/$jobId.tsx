@@ -619,7 +619,6 @@ interface DetailsModalProps {
   title: string;
   data: Record<string, any> | null;
 }
-
 const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, data }) => {
   const capitalizeKey = (key: string) =>
     key
@@ -631,7 +630,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
     return (
       <Modal isOpen={isOpen} onClose={onClose} size="full">
         <ModalOverlay />
-        <ModalContent maxW="90vw" mx="auto" my={4}>
+        <ModalContent maxW="90vw" maxH="80vh" mx="auto" my={4}>
           <ModalHeader fontSize="xl" fontWeight="bold">
             {title}
           </ModalHeader>
@@ -648,11 +647,11 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="full">
       <ModalOverlay />
-      <ModalContent maxW="90vw" mx="auto" my={4} borderRadius="md">
+      <ModalContent maxW="90vw" maxH="80vh" mx="auto" my={4} borderRadius="md">
         <ModalHeader fontSize="xl" fontWeight="bold" pb={2}>
           {title}
         </ModalHeader>
-        <ModalBody>
+        <ModalBody overflowY="auto">
           <Table variant="simple" size="md" colorScheme="gray">
             <Tbody>
               {Object.entries(data).map(([key, value]) => (
@@ -663,13 +662,14 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
                   <Td wordBreak="break-word" color="gray.800" py={3}>
                     {key.toLowerCase().includes("json") && value ? (
                       <Box
-                        maxH="300px"
+                        maxH="500px"
                         overflowY="auto"
                         bg="gray.50"
                         p={3}
                         borderRadius="md"
                         border="1px solid"
                         borderColor="gray.200"
+                        fontSize="sm"
                       >
                         <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
                           {JSON.stringify(
@@ -692,7 +692,6 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
     </Modal>
   );
 };
-
 const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSearchQuery }) => {
   const showToast = useCustomToast();
   const [selectedResult, setSelectedResult] = useState<ResultItem | null>(null);
