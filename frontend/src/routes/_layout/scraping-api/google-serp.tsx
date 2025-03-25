@@ -5,14 +5,19 @@ import OverviewGSerp from "../../../components/OverviewGSerp";
 import LogsGSerp from "../../../components/LogsGSerp"; 
 import PlaygroundGSerp from "../../../components/PlaygroundGSerp";
 import WhitelistGSerp from "../../../components/WhitelistGSerp";
-
+import OptimalReferencesTable from "../../../components/OptimalReferencesTable";
 const GoogleSerpPage = () => {
-  const tabsConfig = [
-    { title: "Overview", component: () => <OverviewGSerp /> },
-    { title: "Logs", component: () => <LogsGSerp /> }, // Uses the tabbed LogsGSerp
-    { title: "Playground", component: () => <PlaygroundGSerp /> },
-    { title: "Whitelist", component: () => <WhitelistGSerp /> },
-  ];
+// src/pages/GoogleSerpPage.tsx
+
+
+// Inside GoogleSerpPage component
+const tabsConfig = [
+  { title: "Overview", component: () => <OverviewGSerp /> },
+  { title: "Logs", component: () => <LogsGSerp /> },
+  { title: "Playground", component: () => <PlaygroundGSerp /> },
+  { title: "Whitelist", component: () => <WhitelistGSerp /> },
+  { title: "References", component: () => <OptimalReferencesTable /> },
+];
 
   return (
     <Container maxW="full">
