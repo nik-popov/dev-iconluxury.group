@@ -12,9 +12,13 @@ import {
   HStack,
   Input,
   Select,
+  Badge,
 } from "@chakra-ui/react";
 import { FiGithub } from "react-icons/fi";
 import PromoSERP from "../../../components/ComingSoon";
+
+// Import the ApiStatusManagement component (adjust path as needed)
+import ApiStatusManagement from "./ApiStatusManagement"; // Assuming it's in the same directory
 
 // Define the JobSummary interface
 interface JobSummary {
@@ -35,7 +39,6 @@ interface SubscriptionStatus {
 
 // Function to get the auth token (adjust based on your auth setup)
 const getAuthToken = (): string | null => {
-  // Example: Retrieve token from localStorage; adjust based on your auth system
   return localStorage.getItem("access_token");
 };
 
@@ -101,6 +104,16 @@ function Explore() {
     enabled: !!subscriptionStatus?.hasSubscription || !!subscriptionStatus?.isTrial,
   });
 
+  // Fetch API status settings
+  const { data: apiStatusSettings } = useQuery({
+    queryKey: ["apiStatusSettings"],
+    queryFn: () => {
+      const storedSettings = localStorage.getItem("apiStatusSettings");
+      return storedSettings ? JSON.parse(storedSettings) : { "service-distro-image": { isActive: true, isLimited: false, isDeactivated: false } };
+    },
+    staleTime: Infinity,
+  });
+
   useEffect(() => {
     if (freshJobs) {
       setJobs((prev) => (page === 1 ? freshJobs : [...prev, ...freshJobs]));
@@ -150,6 +163,18 @@ function Explore() {
   };
   const isLocked = !hasSubscription && !isTrial;
   const isFullyDeactivated = isDeactivated && !hasSubscription;
+
+  const apiStatus = apiStatusSettings?.["service-distro-image"] || { isActive: true, isLimited: false, isDeactivated: false };
+  const isApiDeactivated = apiStatus.isDeactivated;
+
+  // Determine status badge properties
+  const getStatusBadge = () => {
+    if (apiStatus.isDeactivated) return { text: "Deactivated", color: "gray" };
+    if (apiStatus.isLimited) return { text: "Limited", color: "yellow" };
+    if (apiStatus.isActive) return { text: "Active", color: "green" };
+    return { text: "Unknown", color: "red" };
+  };
+  const statusBadge = getStatusBadge();
 
   return (
     <Container maxW="full" bg="white" color="gray.800">
@@ -295,7 +320,7 @@ function Explore() {
                 size="sm"
                 variant="outline"
               >
-               dev service-distro-image
+                dev service-distro-image
               </Button>
               <Button
                 as="a"
@@ -331,9 +356,9 @@ function Explore() {
                 >
                   Openapi
                 </Button>
-                </HStack>
-                <Text color="gray.700">(prod service-distro-image)</Text>
-                <HStack spacing={2}>
+              </HStack>
+              <Text color="gray.700">(prod service-distro-image)</Text>
+              <HStack spacing={2}>
                 <Button
                   as="a"
                   href="https://image-backend-cms-icon-7.popovtech.com/redoc"
@@ -354,9 +379,12 @@ function Explore() {
                 >
                   Openapi
                 </Button>
-                </HStack>
+              </HStack>
+              <HStack justify="space-between" align="center">
                 <Text color="gray.700">(beta service-distro-image)</Text>
-                <HStack spacing={2}>
+                <Badge colorScheme={statusBadge.color}>{statusBadge.text}</Badge>
+              </HStack>
+              <HStack spacing={2}>
                 <Button
                   as="a"
                   href="https://beta-image-backend-cms-icon-7.popovtech.com/redoc"
@@ -364,6 +392,9 @@ function Explore() {
                   colorScheme="blue"
                   size="sm"
                   variant="outline"
+                  isDisabled={isApiDeactivated}
+                  bg={isApiDeactivated ? "gray.300" : undefined}
+                  _hover={isApiDeactivated ? {} : { bg: "blue.50" }}
                 >
                   Redoc
                 </Button>
@@ -374,13 +405,17 @@ function Explore() {
                   colorScheme="blue"
                   size="sm"
                   variant="outline"
+                  isDisabled={isApiDeactivated}
+                  bg={isApiDeactivated ? "gray.300" : undefined}
+                  _hover={isApiDeactivated ? {} : { bg: "blue.50" }}
                 >
                   Openapi
                 </Button>
-                </HStack>
-               
-                <Divider />
-
+              </HStack>
+              <Divider />
+              {/* Optionally add ApiStatusManagement for admin users */}
+              <Text fontWeight="bold" color="black">API Status Management</Text>
+              <ApiStatusManagement />
             </VStack>
           </Box>
         </Flex>
