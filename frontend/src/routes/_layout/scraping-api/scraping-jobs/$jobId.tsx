@@ -1338,9 +1338,9 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
     setNumImages((prev) => Math.max(prev - 1, 1));
   };
 
-  const handleRowIdClick = (e: React.MouseEvent<HTMLElement, MouseEvent>, productModel: string) => {
+  const handleRowIdClick = (e: React.MouseEvent<HTMLElement, MouseEvent>, entryId: string) => {
     e.preventDefault();
-    const url = `${window.location.pathname}?activeTab=2&search=${encodeURIComponent(productModel || "")}`;
+    const url = `${window.location.pathname}?activeTab=2&search=${encodeURIComponent(entryId || "")}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -1642,7 +1642,7 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
                         cursor="pointer"
                         color="green.300"
                         _hover={{ textDecoration: "underline" }}
-                        onClick={(e) => handleRowIdClick(e, record.productModel)}
+                        onClick={(e) => handleRowIdClick(e, record.entryId)}
                       >
                         {record.excelRowId}
                       </Text>
