@@ -400,6 +400,28 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           >
             Process AI
           </Button>
+          <Button size="sm" onClick={() => setIsFileModalOpen(true)}>
+          View File Details
+        </Button>
+        <DetailsModal
+        isOpen={isFileModalOpen}
+        onClose={() => setIsFileModalOpen(false)}
+        title={`File ${job.id}`}
+        data={{
+          ID: job.id,
+          FileName: job.inputFile,
+          FileLocationUrl: job.fileLocationUrl,
+          FileLocationURLComplete: job.fileLocationURLComplete, // Ensure API provides this
+          ImageStartTime: job.imageStart,
+          ImageCompleteTime: job.imageEnd,
+          CreateFileStartTime: job.fileStart,
+          CreateFileCompleteTime: job.fileEnd,
+          UserID: job.userId, // Ensure API provides this
+          UserEmail: job.userEmail, // Ensure API provides this
+          LogFileURL: job.logFileUrl,
+          UserHeaderIndex: job.userHeaderIndex, // Ensure API provides this
+        }}
+      />
         </Flex>
       </Flex>
 
@@ -424,28 +446,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             </Badge>
           </StatNumber>
         </Stat>
-        <Button size="sm" onClick={() => setIsFileModalOpen(true)}>
-          View File Details
-        </Button>
-        <DetailsModal
-        isOpen={isFileModalOpen}
-        onClose={() => setIsFileModalOpen(false)}
-        title={`File ${job.id}`}
-        data={{
-          ID: job.id,
-          FileName: job.inputFile,
-          FileLocationUrl: job.fileLocationUrl,
-          FileLocationURLComplete: job.fileLocationURLComplete, // Ensure API provides this
-          ImageStartTime: job.imageStart,
-          ImageCompleteTime: job.imageEnd,
-          CreateFileStartTime: job.fileStart,
-          CreateFileCompleteTime: job.fileEnd,
-          UserID: job.userId, // Ensure API provides this
-          UserEmail: job.userEmail, // Ensure API provides this
-          LogFileURL: job.logFileUrl,
-          UserHeaderIndex: job.userHeaderIndex, // Ensure API provides this
-        }}
-      />
+      
         {job.fileEnd && (
           <Stat mt={4}>
             <StatLabel color="gray.600">Processing Duration</StatLabel>
