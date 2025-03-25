@@ -38,24 +38,28 @@ import {
   ModalOverlay,
   ModalContent,
   ModalHeader,
-  ModalBody,
-} from "@chakra-ui/react";
+  ModalBody
+  } from "@chakra-ui/react";
 import useCustomToast from "../../../../hooks/useCustomToast";
 
 interface JobDetails {
   id: number;
   inputFile: string;
+  fileLocationUrl: string;
+  fileLocationURLComplete?: string;
   imageStart: string;
+  imageEnd?: string;
   fileStart: string;
   fileEnd?: string;
-  resultFile: string;
-  fileLocationUrl: string;
+  userId?: number;
+  userEmail?: string;
   logFileUrl: string | null;
+  userHeaderIndex?: string;
   user: string;
   rec: number;
   img: number;
   apiUsed: string;
-  imageEnd?: string;
+  resultFile: string;
   results: ResultItem[];
   records: RecordItem[];
 }
@@ -92,6 +96,12 @@ interface RecordItem {
   excelRowImageRef: string | null;
 }
 
+interface ResultsTabProps {
+  job: JobDetails;
+  sortBy: "match" | "linesheet" | null;
+  searchQuery: string;
+  setSearchQuery: (value: string) => void;
+}
 interface LogDisplayProps {
   logUrl: string | null;
 }
@@ -170,6 +180,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   const [isRestarting, setIsRestarting] = useState(false);
   const [isCreatingXLS, setIsCreatingXLS] = useState(false);
   const [isMatchAISort, setIsMatchAISort] = useState(false);
+  const [isFileModalOpen, setIsFileModalOpen] = useState(false);
   const [isInitialSort, setIsInitialSort] = useState(false);
   const [isSearchSort, setIsSearchSort] = useState(false);
   const [isGeneratingDownload, setIsGeneratingDownload] = useState(false);
@@ -404,23 +415,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               {job.inputFile}
             </Link>
           </StatHelpText>
-          <StatLabel color="gray.600">Ray Dashboard</StatLabel>
-          <StatHelpText wordBreak="break-all">
-            <Link href="https://ray-distro-image.popovtech.com" isExternal color="blue.300">
-              Dev Distro Image
-            </Link>
-          </StatHelpText>
-          <StatLabel color="gray.600">API Reference (dev service-distro-image)</StatLabel>
-          <StatHelpText wordBreak="break-all">
-          <Link href="https://dev-image-distro.popovtech.com/redoc" isExternal color="blue.600">
-              Redoc
-            </Link>
-          </StatHelpText>
-          <StatHelpText wordBreak="break-all">
-          <Link href="https://dev-image-distro.popovtech.com/docs" isExternal color="blue.300">
-              Openapi
-            </Link>
-            </StatHelpText>
         </Stat>
         <Stat mt={4}>
           <StatLabel color="gray.600">Status</StatLabel>
@@ -430,6 +424,28 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             </Badge>
           </StatNumber>
         </Stat>
+        <Button size="sm" onClick={() => setIsFileModalOpen(true)}>
+          View File Details
+        </Button>
+        <DetailsModal
+        isOpen={isFileModalOpen}
+        onClose={() => setIsFileModalOpen(false)}
+        title={`File ${job.id}`}
+        data={{
+          ID: job.id,
+          FileName: job.inputFile,
+          FileLocationUrl: job.fileLocationUrl,
+          FileLocationURLComplete: job.fileLocationURLComplete, // Ensure API provides this
+          ImageStartTime: job.imageStart,
+          ImageCompleteTime: job.imageEnd,
+          CreateFileStartTime: job.fileStart,
+          CreateFileCompleteTime: job.fileEnd,
+          UserID: job.userId, // Ensure API provides this
+          UserEmail: job.userEmail, // Ensure API provides this
+          LogFileURL: job.logFileUrl,
+          UserHeaderIndex: job.userHeaderIndex, // Ensure API provides this
+        }}
+      />
         {job.fileEnd && (
           <Stat mt={4}>
             <StatLabel color="gray.600">Processing Duration</StatLabel>
@@ -597,23 +613,67 @@ const UsageTab = ({ job }: { job: JobDetails }) => {
     </Box>
   );
 };
-
-interface ResultsTabProps {
-  job: JobDetails;
-  sortBy: "match" | "linesheet" | null;
-  searchQuery: string;
-  setSearchQuery: (value: string) => void;
+interface DetailsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  data: Record<string, any> | null; // Allow null explicitly
 }
+const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, data }) => {
+  if (!data) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} size="xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>{title}</ModalHeader>
+          <ModalBody>
+            <Text>No data available</Text>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>{title}</ModalHeader>
+        <ModalBody>
+          <Table variant="simple" size="sm">
+            <Tbody>
+              {Object.entries(data).map(([key, value]) => (
+                <Tr key={key}>
+                  <Td fontWeight="bold">{key}</Td>
+                  <Td wordBreak="break-word">
+                    {typeof value === "object" && value !== null
+                      ? JSON.stringify(value)
+                      : value || "N/A"}
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
+  );
+};
 
 const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSearchQuery }) => {
   const showToast = useCustomToast();
-
+  const [selectedResult, setSelectedResult] = useState<ResultItem | null>(null);
+  const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<RecordItem | null>(null);
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const query = (searchQuery || "").trim().toLowerCase();
 
-  const filteredResults = job.results.filter((result) =>
-    (result.imageDesc || "").toLowerCase().includes(query) ||
-    (result.imageSource || "").toLowerCase().includes(query) ||
-    (result.imageUrl || "").toLowerCase().includes(query)
+  const filteredResults = job.results.filter(
+    (result) =>
+      (result.imageDesc || "").toLowerCase().includes(query) ||
+      (result.imageSource || "").toLowerCase().includes(query) ||
+      (result.aiJson || "").toLowerCase().includes(query) ||
+      (result.imageUrl || "").toLowerCase().includes(query)
   );
 
   const sortedResults = [...filteredResults].sort((a, b) => {
@@ -627,10 +687,11 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
     return 0;
   });
 
-  const filteredRecords = job.records.filter((record) =>
-    (record.productModel || "").toLowerCase().includes(query) ||
-    (record.productBrand || "").toLowerCase().includes(query) ||
-    (record.excelRowId?.toString() || "").toLowerCase().includes(query)
+  const filteredRecords = job.records.filter(
+    (record) =>
+      (record.productModel || "").toLowerCase().includes(query) ||
+      (record.productBrand || "").toLowerCase().includes(query) ||
+      (record.excelRowId?.toString() || "").toLowerCase().includes(query)
   );
 
   const totalResults = sortedResults.length;
@@ -663,7 +724,9 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
         flexWrap="wrap"
         gap={3}
       >
-        <Text fontSize="lg" fontWeight="bold" color="gray.800">Job Results</Text>
+        <Text fontSize="lg" fontWeight="bold" color="gray.800">
+          Job Results
+        </Text>
         <Input
           placeholder="Search by description, source, model, brand, etc..."
           value={searchQuery}
@@ -688,12 +751,16 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
                 <Stat>
                   <StatLabel color="gray.600">Filtered Results</StatLabel>
                   <StatNumber color="gray.800">{totalResults} images</StatNumber>
-                  <StatHelpText color="gray.600">out of {totalImages} total</StatHelpText>
+                  <StatHelpText color="gray.600">
+                    out of {totalImages} total
+                  </StatHelpText>
                 </Stat>
                 <Stat mt={4}>
                   <StatLabel color="gray.600">Filtered Records</StatLabel>
                   <StatNumber color="gray.800">{totalRecords} records</StatNumber>
-                  <StatHelpText color="gray.600">out of {totalAllRecords} total</StatHelpText>
+                  <StatHelpText color="gray.600">
+                    out of {totalAllRecords} total
+                  </StatHelpText>
                 </Stat>
               </Box>
             ) : (
@@ -718,24 +785,45 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
         </Card>
         <Card shadow="md" borderWidth="1px" bg="white">
           <CardBody>
-            <Text fontSize="md" fontWeight="semibold" mb={2} color="gray.800">Details</Text>
+            <Text fontSize="md" fontWeight="semibold" mb={2} color="gray.800">
+              Details
+            </Text>
             <Accordion allowToggle defaultIndex={[0, 1]}>
               <AccordionItem>
                 <AccordionButton bg="gray.100" _expanded={{ bg: "gray.200" }}>
-                  <Box flex="1" textAlign="left" color="green.300">Results ({totalResults})</Box>
+                  <Box flex="1" textAlign="left" color="green.300">
+                    Results ({totalResults})
+                  </Box>
                   <AccordionIcon color="green.300" />
                 </AccordionButton>
                 <AccordionPanel pb={4}>
                   <Table variant="simple" size="sm" colorScheme="blue">
                     <Thead bg="gray.100">
                       <Tr>
-                        <Th w="60px" color="gray.800">Preview</Th>
-                        <Th w="80px" color="gray.800">Result ID</Th>
-                        <Th w="80px" color="gray.800">Entry ID</Th>
-                        <Th w="120px" color="gray.800">Image URL</Th>
-                        <Th w="120px" color="gray.800">Description</Th>
-                        <Th w="120px" color="gray.800">Source</Th>
-                        <Th w="80px" color="gray.800">Sort Order</Th>
+                        <Th w="60px" color="gray.800">
+                          Preview
+                        </Th>
+                        <Th w="80px" color="gray.800">
+                          Result ID
+                        </Th>
+                        <Th w="80px" color="gray.800">
+                          Entry ID
+                        </Th>
+                        <Th w="120px" color="gray.800">
+                          Image URL
+                        </Th>
+                        <Th w="120px" color="gray.800">
+                          Description
+                        </Th>
+                        <Th w="120px" color="gray.800">
+                          Source
+                        </Th>
+                        <Th w="80px" color="gray.800">
+                          Sort Order
+                        </Th>
+                        <Th w="80px" color="gray.800">
+                          Actions
+                        </Th>
                       </Tr>
                     </Thead>
                     <Tbody>
@@ -748,28 +836,63 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
                               maxW="80px"
                               maxH="80px"
                               objectFit="cover"
-                              fallback={<Text fontSize="xs" color="gray.600">No image</Text>}
+                              fallback={
+                                <Text fontSize="xs" color="gray.600">
+                                  No image
+                                </Text>
+                              }
                             />
                           </Td>
-                          <Td w="80px" color="gray.800">{result.resultId || "N/A"}</Td>
-                          <Td w="80px" color="gray.800">{result.entryId || "N/A"}</Td>
+                          <Td w="80px" color="gray.800">
+                            {result.resultId || "N/A"}
+                          </Td>
+                          <Td w="80px" color="gray.800">
+                            {result.entryId || "N/A"}
+                          </Td>
                           <Td w="120px">
-                            <a href={result.imageUrl || "#"} target="_blank" rel="noopener noreferrer">
-                              <Text color="green.300">{shortenUrl(result.imageUrl)}</Text>
+                            <a
+                              href={result.imageUrl || "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Text color="green.300">
+                                {shortenUrl(result.imageUrl)}
+                              </Text>
                             </a>
                           </Td>
-                          <Td w="120px" color="gray.800">{result.imageDesc || "N/A"}</Td>
+                          <Td w="120px" color="gray.800">
+                            {result.imageDesc || "N/A"}
+                          </Td>
                           <Td w="120px">
-                            <a href={result.imageSource || "#"} target="_blank" rel="noopener noreferrer">
-                              <Text color="green.300">{shortenUrl(result.imageSource)}</Text>
+                            <a
+                              href={result.imageSource || "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Text color="green.300">
+                                {shortenUrl(result.imageSource)}
+                              </Text>
                             </a>
                           </Td>
-                          <Td w="80px" color="gray.800">{result.sortOrder || "0"}</Td>
+                          <Td w="80px" color="gray.800">
+                            {result.sortOrder || "0"}
+                          </Td>
+                          <Td w="80px">
+                            <Button
+                              size="xs"
+                              onClick={() => {
+                                setSelectedResult(result);
+                                setIsResultModalOpen(true);
+                              }}
+                            >
+                              View Details
+                            </Button>
+                          </Td>
                         </Tr>
                       ))}
                       {sortedResults.length === 0 && (
                         <Tr>
-                          <Td colSpan={7} textAlign="center" color="gray.600">
+                          <Td colSpan={8} textAlign="center" color="gray.600">
                             No results match your search query.
                           </Td>
                         </Tr>
@@ -780,19 +903,38 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
               </AccordionItem>
               <AccordionItem>
                 <AccordionButton bg="gray.100" _expanded={{ bg: "gray.200" }}>
-                  <Box flex="1" textAlign="left" color="green.300">Records ({totalRecords})</Box>
+                  <Box flex="1" textAlign="left" color="green.300">
+                    Records ({totalRecords})
+                  </Box>
                   <AccordionIcon color="green.300" />
                 </AccordionButton>
                 <AccordionPanel pb={4}>
                   <Table variant="simple" size="sm" colorScheme="blue">
                     <Thead bg="gray.100">
                       <Tr>
-                        {hasThumbnails && <Th w="60px" color="gray.800">Excel Picture</Th>}
-                        <Th w="80px" color="gray.800">Entry ID</Th>
-                        <Th w="80px" color="gray.800">File ID</Th>
-                        <Th w="80px" color="gray.800">Excel Row ID</Th>
-                        <Th w="120px" color="gray.800">Style #</Th>
-                        <Th w="120px" color="gray.800">Brand</Th>
+                        {hasThumbnails && (
+                          <Th w="60px" color="gray.800">
+                            Excel Picture
+                          </Th>
+                        )}
+                        <Th w="80px" color="gray.800">
+                          Entry ID
+                        </Th>
+                        <Th w="80px" color="gray.800">
+                          File ID
+                        </Th>
+                        <Th w="80px" color="gray.800">
+                          Excel Row ID
+                        </Th>
+                        <Th w="120px" color="gray.800">
+                          Style #
+                        </Th>
+                        <Th w="120px" color="gray.800">
+                          Brand
+                        </Th>
+                        <Th w="80px" color="gray.800">
+                          Actions
+                        </Th>
                       </Tr>
                     </Thead>
                     <Tbody>
@@ -803,7 +945,10 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
                               {record.excelRowImageRef ? (
                                 <Image
                                   src={record.excelRowImageRef}
-                                  alt={`Thumbnail for ${record.productModel || "Record ID " + record.entryId}`}
+                                  alt={
+                                    record.productModel ||
+                                    "Record ID " + record.entryId
+                                  }
                                   maxW="80px"
                                   maxH="80px"
                                   objectFit="cover"
@@ -821,24 +966,55 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
                                     );
                                     e.currentTarget.style.display = "none";
                                   }}
-                                  fallback={<Text fontSize="xs" color="gray.600">No picture</Text>}
+                                  fallback={
+                                    <Text fontSize="xs" color="gray.600">
+                                      No picture
+                                    </Text>
+                                  }
                                   loading="lazy"
                                 />
                               ) : (
-                                <Text fontSize="xs" color="gray.600">No picture</Text>
+                                <Text fontSize="xs" color="gray.600">
+                                  No picture
+                                </Text>
                               )}
                             </Td>
                           )}
-                          <Td w="80px" color="gray.800">{record.entryId || "N/A"}</Td>
-                          <Td w="80px" color="gray.800">{record.fileId || "N/A"}</Td>
-                          <Td w="80px" color="gray.800">{record.excelRowId || "N/A"}</Td>
-                          <Td w="120px" color="gray.800">{record.productModel || "N/A"}</Td>
-                          <Td w="120px" color="gray.800">{record.productBrand || "N/A"}</Td>
+                          <Td w="80px" color="gray.800">
+                            {record.entryId || "N/A"}
+                          </Td>
+                          <Td w="80px" color="gray.800">
+                            {record.fileId || "N/A"}
+                          </Td>
+                          <Td w="80px" color="gray.800">
+                            {record.excelRowId || "N/A"}
+                          </Td>
+                          <Td w="120px" color="gray.800">
+                            {record.productModel || "N/A"}
+                          </Td>
+                          <Td w="120px" color="gray.800">
+                            {record.productBrand || "N/A"}
+                          </Td>
+                          <Td w="80px">
+                            <Button
+                              size="xs"
+                              onClick={() => {
+                                setSelectedRecord(record);
+                                setIsRecordModalOpen(true);
+                              }}
+                            >
+                              View Details
+                            </Button>
+                          </Td>
                         </Tr>
                       ))}
                       {filteredRecords.length === 0 && (
                         <Tr>
-                          <Td colSpan={hasThumbnails ? 6 : 5} textAlign="center" color="gray.600">
+                          <Td
+                            colSpan={hasThumbnails ? 7 : 6}
+                            textAlign="center"
+                            color="gray.600"
+                          >
                             No records match your search query.
                           </Td>
                         </Tr>
@@ -851,9 +1027,23 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
           </CardBody>
         </Card>
       </Flex>
+      <DetailsModal
+        isOpen={isResultModalOpen}
+        onClose={() => setIsResultModalOpen(false)}
+        title={`Result ${selectedResult?.resultId || "Details"}`}
+        data={selectedResult}
+      />
+      <DetailsModal
+        isOpen={isRecordModalOpen}
+        onClose={() => setIsRecordModalOpen(false)}
+        title={`Record ${selectedRecord?.entryId || "Details"}`}
+        data={selectedRecord}
+      />
     </Box>
   );
 };
+
+
 const LogsTab = ({ job }: { job: JobDetails }) => {
   return (
     <Box p={4} bg="white">
