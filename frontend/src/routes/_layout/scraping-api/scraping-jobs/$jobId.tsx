@@ -742,7 +742,12 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
       (result.imageDesc || "").toLowerCase().includes(query) ||
       (result.imageSource || "").toLowerCase().includes(query) ||
       (result.aiJson || "").toLowerCase().includes(query) ||
-      (result.imageUrl || "").toLowerCase().includes(query)
+      (result.imageUrl || "").toLowerCase().includes(query) ||
+      (result.aiCaption || "").toLowerCase().includes(query) ||
+      (result.aiLabel || "").toLowerCase().includes(query) ||
+      (result.createTime || "").toLowerCase().includes(query) ||
+      result.entryId.toString().includes(query) ||
+      result.resultId.toString().includes(query)
   );
   const sortedResults = [...filteredResults].sort((a, b) => {
     if (sortBy === "match" && query) {
