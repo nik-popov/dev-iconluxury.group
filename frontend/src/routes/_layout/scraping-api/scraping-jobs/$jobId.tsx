@@ -735,7 +735,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, searchQuery, setSe
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<RecordItem | null>(null);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-  const query = (searchQuery || "").trim().toLowerCase();
+  const query = String(searchQuery || "").trim().toLowerCase();
 
   const filteredResults = job.results.filter(
     (result) =>
