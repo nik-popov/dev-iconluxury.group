@@ -225,23 +225,23 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     .slice(0, 20);
 
   const sortedTopDomains = [...topDomains].sort((a, b) => {
-    if (sortConfig.key === "domain") {
-      const aValue = a.domain.toLowerCase();
-      const bValue = b.domain.toLowerCase();
-      return sortConfig.direction === "ascending"
-        ? aValue.localeCompare(bValue)
-        : bValue.localeComparative(aValue);
-    } else if (sortConfig.key === "totalResults") {
-      return sortConfig.direction === "ascending"
-        ? a.totalResults - b.totalResults
-        : b.totalResults - a.totalResults;
-    } else if (sortConfig.key === "positiveSortOrderCount") {
-      return sortConfig.direction === "ascending"
-        ? a.positiveSortOrderCount - b.positiveSortOrderCount
-        : b.positiveSortOrderCount - a.positiveSortOrderCount;
-    }
-    return 0;
-  });
+      if (sortConfig.key === "domain") {
+        const aValue = a.domain.toLowerCase();
+        const bValue = b.domain.toLowerCase();
+        return sortConfig.direction === "ascending"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue); // <--- Corrected
+      } else if (sortConfig.key === "totalResults") {
+        return sortConfig.direction === "ascending"
+          ? a.totalResults - b.totalResults
+          : b.totalResults - a.totalResults;
+      } else if (sortConfig.key === "positiveSortOrderCount") {
+        return sortConfig.direction === "ascending"
+          ? a.positiveSortOrderCount - b.positiveSortOrderCount
+          : b.positiveSortOrderCount - a.positiveSortOrderCount;
+      }
+      return 0;
+    });
 
   const handleSort = (
     key: "domain" | "totalResults" | "positiveSortOrderCount"
