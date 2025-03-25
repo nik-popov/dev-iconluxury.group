@@ -1,4 +1,3 @@
-// src/components/OptimalReferencesTable.tsx
 import { useState, useEffect } from "react";
 import {
   Table,
@@ -12,58 +11,51 @@ import {
   Flex,
   Image,
 } from "@chakra-ui/react";
+
 interface Reference {
-    id: number;
-    category: string;
-    url: string;
-  }
-// Initial data (to be replaced with API fetch later)
-const optimal_references = {
-  "shoe": "https://encrypted-tbn0.gstatic.com/images?q=tbn9GcQ7MGfepTaFjpQhcNFyetjseybIRxLUe58eag&s",
-  "clothing": "https://encrypted-tbn0.gstatic.com/images?q=tbn9GcTyYe3Vgmztdh089e9IHLqdPPLuE2jUtV8IZg&s",
-  "pant": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcStaRmmSmbuIuozGgVJa6GHuR59RuW3W8_8jA&s",
-  "jeans": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjiKQ5mZWi6qnWCr6Yca5_AFinCDZXhXhiAg&s",
-  "t-shirt": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyYe3Vgmztdh089e9IHLqdPPLuE2jUtV8IZg&s",
-};
+  id: number;
+  category: string;
+  url: string;
+}
+
+interface ReferencesData {
+  [key: string]: string;
+}
 
 const OptimalReferencesTable = () => {
-  // State for references and next ID
   const [references, setReferences] = useState<Reference[]>([]);
   const [nextId, setNextId] = useState(1);
 
-  // Initialize data (replace with API fetch later)
+  // Fetch data when the component mounts
   useEffect(() => {
-    const initialReferences = Object.entries(optimal_references).map(
-      ([category, url], index) => ({
-        id: index + 1,
-        category,
-        url,
+    fetch(
+      "https://raw.githubusercontent.com/iconluxurygroup/settings-static-data/refs/heads/main/optimal-references.json"
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.json() as Promise<ReferencesData>;
       })
-    );
-    setReferences(initialReferences);
-    setNextId(initialReferences.length + 1);
-  }, []);
-
-  // Later, fetch from S3 via API:
-  /*
-  useEffect(() => {
-    fetch('/api/references')
-      .then(response => response.json())
-      .then(data => {
-        const fetchedReferences = Object.entries(data).map(([category, url], index) => ({
-          id: index + 1,
-          category,
-          url,
-        }));
+      .then((data) => {
+        const fetchedReferences = Object.entries(data).map(
+          ([category, url], index) => ({
+            id: index + 1,
+            category,
+            url,
+          })
+        );
         setReferences(fetchedReferences);
         setNextId(fetchedReferences.length + 1);
       })
-      .catch(error => console.error('Error fetching references:', error));
-  }, []);
-  */
+      .catch((error) => {
+        console.error("Error fetching references:", error);
+        setReferences([]);
+      });
+  }, []); // Empty dependency array ensures this runs only on mount
 
-  // Handle changes
-  const handleCategoryChange = (id, newCategory) => {
+  // Handle changes to category
+  const handleCategoryChange = (id: number, newCategory: string) => {
     setReferences((prev) =>
       prev.map((ref) =>
         ref.id === id ? { ...ref, category: newCategory } : ref
@@ -71,13 +63,14 @@ const OptimalReferencesTable = () => {
     );
   };
 
-  const handleUrlChange = (id, newUrl) => {
+  // Handle changes to URL
+  const handleUrlChange = (id: number, newUrl: string) => {
     setReferences((prev) =>
       prev.map((ref) => (ref.id === id ? { ...ref, url: newUrl } : ref))
     );
   };
 
-  // Add new entry
+  // Add a new empty entry
   const handleAddNew = () => {
     setReferences((prev) => [
       ...prev,
@@ -86,40 +79,49 @@ const OptimalReferencesTable = () => {
     setNextId((prev) => prev + 1);
   };
 
-  // Delete entry
-  const handleDelete = (id) => {
+  // Delete an entry by ID
+  const handleDelete = (id: number) => {
     setReferences((prev) => prev.filter((ref) => ref.id !== id));
   };
 
-  // Save changes
-  const handleSave = () => {
+  // Save changes to an API endpoint
+  const handleSave = async () => {
+    // Check for duplicate categories
     const categories = references.map((ref) => ref.category);
     const uniqueCategories = new Set(categories);
     if (uniqueCategories.size !== categories.length) {
       alert("Duplicate categories are not allowed.");
       return;
     }
+
+    // Check for empty fields
     if (references.some((ref) => !ref.category || !ref.url)) {
       alert("All fields must be filled.");
       return;
     }
+
+    // Convert array to object for API
     const dataToSave = Object.fromEntries(
       references.map((ref) => [ref.category, ref.url])
     );
-    // Send to API (to be implemented later)
-    fetch("/api/references", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(dataToSave),
-    })
-      .then((response) => {
-        if (response.ok) {
-          alert("Changes saved successfully.");
-        } else {
-          alert("Failed to save changes.");
-        }
-      })
-      .catch((error) => console.error("Error saving references:", error));
+
+    // Save to an API endpoint (placeholder URL)
+    try {
+      const response = await fetch("/api/references", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dataToSave),
+      });
+
+      if (response.ok) {
+        alert("Changes saved successfully.");
+      } else {
+        throw new Error("Failed to save changes.");
+      }
+    } catch (error) {
+      console.error("Error saving references:", error);
+      alert("An error occurred while saving changes.");
+    }
   };
 
   return (
