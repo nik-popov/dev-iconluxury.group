@@ -375,30 +375,30 @@ function Explore() {
                 <Badge colorScheme={statusBadge.color}>{statusBadge.text}</Badge>
               </HStack>
               <HStack spacing={2}>
-                <Button
-                  as="a"
-                  href="https://beta-image-backend-cms-icon-7.popovtech.com/redoc"
-                  target="_blank"
-                  colorScheme="blue"
-                  size="sm"
-                  variant="outline"
-                >
-                  Redoc
-                </Button>
-                <Button
-                  as="a"
-                  href="https://beta-image-backend-cms-icon-7.popovtech.com/docs"
-                  target="_blank"
-                  colorScheme="blue"
-                  size="sm"
-                  variant="outline"
-                >
-                  Openapi
-                </Button>
-              </HStack>
+  <Button
+    as="a"
+    href="https://beta-image-backend-cms-icon-7.popovtech.com/redoc"
+    target="_blank"
+    colorScheme="blue"
+    size="sm"
+    variant="outline"
+    isDisabled={isApiDeactivated}
+  >
+    Redoc
+  </Button>
+  <Button
+    as="a"
+    href="https://beta-image-backend-cms-icon-7.popovtech.com/docs"
+    target="_blank"
+    colorScheme="blue"
+    size="sm"
+    variant="outline"
+    isDisabled={isApiDeactivated}
+  >
+    Openapi
+  </Button>
+</HStack>
               <Divider />
-              {/* <Text fontWeight="bold" color="black">API Status Management</Text>
-              <ApiStatusManagement /> */}
             </VStack>
           </Box>
         </Flex>
