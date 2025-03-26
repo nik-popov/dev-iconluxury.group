@@ -97,7 +97,7 @@ interface RecordItem {
   excelRowImageRef: string | null;
 }
 
-// LogDisplay Component
+// **LogDisplay Component**
 const LogDisplay: React.FC<{ logUrl: string | null }> = ({ logUrl }) => {
   const [logContent, setLogContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -146,7 +146,7 @@ const LogDisplay: React.FC<{ logUrl: string | null }> = ({ logUrl }) => {
   );
 };
 
-// OverviewTab Component
+// **OverviewTab Component**
 const OverviewTab: React.FC<{
   job: JobDetails;
   sortBy: "match" | "linesheet" | null;
@@ -260,17 +260,17 @@ const OverviewTab: React.FC<{
   const handleProcessAI = () => handleApiCall(`https://dev-image-distro.popovtech.com/process-ai-analysis/`, "POST", setIsProcessingAI, "Process AI Analysis", { file_id: String(job.id) });
 
   return (
-      <Box p={4} bg="white">
-        <Flex justify="space-between" align="center" mb={4} flexWrap="wrap" gap={3}>
-          <Text fontSize="lg" fontWeight="bold" color="gray.800">Job Overview</Text>
-          <Flex gap={3} flexWrap="wrap">
-            <Button size="sm" colorScheme="red" onClick={handleRestartClick} isLoading={isRestarting}>Dev Restart</Button>
-            <Button size="sm" colorScheme="green" onClick={handleMatchAISort} isLoading={isMatchAISort}>Match AI Sort</Button>
-            <Button size="sm" colorScheme="green" onClick={handleInitialSort} isLoading={isInitialSort}>Initial Sort</Button>
-            <Button size="sm" colorScheme="green" onClick={handleSearchSort} isLoading={isSearchSort}>Search Sort</Button>
-            <Button size="sm" colorScheme="blue" onClick={handleGenerateDownload} isLoading={isGeneratingDownload}>Generate Download</Button>
-            <Button size="sm" colorScheme="purple" onClick={handleProcessAI} isLoading={isProcessingAI}>Process AI</Button>
-            <Button size="sm" onClick={() => setIsFileModalOpen(true)}>View File Details</Button>
+    <Box p={4} bg="white">
+      <Flex justify="space-between" align="center" mb={4} flexWrap="wrap" gap={3}>
+        <Text fontSize="lg" fontWeight="bold" color="gray.800">Job Overview</Text>
+        <Flex gap={3} flexWrap="wrap">
+          <Button size="sm" colorScheme="red" onClick={handleRestartClick} isLoading={isRestarting}>Dev Restart</Button>
+          <Button size="sm" colorScheme="green" onClick={handleMatchAISort} isLoading={isMatchAISort}>Match AI Sort</Button>
+          <Button size="sm" colorScheme="green" onClick={handleInitialSort} isLoading={isInitialSort}>Initial Sort</Button>
+          <Button size="sm" colorScheme="green" onClick={handleSearchSort} isLoading={isSearchSort}>Search Sort</Button>
+          <Button size="sm" colorScheme="blue" onClick={handleGenerateDownload} isLoading={isGeneratingDownload}>Generate Download</Button>
+          <Button size="sm" colorScheme="purple" onClick={handleProcessAI} isLoading={isProcessingAI}>Process AI</Button>
+          <Button size="sm" onClick={() => setIsFileModalOpen(true)}>View File Details</Button>
           <DetailsModal
             isOpen={isFileModalOpen}
             onClose={() => setIsFileModalOpen(false)}
@@ -334,7 +334,7 @@ const OverviewTab: React.FC<{
   );
 };
 
-// UsageTab Component
+// **UsageTab Component**
 const UsageTab = ({ job }: { job: JobDetails }) => {
   const totalRecords = job.records.length;
   const completedRecords = job.records.filter((record) => record.completeTime).length;
@@ -393,7 +393,7 @@ const UsageTab = ({ job }: { job: JobDetails }) => {
   );
 };
 
-// DetailsModal Component
+// **DetailsModal Component**
 const DetailsModal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; data: Record<string, any> | null }> = ({ isOpen, onClose, title, data }) => {
   const capitalizeKey = (key: string) => key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()).trim();
 
@@ -451,7 +451,7 @@ const DetailsModal: React.FC<{ isOpen: boolean; onClose: () => void; title: stri
   );
 };
 
-// RecordsTab Component
+// **RecordsTab Component**
 const RecordsTab: React.FC<{ job: { records: RecordItem[] } }> = ({ job }) => {
   const showToast = useCustomToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -527,26 +527,26 @@ const RecordsTab: React.FC<{ job: { records: RecordItem[] } }> = ({ job }) => {
         <Tbody>
           {displayedRecords.map((record) => (
             <Tr key={record.entryId}>
-            {record.excelRowImageRef ? (
-  <Image
-    src={record.excelRowImageRef}
-    alt={record.productModel || "Record ID " + record.entryId}
-    maxW="80px"
-    maxH="80px"
-    objectFit="cover"
-    cursor="pointer"
-    onClick={() => {
-      if (record.excelRowImageRef) {
-        window.open(record.excelRowImageRef, "_blank");
-      }
-    }}
-    onError={(e) => { showToast("Image Load Failed", `Failed to load S3 image: ${record.excelRowImageRef}`, "warning"); e.currentTarget.style.display = "none"; }}
-    fallback={<Text fontSize="xs" color="gray.600">No picture</Text>}
-    loading="lazy"
-  />
-) : (
-  <Text fontSize="xs" color="gray.600">No picture</Text>
-)}
+              {record.excelRowImageRef ? (
+                <Image
+                  src={record.excelRowImageRef}
+                  alt={record.productModel || "Record ID " + record.entryId}
+                  maxW="80px"
+                  maxH="80px"
+                  objectFit="cover"
+                  cursor="pointer"
+                  onClick={() => {
+                    if (record.excelRowImageRef) {
+                      window.open(record.excelRowImageRef, "_blank");
+                    }
+                  }}
+                  onError={(e) => { showToast("Image Load Failed", `Failed to load S3 image: ${record.excelRowImageRef}`, "warning"); e.currentTarget.style.display = "none"; }}
+                  fallback={<Text fontSize="xs" color="gray.600">No picture</Text>}
+                  loading="lazy"
+                />
+              ) : (
+                <Text fontSize="xs" color="gray.600">No picture</Text>
+              )}
               <Td w="80px" color="gray.800">{record.entryId || "N/A"}</Td>
               <Td w="80px" color="gray.800">{record.fileId || "N/A"}</Td>
               <Td w="80px" color="gray.800">{record.excelRowId || "N/A"}</Td>
@@ -576,7 +576,7 @@ const RecordsTab: React.FC<{ job: { records: RecordItem[] } }> = ({ job }) => {
   );
 };
 
-// ResultsTab Component
+// **ResultsTab Component**
 const ResultsTab: React.FC<{ job: JobDetails; sortBy: "match" | "linesheet" | null; searchQuery: string; setSearchQuery: (value: string) => void }> = ({ job, sortBy }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortConfigResults, setSortConfigResults] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null);
@@ -625,7 +625,7 @@ const ResultsTab: React.FC<{ job: JobDetails; sortBy: "match" | "linesheet" | nu
 
   useEffect(() => {
     setCurrentPageResults(0);
-  }, [searchQuery, sortConfigResults, sortBy]); // Add sortBy to dependencies
+  }, [searchQuery, sortConfigResults, sortBy]);
 
   return (
     <Box p={4} bg="white">
@@ -679,7 +679,7 @@ const ResultsTab: React.FC<{ job: JobDetails; sortBy: "match" | "linesheet" | nu
   );
 };
 
-// LogsTab Component
+// **LogsTab Component**
 const LogsTab = ({ job }: { job: JobDetails }) => {
   return (
     <Box p={4} bg="white">
@@ -712,7 +712,7 @@ const LogsTab = ({ job }: { job: JobDetails }) => {
   );
 };
 
-// Updated SearchRowsTab Component
+// **SearchRowsTab Component**
 const SearchRowsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
   const showToast = useCustomToast();
   const [showFileDetails, setShowFileDetails] = useState(true);
@@ -1032,6 +1032,7 @@ const SearchRowsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
                     <Td w="70px"><Text cursor="pointer" color="green.300" _hover={{ textDecoration: "underline" }} onClick={(e) => handleRowIdClick(e, String(record.entryId))}>{record.excelRowId}</Text></Td>
                     <Td w="130px">{record.productModel ? <a href={googleSearch(record.productModel)} onClick={(e) => handleLinkClick(e, googleSearch(record.productModel))}><Text color="green.300">{record.productModel}</Text></a> : <Text fontSize="xs" color="gray.600">No style</Text>}</Td>
                     <Td w="130px">{record.productBrand ? <a href={googleSearchBrandModelUrl(record.productModel, record.productBrand)} onClick={(e) => handleLinkClick(e, googleSearchBrandModelUrl(record.productModel, record.productBrand))}><Text color="green.300">{record.productBrand}</Text></a> : <Text fontSize="xs" color="gray.600">No brand</Text>}</Td>
+                    {showFileliasoftly" onClick={(e) => handleLinkClick(e, googleSearchBrandModelUrl(record.productModel, record.productBrand))}><Text color="green.300">{record.productBrand}</Text></a> : <Text fontSize="xs" color="gray.600">No brand</Text>}</Td>
                     {showFileDetails && (
                       <>
                         <Td w="100px" bg="gray.50">{record.productColor || <Text fontSize="xs" color="gray.600">No color</Text>}</Td>
@@ -1067,7 +1068,7 @@ const SearchRowsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
   );
 };
 
-// Main JobsDetailPage Component
+// **Main JobsDetailPage Component**
 const JobsDetailPage = () => {
   const { jobId } = useParams({ from: "/_layout/scraping-api/scraping-jobs/$jobId" }) as { jobId: string };
   const [isLoading, setIsLoading] = useState<boolean>(true);
