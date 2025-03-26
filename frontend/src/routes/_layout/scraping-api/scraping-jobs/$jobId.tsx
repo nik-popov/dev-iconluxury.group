@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSearch } from "@tanstack/react-router";
+import { useSearch, useNavigate } from "@tanstack/react-router";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import {
   Container,
@@ -38,7 +38,7 @@ import {
 import InfiniteScroll from "react-infinite-scroll-component";
 import useCustomToast from "../../../../hooks/useCustomToast";
 
-// Interfaces (unchanged)
+// Interfaces
 interface JobDetails {
   id: number;
   inputFile: string;
@@ -92,19 +92,23 @@ interface RecordItem {
   productCategory: string;
   excelRowImageRef: string | null;
 }
+
 interface LogDisplayProps {
   logUrl: string | null;
 }
+
 interface DetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   data: Record<string, any> | null;
 }
+
 interface SearchRowsTabProps {
   job: JobDetails;
 }
-// LogDisplay Component (unchanged)
+
+// LogDisplay Component
 const LogDisplay: React.FC<LogDisplayProps> = ({ logUrl }) => {
   const [logContent, setLogContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -148,20 +152,14 @@ const LogDisplay: React.FC<LogDisplayProps> = ({ logUrl }) => {
       border="1px solid"
       borderColor="gray.200"
     >
-      <pre
-        style={{
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          margin: 0,
-        }}
-      >
+      <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>
         {logContent}
       </pre>
     </Box>
   );
 };
 
-// Updated OverviewTab
+// OverviewTab Component
 interface OverviewTabProps {
   job: JobDetails;
   sortBy: "match" | "linesheet" | null;
@@ -170,11 +168,8 @@ interface OverviewTabProps {
   setActiveTab: (index: number) => void;
 }
 
-const OverviewTab: React.FC<OverviewTabProps> = ({
-  job,
-  fetchJobData,
-  setActiveTab,
-}) => {
+const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveTab }) => {
+  const navigate = useNavigate();
   const [isRestarting, setIsRestarting] = useState(false);
   const [isCreatingXLS, setIsCreatingXLS] = useState(false);
   const [isMatchAISort, setIsMatchAISort] = useState(false);
@@ -225,13 +220,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     if (sortConfig.key === "domain") {
       const aValue = a.domain.toLowerCase();
       const bValue = b.domain.toLowerCase();
-      return sortConfig.direction === "ascending"
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+      return sortConfig.direction === "ascending" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
     } else if (sortConfig.key === "totalResults") {
-      return sortConfig.direction === "ascending"
-        ? a.totalResults - b.totalResults
-        : b.totalResults - a.totalResults;
+      return sortConfig.direction === "ascending" ? a.totalResults - b.totalResults : b.totalResults - a.totalResults;
     } else if (sortConfig.key === "positiveSortOrderCount") {
       return sortConfig.direction === "ascending"
         ? a.positiveSortOrderCount - b.positiveSortOrderCount
@@ -240,21 +231,21 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     return 0;
   });
 
-  const handleSort = (
-    key: "domain" | "totalResults" | "positiveSortOrderCount"
-  ) => {
+  const handleSort = (key: "domain" | "totalResults" | "positiveSortOrderCount") => {
     setSortConfig((prev) => {
       if (prev.key === key) {
-        return {
-          key,
-          direction: prev.direction === "ascending" ? "descending" : "ascending",
-        };
+        return { key, direction: prev.direction === "ascending" ? "descending" : "ascending" };
       }
       return { key, direction: "ascending" };
     });
   };
 
-  const handleDomainClick = () => {
+  const handleDomainClick = (domain: string) => {
+    navigate({
+      to: "/_layout/scraping-api/scraping-jobs/$jobId",
+      params: { jobId: String(job.id) },
+      search: { activeTab: "2", domain },
+    });
     setActiveTab(2); // Switch to "Results" tab
   };
 
@@ -269,12 +260,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     showToast("Action Started", `Initiating ${successMessage.toLowerCase()}`, "info");
 
     try {
-      const headers: Record<string, string> = {
-        Accept: "application/json",
-      };
-      if (method === "POST") {
-        headers["Content-Type"] = "application/json";
-      }
+      const headers: Record<string, string> = { Accept: "application/json" };
+      if (method === "POST") headers["Content-Type"] = "application/json";
 
       const response = await fetch(url, {
         method,
@@ -302,55 +289,22 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   };
 
   const handleMatchAISort = () =>
-    handleApiCall(
-      `https://dev-image-distro.popovtech.com/match_ai_sort/${job.id}`,
-      "GET",
-      setIsMatchAISort,
-      "Match AI Sort"
-    );
+    handleApiCall(`https://dev-image-distro.popovtech.com/match_ai_sort/${job.id}`, "GET", setIsMatchAISort, "Match AI Sort");
 
   const handleInitialSort = () =>
-    handleApiCall(
-      `https://dev-image-distro.popovtech.com/initial_sort/${job.id}`,
-      "GET",
-      setIsInitialSort,
-      "Initial Sort"
-    );
+    handleApiCall(`https://dev-image-distro.popovtech.com/initial_sort/${job.id}`, "GET", setIsInitialSort, "Initial Sort");
 
   const handleSearchSort = () =>
-    handleApiCall(
-      `https://dev-image-distro.popovtech.com/search_sort/${job.id}`,
-      "GET",
-      setIsSearchSort,
-      "Search Sort"
-    );
+    handleApiCall(`https://dev-image-distro.popovtech.com/search_sort/${job.id}`, "GET", setIsSearchSort, "Search Sort");
 
   const handleRestartClick = () =>
-    handleApiCall(
-      `https://dev-image-distro.popovtech.com/restart-failed-batch/`,
-      "POST",
-      setIsRestarting,
-      "Restart Failed Batch",
-      { file_id_db: String(job.id) }
-    );
+    handleApiCall(`https://dev-image-distro.popovtech.com/restart-failed-batch/`, "POST", setIsRestarting, "Restart Failed Batch", { file_id_db: String(job.id) });
 
   const handleGenerateDownload = () =>
-    handleApiCall(
-      `https://dev-image-distro.popovtech.com erste-download-file/`,
-      "POST",
-      setIsGeneratingDownload,
-      "Generate Download File",
-      { file_id: job.id }
-    );
+    handleApiCall(`https://dev-image-distro.popovtech.com/generate-download-file/`, "POST", setIsGeneratingDownload, "Generate Download File", { file_id: job.id });
 
   const handleProcessAI = () =>
-    handleApiCall(
-      `https://dev-image-distro.popovtech.com/process-ai-analysis/`,
-      "POST",
-      setIsProcessingAI,
-      "Process AI Analysis",
-      { file_id: String(job.id) }
-    );
+    handleApiCall(`https://dev-image-distro.popovtech.com/process-ai-analysis/`, "POST", setIsProcessingAI, "Process AI Analysis", { file_id: String(job.id) });
 
   return (
     <Box p={4} bg="white">
@@ -360,44 +314,19 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           <Button size="sm" colorScheme="red" onClick={handleRestartClick} isLoading={isRestarting}>
             Dev Restart
           </Button>
-          <Button
-            size="sm"
-            colorScheme="green"
-            onClick={handleMatchAISort}
-            isLoading={isMatchAISort}
-          >
+          <Button size="sm" colorScheme="green" onClick={handleMatchAISort} isLoading={isMatchAISort}>
             Match AI Sort
           </Button>
-          <Button
-            size="sm"
-            colorScheme="green"
-            onClick={handleInitialSort}
-            isLoading={isInitialSort}
-          >
+          <Button size="sm" colorScheme="green" onClick={handleInitialSort} isLoading={isInitialSort}>
             Initial Sort
           </Button>
-          <Button
-            size="sm"
-            colorScheme="green"
-            onClick={handleSearchSort}
-            isLoading={isSearchSort}
-          >
+          <Button size="sm" colorScheme="green" onClick={handleSearchSort} isLoading={isSearchSort}>
             Search Sort
           </Button>
-          <Button
-            size="sm"
-            colorScheme="blue"
-            onClick={handleGenerateDownload}
-            isLoading={isGeneratingDownload}
-          >
+          <Button size="sm" colorScheme="blue" onClick={handleGenerateDownload} isLoading={isGeneratingDownload}>
             Generate Download
           </Button>
-          <Button
-            size="sm"
-            colorScheme="purple"
-            onClick={handleProcessAI}
-            isLoading={isProcessingAI}
-          >
+          <Button size="sm" colorScheme="purple" onClick={handleProcessAI} isLoading={isProcessingAI}>
             Process AI
           </Button>
           <Button size="sm" onClick={() => setIsFileModalOpen(true)}>
@@ -441,22 +370,14 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         <Stat mt={4}>
           <StatLabel color="gray.600">Status</StatLabel>
           <StatNumber>
-            <Badge colorScheme={job.fileEnd ? "green" : "yellow"}>
-              {job.fileEnd ? "Completed" : "Pending"}
-            </Badge>
+            <Badge colorScheme={job.fileEnd ? "green" : "yellow"}>{job.fileEnd ? "Completed" : "Pending"}</Badge>
           </StatNumber>
         </Stat>
-
         {job.fileEnd && (
           <Stat mt={4}>
             <StatLabel color="gray.600">Processing Duration</StatLabel>
             <StatNumber color="gray.800">
-              {(
-                (new Date(job.fileEnd).getTime() - new Date(job.fileStart).getTime()) /
-                1000 /
-                60
-              ).toFixed(2)}{" "}
-              minutes
+              {((new Date(job.fileEnd).getTime() - new Date(job.fileStart).getTime()) / 1000 / 60).toFixed(2)} minutes
             </StatNumber>
           </Stat>
         )}
@@ -479,19 +400,13 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             <Thead bg="gray.100">
               <Tr>
                 <Th onClick={() => handleSort("domain")} cursor="pointer" color="gray.800">
-                  Domain{" "}
-                  {sortConfig.key === "domain" &&
-                    (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                  Domain {sortConfig.key === "domain" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
                 </Th>
                 <Th onClick={() => handleSort("totalResults")} cursor="pointer" color="gray.800">
-                  Total Results{" "}
-                  {sortConfig.key === "totalResults" &&
-                    (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                  Total Results {sortConfig.key === "totalResults" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
                 </Th>
                 <Th onClick={() => handleSort("positiveSortOrderCount")} cursor="pointer" color="gray.800">
-                  Positive Sort Orders Count{" "}
-                  {sortConfig.key === "positiveSortOrderCount" &&
-                    (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                  Positive Sort Orders Count {sortConfig.key === "positiveSortOrderCount" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
                 </Th>
               </Tr>
             </Thead>
@@ -499,12 +414,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               {sortedTopDomains.map(({ domain, totalResults, positiveSortOrderCount }) => (
                 <Tr key={domain}>
                   <Td>
-                    <Text
-                      color="green.300"
-                      cursor="pointer"
-                      onClick={() => handleDomainClick(domain)}
-                      _hover={{ textDecoration: "underline" }}
-                    >
+                    <Text color="green.300" cursor="pointer" onClick={() => handleDomainClick(domain)} _hover={{ textDecoration: "underline" }}>
                       {domain}
                     </Text>
                   </Td>
@@ -520,7 +430,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   );
 };
 
-// UsageTab (unchanged)
+// UsageTab Component
 const UsageTab = ({ job }: { job: JobDetails }) => {
   const totalRecords = job.records.length;
   const completedRecords = job.records.filter((record) => record.completeTime).length;
@@ -528,15 +438,11 @@ const UsageTab = ({ job }: { job: JobDetails }) => {
   const totalImages = job.results.length;
   const imagesPerRecord = totalRecords > 0 ? Math.round(totalImages / totalRecords) : "N/A";
   const totalRequests = totalRecords;
-  const successfulRequests = job.records.filter((record) =>
-    job.results.some((result) => result.entryId === record.entryId)
-  ).length;
+  const successfulRequests = job.records.filter((record) => job.results.some((result) => result.entryId === record.entryId)).length;
   const successRate = totalRequests > 0 ? `${((successfulRequests / totalRequests) * 100).toFixed(1)}%` : "N/A";
 
   const calculateAvgResponseTime = (): string => {
-    const completedRecordsWithTimes = job.records.filter(
-      (record) => record.createTime && record.completeTime
-    );
+    const completedRecordsWithTimes = job.records.filter((record) => record.createTime && record.completeTime);
     if (completedRecordsWithTimes.length === 0) return "N/A";
     const totalDuration = completedRecordsWithTimes.reduce((sum, record) => {
       const start = new Date(record.createTime!).getTime();
@@ -616,52 +522,27 @@ const UsageTab = ({ job }: { job: JobDetails }) => {
   );
 };
 
-// DetailsModal (unchanged)
+// DetailsModal Component
 const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, data }) => {
-  const capitalizeKey = (key: string) =>
-    key
-      .replace(/([A-Z])/g, " $1")
-      .replace(/^./, (str) => str.toUpperCase())
-      .trim();
+  const capitalizeKey = (key: string) => key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()).trim();
 
   const renderValue = (key: string, value: any) => {
-    if (value === null || value === undefined) {
-      return <Text color="gray.400">N/A</Text>;
-    }
-
+    if (value === null || value === undefined) return <Text color="gray.400">N/A</Text>;
     let displayValue = value;
     if (typeof value === "string" && (key.toLowerCase().includes("description") || key.toLowerCase().includes("aicaption"))) {
       displayValue = value.replace(/\\u0026/g, "&").replace(/\\'/g, "'");
     }
-
     if (key.toLowerCase().includes("json") && value) {
       const jsonValue = typeof value === "string" ? JSON.parse(value) : value;
       return (
-        <Box
-          maxH="500px"
-          overflowY="auto"
-          bg="gray.50"
-          p={3}
-          borderRadius="md"
-          border="1px solid"
-          borderColor="gray.200"
-          fontSize="xs"
-        >
-          <pre style={{ margin: 0, whiteSpace: "pre-wrap", color: "blue.600" }}>
-            {JSON.stringify(jsonValue, null, 2)}
-          </pre>
+        <Box maxH="500px" overflowY="auto" bg="gray.50" p={3} borderRadius="md" border="1px solid" borderColor="gray.200" fontSize="xs">
+          <pre style={{ margin: 0, whiteSpace: "pre-wrap", color: "blue.600" }}>{JSON.stringify(jsonValue, null, 2)}</pre>
         </Box>
       );
     }
-
     if (typeof displayValue === "string" && /^(https?:\/\/[^\s]+)$/.test(displayValue)) {
-      return (
-        <Link href={displayValue} color="blue.500" isExternal>
-          {displayValue}
-        </Link>
-      );
+      return <Link href={displayValue} color="blue.500" isExternal>{displayValue}</Link>;
     }
-
     return <Text>{displayValue}</Text>;
   };
 
@@ -670,14 +551,8 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
       <Modal isOpen={isOpen} onClose={onClose} size="full">
         <ModalOverlay />
         <ModalContent maxW="90vw" maxH="70vh" mx="auto" my={4}>
-          <ModalHeader fontSize="xl" fontWeight="bold">
-            {title}
-          </ModalHeader>
-          <ModalBody>
-            <Text fontSize="md" color="gray.600">
-              No data available
-            </Text>
-          </ModalBody>
+          <ModalHeader fontSize="xl" fontWeight="bold">{title}</ModalHeader>
+          <ModalBody><Text fontSize="md" color="gray.600">No data available</Text></ModalBody>
         </ModalContent>
       </Modal>
     );
@@ -689,24 +564,16 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
     <Modal isOpen={isOpen} onClose={onClose} size="full">
       <ModalOverlay />
       <ModalContent maxW="90vw" maxH="80vh" mx="auto" my={4} borderRadius="md">
-        <ModalHeader fontSize="xl" fontWeight="bold" pb={2}>
-          {modalTitle}
-        </ModalHeader>
+        <ModalHeader fontSize="xl" fontWeight="bold" pb={2}>{modalTitle}</ModalHeader>
         <ModalBody overflowY="auto">
           <Table variant="simple" size="md" colorScheme="gray">
             <Tbody>
-              {Object.entries(data)
-                .filter(([key]) => key.toLowerCase() !== "id")
-                .map(([key, value]) => (
-                  <Tr key={key}>
-                    <Td fontWeight="semibold" color="gray.700" w="25%" py={3}>
-                      {capitalizeKey(key)}
-                    </Td>
-                    <Td wordBreak="break-word" color="gray.800" py={3}>
-                      {renderValue(key, value)}
-                    </Td>
-                  </Tr>
-                ))}
+              {Object.entries(data).filter(([key]) => key.toLowerCase() !== "id").map(([key, value]) => (
+                <Tr key={key}>
+                  <Td fontWeight="semibold" color="gray.700" w="25%" py={3}>{capitalizeKey(key)}</Td>
+                  <Td wordBreak="break-word" color="gray.800" py={3}>{renderValue(key, value)}</Td>
+                </Tr>
+              ))}
             </Tbody>
           </Table>
         </ModalBody>
@@ -715,8 +582,14 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
   );
 };
 
-// New ResultsTab
-const ResultsTab: React.FC<{ job: JobDetails; sortBy: "match" | "linesheet" | null }> = ({ job, sortBy }) => {
+// ResultsTab Component with Domain Filtering
+interface ResultsTabProps {
+  job: JobDetails;
+  sortBy: "match" | "linesheet" | null;
+  domain?: string;
+}
+
+const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
   const showToast = useCustomToast();
   const [selectedResult, setSelectedResult] = useState<ResultItem | null>(null);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
@@ -739,8 +612,8 @@ const ResultsTab: React.FC<{ job: JobDetails; sortBy: "match" | "linesheet" | nu
     setCurrentPageResults(0);
   };
 
-  const filteredResults = job.results.filter(
-    (result) =>
+  const filteredResults = job.results.filter((result) => {
+    const matchesSearchQuery =
       (result.imageDesc || "").toLowerCase().includes(query) ||
       (result.imageSource || "").toLowerCase().includes(query) ||
       (result.aiJson || "").toLowerCase().includes(query) ||
@@ -749,8 +622,14 @@ const ResultsTab: React.FC<{ job: JobDetails; sortBy: "match" | "linesheet" | nu
       (result.aiLabel || "").toLowerCase().includes(query) ||
       (result.createTime || "").toLowerCase().includes(query) ||
       result.entryId.toString().includes(query) ||
-      result.resultId.toString().includes(query)
-  );
+      result.resultId.toString().includes(query);
+
+    const matchesDomain = domain
+      ? new URL(result.imageSource).hostname.replace(/^www\./, "").includes(domain)
+      : true;
+
+    return matchesSearchQuery && matchesDomain;
+  });
 
   const sortedResults = [...filteredResults].sort((a, b) => {
     if (sortConfigResults) {
@@ -775,10 +654,7 @@ const ResultsTab: React.FC<{ job: JobDetails; sortBy: "match" | "linesheet" | nu
   });
 
   const pageCountResults = Math.ceil(sortedResults.length / itemsPerPage);
-  const displayedResultsPagination = sortedResults.slice(
-    currentPageResults * itemsPerPage,
-    (currentPageResults + 1) * itemsPerPage
-  );
+  const displayedResultsPagination = sortedResults.slice(currentPageResults * itemsPerPage, (currentPageResults + 1) * itemsPerPage);
   const displayedResultsInfinite = sortedResults.slice(0, displayCount);
 
   const totalResults = sortedResults.length;
@@ -844,14 +720,7 @@ const ResultsTab: React.FC<{ job: JobDetails; sortBy: "match" | "linesheet" | nu
                   {displayedResultsPagination.map((result) => (
                     <Tr key={result.resultId}>
                       <Td w="60px">
-                        <Image
-                          src={result.imageUrlThumbnail || ""}
-                          alt={result.imageDesc || "No description"}
-                          maxW="80px"
-                          maxH="80px"
-                          objectFit="cover"
-                          fallback={<Text fontSize="xs" color="gray.600">No image</Text>}
-                        />
+                        <Image src={result.imageUrlThumbnail || ""} alt={result.imageDesc || "No description"} maxW="80px" maxH="80px" objectFit="cover" fallback={<Text fontSize="xs" color="gray.600">No image</Text>} />
                       </Td>
                       <Td w="80px" color="gray.800">{result.resultId || "N/A"}</Td>
                       <Td w="80px" color="gray.800">{result.entryId || "N/A"}</Td>
@@ -928,14 +797,7 @@ const ResultsTab: React.FC<{ job: JobDetails; sortBy: "match" | "linesheet" | nu
                   {displayedResultsInfinite.map((result) => (
                     <Tr key={result.resultId}>
                       <Td w="60px">
-                        <Image
-                          src={result.imageUrlThumbnail || ""}
-                          alt={result.imageDesc || "No description"}
-                          maxW="80px"
-                          maxH="80px"
-                          objectFit="cover"
-                          fallback={<Text fontSize="xs" color="gray.600">No image</Text>}
-                        />
+                        <Image src={result.imageUrlThumbnail || ""} alt={result.imageDesc || "No description"} maxW="80px" maxH="80px" objectFit="cover" fallback={<Text fontSize="xs" color="gray.600">No image</Text>} />
                       </Td>
                       <Td w="80px" color="gray.800">{result.resultId || "N/A"}</Td>
                       <Td w="80px" color="gray.800">{result.entryId || "N/A"}</Td>
@@ -964,17 +826,12 @@ const ResultsTab: React.FC<{ job: JobDetails; sortBy: "match" | "linesheet" | nu
           )}
         </CardBody>
       </Card>
-      <DetailsModal
-        isOpen={isResultModalOpen}
-        onClose={() => setIsResultModalOpen(false)}
-        title={`Result ${selectedResult?.resultId || "Details"}`}
-        data={selectedResult}
-      />
+      <DetailsModal isOpen={isResultModalOpen} onClose={() => setIsResultModalOpen(false)} title={`Result ${selectedResult?.resultId || "Details"}`} data={selectedResult} />
     </Box>
   );
 };
 
-// New RecordsTab
+// RecordsTab Component
 const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
   const showToast = useCustomToast();
   const [selectedRecord, setSelectedRecord] = useState<RecordItem | null>(null);
@@ -1022,10 +879,7 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
   });
 
   const pageCountRecords = Math.ceil(sortedRecords.length / itemsPerPage);
-  const displayedRecordsPagination = sortedRecords.slice(
-    currentPageRecords * itemsPerPage,
-    (currentPageRecords + 1) * itemsPerPage
-  );
+  const displayedRecordsPagination = sortedRecords.slice(currentPageRecords * itemsPerPage, (currentPageRecords + 1) * itemsPerPage);
   const displayedRecordsInfinite = sortedRecords.slice(0, displayCount);
 
   const totalRecords = sortedRecords.length;
@@ -1092,9 +946,7 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
                               objectFit="cover"
                               cursor="pointer"
                               onClick={() => {
-                                if (record.excelRowImageRef) {
-                                  window.open(record.excelRowImageRef, "_blank");
-                                }
+                                if (record.excelRowImageRef) window.open(record.excelRowImageRef, "_blank");
                               }}
                               onError={(e) => {
                                 showToast("Image Load Failed", `Failed to load S3 image: ${record.excelRowImageRef}`, "warning");
@@ -1181,9 +1033,7 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
                               objectFit="cover"
                               cursor="pointer"
                               onClick={() => {
-                                if (record.excelRowImageRef) {
-                                  window.open(record.excelRowImageRef, "_blank");
-                                }
+                                if (record.excelRowImageRef) window.open(record.excelRowImageRef, "_blank");
                               }}
                               onError={(e) => {
                                 showToast("Image Load Failed", `Failed to load S3 image: ${record.excelRowImageRef}`, "warning");
@@ -1215,28 +1065,19 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
           )}
         </CardBody>
       </Card>
-      <DetailsModal
-        isOpen={isRecordModalOpen}
-        onClose={() => setIsRecordModalOpen(false)}
-        title={`Record ${selectedRecord?.entryId || "Details"}`}
-        data={selectedRecord}
-      />
+      <DetailsModal isOpen={isRecordModalOpen} onClose={() => setIsRecordModalOpen(false)} title={`Record ${selectedRecord?.entryId || "Details"}`} data={selectedRecord} />
     </Box>
   );
 };
 
-// LogsTab (unchanged)
+// LogsTab Component
 const LogsTab = ({ job }: { job: JobDetails }) => {
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4}>
         <Text fontSize="lg" fontWeight="bold" color="gray.800">Logs</Text>
         {job.logFileUrl && (
-          <Button
-            size="sm"
-            colorScheme="blue"
-            onClick={() => window.open(job.logFileUrl as string, "_blank")}
-          >
+          <Button size="sm" colorScheme="blue" onClick={() => window.open(job.logFileUrl as string, "_blank")}>
             Download Log File
           </Button>
         )}
@@ -1249,7 +1090,7 @@ const LogsTab = ({ job }: { job: JobDetails }) => {
               <Thead bg="gray.100">
                 <Tr>
                   <Th color="gray.800">Event</Th>
-                  <Th color="gray.800">Details</Th>
+                  <Th color="gray.aink800">Details</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -1288,17 +1129,14 @@ const LogsTab = ({ job }: { job: JobDetails }) => {
   );
 };
 
-// SearchRowsTab (unchanged)
+// SearchRowsTab Component
 const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
   const showToast = useCustomToast();
   const [showFileDetails, setShowFileDetails] = useState(true);
   const [showResultDetails, setShowResultDetails] = useState(false);
   const [numImages, setNumImages] = useState(1);
   const [hideEmptyRows, setHideEmptyRows] = useState(false);
-  const [sortConfig, setSortConfig] = useState<{
-    key: string | null;
-    direction: "ascending" | "descending";
-  }>({ key: null, direction: "ascending" });
+  const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: "ascending" | "descending" }>({ key: null, direction: "ascending" });
 
   useEffect(() => {
     const maxImages = showResultDetails ? 1 : 5;
@@ -1322,16 +1160,12 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
     if (!url) return "";
     let cleanedUrl = url.replace(/^https?:\/\//i, "").replace(/^www\./i, "");
     if (cleanedUrl.length <= 22) return cleanedUrl;
-    if (cleanedUrl.length <= 40)
-      return `${cleanedUrl.slice(0, 12)}...${cleanedUrl.slice(-10)}`;
-    else
-      return `${cleanedUrl.slice(0, 20)}...${cleanedUrl.slice(-20)}`;
+    if (cleanedUrl.length <= 40) return `${cleanedUrl.slice(0, 12)}...${cleanedUrl.slice(-10)}`;
+    else return `${cleanedUrl.slice(0, 20)}...${cleanedUrl.slice(-20)}`;
   };
 
-  const googleSearch = (model: string): string =>
-    `https://www.google.com/search?q=${encodeURIComponent(model || "")}&udm=2`;
-  const googleSearchBrandModelUrl = (model: string, brand: string): string =>
-    `https://www.google.com/search?q=${encodeURIComponent(`${brand || ""} ${model || ""}`)}&udm=2`;
+  const googleSearch = (model: string): string => `https://www.google.com/search?q=${encodeURIComponent(model || "")}&udm=2`;
+  const googleSearchBrandModelUrl = (model: string, brand: string): string => `https://www.google.com/search?q=${encodeURIComponent(`${brand || ""} ${model || ""}`)}&udm=2`;
 
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>, url: string) => {
     e.preventDefault();
@@ -1389,48 +1223,19 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
 
   return (
     <Box p={4} bg="white">
-      <Flex
-        justify="space-between"
-        align="center"
-        mb={4}
-        position="sticky"
-        top="0"
-        bg="white"
-        zIndex="10"
-        py={5}
-        borderBottom="1px solid"
-        borderColor="gray.200"
-      >
+      <Flex justify="space-between" align="center" mb={4} position="sticky" top="0" bg="white" zIndex="10" py={5} borderBottom="1px solid" borderColor="gray.200">
         <Text fontSize="lg" fontWeight="bold" color="gray.800">File Rows ({sortedRecords.length})</Text>
         <Flex gap={3}>
-          <Button
-            borderBottom="2px solid"
-            borderColor="green.200"
-            size="sm"
-            colorScheme="blue"
-            onClick={() => {
-              setShowResultDetails(!showResultDetails);
-            }}
-          >
+          <Button borderBottom="2px solid" borderColor="green.200" size="sm" colorScheme="blue" onClick={() => setShowResultDetails(!showResultDetails)}>
             {showResultDetails ? "- Picture Details" : "+ Picture Details"}
           </Button>
-          <Button
-            borderBottom="2px solid"
-            borderColor="green.200"
-            size="sm"
-            colorScheme="blue"
-            onClick={() => {
-              setShowFileDetails(!showFileDetails);
-            }}
-          >
+          <Button borderBottom="2px solid" borderColor="green.200" size="sm" colorScheme="blue" onClick={() => setShowFileDetails(!showFileDetails)}>
             {showFileDetails ? "- File Details" : "+ File Details"}
           </Button>
           <Button
             size="sm"
             onClick={() => {
-              if (job.records.length > 0) {
-                setHideEmptyRows(!hideEmptyRows);
-              }
+              if (job.records.length > 0) setHideEmptyRows(!hideEmptyRows);
             }}
             colorScheme={job.records.length === 0 ? "gray" : "blue"}
             variant={job.records.length === 0 ? "outline" : "solid"}
@@ -1438,116 +1243,49 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
             {hideEmptyRows ? "Show All Rows" : "Hide Empty Rows"}
           </Button>
           <Flex align="center" gap={2}>
-            <Button size="sm" onClick={handleDecreaseImages} isDisabled={numImages <= 1} colorScheme="blue">
-              -
-            </Button>
+            <Button size="sm" onClick={handleDecreaseImages} isDisabled={numImages <= 1} colorScheme="blue">-</Button>
             <Text color="gray.800">{numImages}</Text>
-            <Button
-              size="sm"
-              onClick={handleIncreaseImages}
-              isDisabled={numImages >= (showResultDetails ? 1 : 5)}
-              colorScheme="blue"
-            >
-              +
-            </Button>
+            <Button size="sm" onClick={handleIncreaseImages} isDisabled={numImages >= (showResultDetails ? 1 : 5)} colorScheme="blue">+</Button>
           </Flex>
         </Flex>
       </Flex>
 
       <Card shadow="md" borderWidth="1px" bg="white">
         <CardBody p={0}>
-          <Table
-            variant="simple"
-            size="sm"
-            borderWidth="1px"
-            borderColor="gray.200"
-            colorScheme="blue"
-            sx={{
-              "td, th": {
-                border: "1px solid",
-                borderColor: "gray.200",
-                p: 2,
-                verticalAlign: "middle",
-              },
-            }}
-          >
+          <Table variant="simple" size="sm" borderWidth="1px" borderColor="gray.200" colorScheme="blue" sx={{ "td, th": { border: "1px solid", borderColor: "gray.200", p: 2, verticalAlign: "middle" } }}>
             <Thead bg="gray.100">
               <Tr>
-                {showFileDetails && hasThumbnails && (
-                  <Th w="80px" bg="gray.200" color="gray.800">
-                    Excel Picture
-                  </Th>
-                )}
+                {showFileDetails && hasThumbnails && <Th w="80px" bg="gray.200" color="gray.800">Excel Picture</Th>}
                 {Array.from({ length: numImages }).map((_, index) => (
                   <React.Fragment key={`header-${index}`}>
                     <Th w="100px" color="gray.800">Picture {index + 1}</Th>
-                    {showResultDetails && (
-                      <Th w="200px" bg="gray.200" color="gray.800">
-                        Picture Detail {index + 1}
-                      </Th>
-                    )}
+                    {showResultDetails && <Th w="200px" bg="gray.200" color="gray.800">Picture Detail {index + 1}</Th>}
                   </React.Fragment>
                 ))}
                 <Th w="90px" onClick={() => handleSort("excelRowId")} cursor="pointer" color="gray.800">
-                  Row #{" "}
-                  {sortConfig.key === "excelRowId" &&
-                    (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                  Row # {sortConfig.key === "excelRowId" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
                 </Th>
                 <Th w="150px" onClick={() => handleSort("productModel")} cursor="pointer" color="gray.800">
-                  Style #{" "}
-                  {sortConfig.key === "productModel" &&
-                    (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                  Style # {sortConfig.key === "productModel" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
                 </Th>
                 <Th w="150px" onClick={() => handleSort("productBrand")} cursor="pointer" color="gray.800">
-                  Brand{" "}
-                  {sortConfig.key === "productBrand" &&
-                    (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                  Brand {sortConfig.key === "productBrand" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
                 </Th>
                 {showFileDetails && (
                   <>
-                    <Th
-                      w="120px"
-                      bg="gray.200"
-                      color="gray.800"
-                      onClick={() => handleSort("productColor")}
-                      cursor="pointer"
-                    >
-                      Color Name{" "}
-                      {sortConfig.key === "productColor" &&
-                        (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                    <Th w="120px" bg="gray.200" color="gray.800" onClick={() => handleSort("productColor")} cursor="pointer">
+                      Color Name {sortConfig.key === "productColor" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
                     </Th>
-                    <Th
-                      w="120px"
-                      bg="gray.200"
-                      color="gray.800"
-                      onClick={() => handleSort("productCategory")}
-                      cursor="pointer"
-                    >
-                      Category{" "}
-                      {sortConfig.key === "productCategory" &&
-                        (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                    <Th w="120px" bg="gray.200" color="gray.800" onClick={() => handleSort("productCategory")} cursor="pointer">
+                      Category {sortConfig.key === "productCategory" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
                     </Th>
                   </>
                 )}
-                <Th
-                  w="100px"
-                  onClick={() => handleSort("totalImageCount")}
-                  cursor="pointer"
-                  color="gray.800"
-                >
-                  Total Image{" "}
-                  {sortConfig.key === "totalImageCount" &&
-                    (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                <Th w="100px" onClick={() => handleSort("totalImageCount")} cursor="pointer" color="gray.800">
+                  Total Image {sortConfig.key === "totalImageCount" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
                 </Th>
-                <Th
-                  w="100px"
-                  onClick={() => handleSort("positiveSortCount")}
-                  cursor="pointer"
-                  color="gray.800"
-                >
-                  Positive Count{" "}
-                  {sortConfig.key === "positiveSortCount" &&
-                    (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                <Th w="100px" onClick={() => handleSort("positiveSortCount")} cursor="pointer" color="gray.800">
+                  Positive Count {sortConfig.key === "positiveSortCount" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
                 </Th>
               </Tr>
             </Thead>
@@ -1557,11 +1295,7 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
                 const totalImageCount = getTotalImageCountForEntry(record.entryId);
                 const positiveSortCount = getPositiveSortCountForEntry(record.entryId);
                 return (
-                  <Tr
-                    key={record.entryId}
-                    _hover={{ bg: "gray.50" }}
-                    opacity={positiveSortCount === 0 && !hideEmptyRows ? 0.8 : 1}
-                  >
+                  <Tr key={record.entryId} _hover={{ bg: "gray.50" }} opacity={positiveSortCount === 0 && !hideEmptyRows ? 0.8 : 1}>
                     {showFileDetails && hasThumbnails && (
                       <Td w="80px" bg="gray.50">
                         {record.excelRowImageRef ? (
@@ -1596,40 +1330,18 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
                           <Td w="200px" bg="gray.50">
                             <Box wordBreak="break-all">
                               <Text fontSize="xs">
-                                <a
-                                  href={googleSearch(image.imageDesc)}
-                                  onClick={(e) => handleLinkClick(e, googleSearch(image.imageDesc))}
-                                  style={{ color: "#1a73e8" }}
-                                >
+                                <a href={googleSearch(image.imageDesc)} onClick={(e) => handleLinkClick(e, googleSearch(image.imageDesc))} style={{ color: "#1a73e8" }}>
                                   {image.imageDesc || "N/A"}
                                 </a>
                               </Text>
                               <Text fontSize="xs" color="green.300">
-                                <a
-                                  href={image.imageSource}
-                                  onClick={(e) => handleLinkClick(e, image.imageSource)}
-                                >
-                                  {shortenUrl(image.imageSource)}
-                                </a>
+                                <a href={image.imageSource} onClick={(e) => handleLinkClick(e, image.imageSource)}>{shortenUrl(image.imageSource)}</a>
                               </Text>
                               <Text fontSize="xs" color="green.300">
-                                <a
-                                  href={image.imageUrl}
-                                  onClick={(e) => handleLinkClick(e, image.imageUrl)}
-                                >
-                                  {shortenUrl(image.imageUrl)}
-                                </a>
+                                <a href={image.imageUrl} onClick={(e) => handleLinkClick(e, image.imageUrl)}>{shortenUrl(image.imageUrl)}</a>
                               </Text>
-                              {image.aiCaption && (
-                                <Text fontSize="xs" color="gray.600">
-                                  AI Caption: {image.aiCaption}
-                                </Text>
-                              )}
-                              {image.aiLabel && (
-                                <Text fontSize="xs" color="gray.600">
-                                  AI Label: {image.aiLabel}
-                                </Text>
-                              )}
+                              {image.aiCaption && <Text fontSize="xs" color="gray.600">AI Caption: {image.aiCaption}</Text>}
+                              {image.aiLabel && <Text fontSize="xs" color="gray.600">AI Label: {image.aiLabel}</Text>}
                             </Box>
                           </Td>
                         )}
@@ -1637,32 +1349,16 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
                     ))}
                     {Array.from({ length: numImages - imagedetails.length }).map((_, index) => (
                       <React.Fragment key={`empty-${record.entryId}-${index}`}>
-                        <Td w="100px">
-                          <Text fontSize="xs" color="gray.600">No picture</Text>
-                        </Td>
-                        {showResultDetails && (
-                          <Td w="200px" bg="gray.50">
-                            <Text fontSize="xs" color="gray.600">No picture detail</Text>
-                          </Td>
-                        )}
+                        <Td w="100px"><Text fontSize="xs" color="gray.600">No picture</Text></Td>
+                        {showResultDetails && <Td w="200px" bg="gray.50"><Text fontSize="xs" color="gray.600">No picture detail</Text></Td>}
                       </React.Fragment>
                     ))}
                     <Td w="90px">
-                      <Text
-                        cursor="pointer"
-                        color="green.300"
-                        _hover={{ textDecoration: "underline" }}
-                        onClick={(e) => handleRowIdClick(e, record.productModel)}
-                      >
-                        {record.excelRowId}
-                      </Text>
+                      <Text cursor="pointer" color="green.300" _hover={{ textDecoration: "underline" }} onClick={(e) => handleRowIdClick(e, record.productModel)}>{record.excelRowId}</Text>
                     </Td>
                     <Td w="150px">
                       {record.productModel ? (
-                        <a
-                          href={googleSearch(record.productModel)}
-                          onClick={(e) => handleLinkClick(e, googleSearch(record.productModel))}
-                        >
+                        <a href={googleSearch(record.productModel)} onClick={(e) => handleLinkClick(e, googleSearch(record.productModel))}>
                           <Text color="green.300">{record.productModel}</Text>
                         </a>
                       ) : (
@@ -1671,12 +1367,7 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
                     </Td>
                     <Td w="150px">
                       {record.productBrand ? (
-                        <a
-                          href={googleSearchBrandModelUrl(record.productModel, record.productBrand)}
-                          onClick={(e) =>
-                            handleLinkClick(e, googleSearchBrandModelUrl(record.productModel, record.productBrand))
-                          }
-                        >
+                        <a href={googleSearchBrandModelUrl(record.productModel, record.productBrand)} onClick={(e) => handleLinkClick(e, googleSearchBrandModelUrl(record.productModel, record.productBrand))}>
                           <Text color="green.300">{record.productBrand}</Text>
                         </a>
                       ) : (
@@ -1685,28 +1376,12 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
                     </Td>
                     {showFileDetails && (
                       <>
-                        <Td w="120px" bg="gray.50">
-                          {record.productColor || <Text fontSize="xs" color="gray.600">No color</Text>}
-                        </Td>
-                        <Td w="120px" bg="gray.50">
-                          {record.productCategory || <Text fontSize="xs" color="gray.600">No category</Text>}
-                        </Td>
+                        <Td w="120px" bg="gray.50">{record.productColor || <Text fontSize="xs" color="gray.600">No color</Text>}</Td>
+                        <Td w="120px" bg="gray.50">{record.productCategory || <Text fontSize="xs" color="gray.600">No category</Text>}</Td>
                       </>
                     )}
-                    <Td w="100px">
-                      {totalImageCount === 0 ? (
-                        <Text fontSize="xs" color="gray.600">0</Text>
-                      ) : (
-                        <Text color="gray.800">{totalImageCount}</Text>
-                      )}
-                    </Td>
-                    <Td w="100px">
-                      {positiveSortCount === 0 ? (
-                        <Text fontSize="xs" color="gray.600">0</Text>
-                      ) : (
-                        <Text color="gray.800">{positiveSortCount}</Text>
-                      )}
-                    </Td>
+                    <Td w="100px">{totalImageCount === 0 ? <Text fontSize="xs" color="gray.600">0</Text> : <Text color="gray.800">{totalImageCount}</Text>}</Td>
+                    <Td w="100px">{positiveSortCount === 0 ? <Text fontSize="xs" color="gray.600">0</Text> : <Text color="gray.800">{positiveSortCount}</Text>}</Td>
                   </Tr>
                 );
               })}
@@ -1718,31 +1393,25 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
   );
 };
 
-// Updated JobsDetailPage
+// JobsDetailPage Component
 const JobsDetailPage = () => {
   const { jobId } = useParams({ from: "/_layout/scraping-api/scraping-jobs/$jobId" }) as { jobId: string };
+  const searchParams = useSearch({ from: "/_layout/scraping-api/scraping-jobs/$jobId" }) as { search?: string; activeTab?: string; domain?: string };
+  const initialTab = searchParams.activeTab ? parseInt(searchParams.activeTab, 10) : 4;
+  const [activeTab, setActiveTab] = useState<number>(isNaN(initialTab) || initialTab < 0 || initialTab > 5 ? 4 : initialTab);
+  const [sortBy, setSortBy] = useState<"match" | "linesheet" | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [jobData, setJobData] = useState<JobDetails | null>(null);
   const showToast = useCustomToast();
-
-  const searchParams = useSearch({ from: "/_layout/scraping-api/scraping-jobs/$jobId" }) as { search?: string; activeTab?: string };
-  const initialTab = searchParams.activeTab ? parseInt(searchParams.activeTab, 10) : 4;
-  const [activeTab, setActiveTab] = useState<number>(isNaN(initialTab) || initialTab < 0 || initialTab > 5 ? 4 : initialTab);
-  const [sortBy, setSortBy] = useState<"match" | "linesheet" | null>(null);
 
   const fetchJobData = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const apiUrl = `https://backend-dev.iconluxury.group/api/scraping-jobs/${jobId}`;
-      const response = await fetch(apiUrl, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch job data: ${response.status} - ${response.statusText}`);
-      }
+      const response = await fetch(apiUrl, { method: "GET", headers: { "Content-Type": "application/json" } });
+      if (!response.ok) throw new Error(`Failed to fetch job data: ${response.status} - ${response.statusText}`);
       const data: JobDetails = await response.json();
       setJobData(data);
     } catch (err) {
@@ -1762,9 +1431,7 @@ const JobsDetailPage = () => {
   if (isLoading) {
     return (
       <Container maxW="full" py={6} bg="white">
-        <Flex justify="center" align="center" h="200px">
-          <Spinner size="xl" color="green.300" />
-        </Flex>
+        <Flex justify="center" align="center" h="200px"><Spinner size="xl" color="green.300" /></Flex>
       </Container>
     );
   }
@@ -1778,27 +1445,10 @@ const JobsDetailPage = () => {
   }
 
   const tabsConfig = [
-    {
-      title: "Overview",
-      component: () => (
-        <OverviewTab
-          job={jobData}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          fetchJobData={fetchJobData}
-          setActiveTab={setActiveTab}
-        />
-      ),
-    },
+    { title: "Overview", component: () => <OverviewTab job={jobData} sortBy={sortBy} setSortBy={setSortBy} fetchJobData={fetchJobData} setActiveTab={setActiveTab} /> },
     { title: "Usage", component: () => <UsageTab job={jobData} /> },
-    {
-      title: "Results",
-      component: () => <ResultsTab job={jobData} sortBy={sortBy} />,
-    },
-    {
-      title: "Records",
-      component: () => <RecordsTab job={jobData} />,
-    },
+    { title: "Results", component: () => <ResultsTab job={jobData} sortBy={sortBy} domain={searchParams.domain} /> },
+    { title: "Records", component: () => <RecordsTab job={jobData} /> },
     { title: "Logs", component: () => <LogsTab job={jobData} /> },
     { title: "File Rows", component: () => <SearchRowsTab job={jobData} /> },
   ];
@@ -1811,36 +1461,18 @@ const JobsDetailPage = () => {
           <Text fontSize="sm" color="gray.600">Details and results for scraping job {jobData.inputFile}.</Text>
         </Box>
       </Flex>
-      <Tabs
-        variant="enclosed"
-        isLazy
-        index={activeTab}
-        onChange={(index) => setActiveTab(index)}
-        colorScheme="blue"
-      >
+      <Tabs variant="enclosed" isLazy index={activeTab} onChange={(index) => setActiveTab(index)} colorScheme="blue">
         <TabList borderBottom="2px solid" borderColor="green.200">
           {tabsConfig.map((tab) => (
-            <Tab
-              key={tab.title}
-              _selected={{ bg: "white", color: "green.300", borderColor: "green.300" }}
-              color="gray.600"
-            >
-              {tab.title}
-            </Tab>
+            <Tab key={tab.title} _selected={{ bg: "white", color: "green.300", borderColor: "green.300" }} color="gray.600">{tab.title}</Tab>
           ))}
         </TabList>
-        <TabPanels>
-          {tabsConfig.map((tab) => (
-            <TabPanel key={tab.title}>{tab.component()}</TabPanel>
-          ))}
-        </TabPanels>
+        <TabPanels>{tabsConfig.map((tab) => <TabPanel key={tab.title}>{tab.component()}</TabPanel>)}</TabPanels>
       </Tabs>
     </Container>
   );
 };
 
-export const Route = createFileRoute("/_layout/scraping-api/scraping-jobs/$jobId")({
-  component: JobsDetailPage,
-});
+export const Route = createFileRoute("/_layout/scraping-api/scraping-jobs/$jobId")({ component: JobsDetailPage });
 
 export default JobsDetailPage;
