@@ -600,7 +600,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
   const [currentPageResults, setCurrentPageResults] = useState(0);
   const [viewMode, setViewMode] = useState<"pagination" | "infinite">("pagination");
   const [displayCount, setDisplayCount] = useState(50);
-  const itemsPerPage = 100;
+  const itemsPerPage = 5; // Reduced to 5 per page
 
   const handleSortResults = (key: string) => {
     setSortConfigResults((prev) => {
@@ -631,7 +631,13 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
     return matchesSearchQuery && matchesDomain;
   });
 
+  // Reordered sorting: Negative sortOrder values come last
   const sortedResults = [...filteredResults].sort((a, b) => {
+    // Step 1: Prioritize non-negative sortOrder first
+    if (a.sortOrder >= 0 && b.sortOrder < 0) return -1;
+    if (a.sortOrder < 0 && b.sortOrder >= 0) return 1;
+
+    // Step 2: Apply existing sorting logic within each group
     if (sortConfigResults) {
       const { key, direction } = sortConfigResults;
       const aValue = a[key as keyof ResultItem];
@@ -669,7 +675,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4}>
-        <Text fontSize="lg" fontWeight="bold" color="gray.800">Results</Text>
+        <Text fontSize="lg" fontWeight="bold" color="gray.800">Results ({totalResults})</Text>
         <Input
           placeholder="Search results..."
           value={searchQuery}
@@ -680,15 +686,12 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
           color="gray.800"
           bg="white"
         />
-        <Button onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}>
-          {viewMode === "pagination" ? "Switch to Infinite Scroll" : "Switch to Pagination"}
+        <Button size="sm" onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}>
+          {viewMode === "pagination" ? "Infinite" : "Pagination"}
         </Button>
       </Flex>
       <Card shadow="md" borderWidth="1px" bg="white">
         <CardBody>
-          <Text fontSize="md" fontWeight="semibold" mb={2} color="gray.800">
-            Results ({totalResults})
-          </Text>
           {viewMode === "pagination" ? (
             <>
               <Table variant="simple" size="sm" colorScheme="blue">
@@ -843,7 +846,7 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
   const [currentPageRecords, setCurrentPageRecords] = useState(0);
   const [viewMode, setViewMode] = useState<"pagination" | "infinite">("pagination");
   const [displayCount, setDisplayCount] = useState(50);
-  const itemsPerPage = 100;
+  const itemsPerPage = 5; // Reduced to 5 per page
 
   const handleSortRecords = (key: string) => {
     setSortConfigRecords((prev) => {
@@ -888,7 +891,7 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4}>
-        <Text fontSize="lg" fontWeight="bold" color="gray.800">Records</Text>
+        <Text fontSize="lg" fontWeight="bold" color="gray.800">Records ({totalRecords})</Text>
         <Input
           placeholder="Search records..."
           value={searchQuery}
@@ -899,15 +902,12 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
           color="gray.800"
           bg="white"
         />
-        <Button onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}>
-          {viewMode === "pagination" ? "Switch to Infinite Scroll" : "Switch to Pagination"}
+        <Button size="sm" onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}>
+          {viewMode === "pagination" ? "Infinite" : "Pagination"}
         </Button>
       </Flex>
       <Card shadow="md" borderWidth="1px" bg="white">
         <CardBody>
-          <Text fontSize="md" fontWeight="semibold" mb={2} color="gray.800">
-            Records ({totalRecords})
-          </Text>
           {viewMode === "pagination" ? (
             <>
               <Table variant="simple" size="sm" colorScheme="blue">
@@ -1069,6 +1069,7 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
     </Box>
   );
 };
+ 
 
 // LogsTab Component
 const LogsTab = ({ job }: { job: JobDetails }) => {
