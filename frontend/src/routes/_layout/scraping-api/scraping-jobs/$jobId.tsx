@@ -92,7 +92,18 @@ interface RecordItem {
   productCategory: string;
   excelRowImageRef: string | null;
 }
-
+interface LogDisplayProps {
+  logUrl: string | null;
+}
+interface DetailsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  data: Record<string, any> | null;
+}
+interface SearchRowsTabProps {
+  job: JobDetails;
+}
 // LogDisplay Component (unchanged)
 const LogDisplay: React.FC<LogDisplayProps> = ({ logUrl }) => {
   const [logContent, setLogContent] = useState("");
@@ -162,8 +173,6 @@ interface OverviewTabProps {
 const OverviewTab: React.FC<OverviewTabProps> = ({
   job,
   fetchJobData,
-  sortBy,
-  setSortBy,
   setActiveTab,
 }) => {
   const [isRestarting, setIsRestarting] = useState(false);
@@ -245,7 +254,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     });
   };
 
-  const handleDomainClick = (domain: string) => {
+  const handleDomainClick = () => {
     setActiveTab(2); // Switch to "Results" tab
   };
 
