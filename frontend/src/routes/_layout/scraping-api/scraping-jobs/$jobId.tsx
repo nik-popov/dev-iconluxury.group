@@ -598,7 +598,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
 
   const [sortConfigResults, setSortConfigResults] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null);
   const [currentPageResults, setCurrentPageResults] = useState(0);
-  const [viewMode, setViewMode] = useState<"pagination" | "infinite">("pagination");
+  const [viewMode, setViewMode] = useState<"pagination" | "infinite">("infinite"); // Changed to "infinite"
   const [displayCount, setDisplayCount] = useState(50);
   const itemsPerPage = 5; // Locked to 5 rows per page
 
@@ -842,7 +842,7 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
 
   const [sortConfigRecords, setSortConfigRecords] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null);
   const [currentPageRecords, setCurrentPageRecords] = useState(0);
-  const [viewMode, setViewMode] = useState<"pagination" | "infinite">("pagination");
+  const [viewMode, setViewMode] = useState<"pagination" | "infinite">("infinite"); // Changed to "infinite"
   const [displayCount, setDisplayCount] = useState(50);
   const itemsPerPage = 5; // Locked to 5 rows per page
 
