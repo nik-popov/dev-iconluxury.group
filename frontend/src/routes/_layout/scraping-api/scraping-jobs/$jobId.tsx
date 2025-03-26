@@ -600,7 +600,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
   const [currentPageResults, setCurrentPageResults] = useState(0);
   const [viewMode, setViewMode] = useState<"pagination" | "infinite">("pagination");
   const [displayCount, setDisplayCount] = useState(50);
-  const itemsPerPage = 5; // Reduced to 5 per page
+  const itemsPerPage = 5; // Locked to 5 rows per page
 
   const handleSortResults = (key: string) => {
     setSortConfigResults((prev) => {
@@ -621,7 +621,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
       (result.aiCaption || "").toLowerCase().includes(query) ||
       (result.aiLabel || "").toLowerCase().includes(query) ||
       (result.createTime || "").toLowerCase().includes(query) ||
-      result.entryId.toString().includes(query) ||
+      result.entryId.toString().includes(query) || // Search by entryId
       result.resultId.toString().includes(query);
 
     const matchesDomain = domain
@@ -633,11 +633,8 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
 
   // Reordered sorting: Negative sortOrder values come last
   const sortedResults = [...filteredResults].sort((a, b) => {
-    // Step 1: Prioritize non-negative sortOrder first
     if (a.sortOrder >= 0 && b.sortOrder < 0) return -1;
     if (a.sortOrder < 0 && b.sortOrder >= 0) return 1;
-
-    // Step 2: Apply existing sorting logic within each group
     if (sortConfigResults) {
       const { key, direction } = sortConfigResults;
       const aValue = a[key as keyof ResultItem];
@@ -674,21 +671,23 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
 
   return (
     <Box p={4} bg="white">
-      <Flex justify="space-between" align="center" mb={4}>
+      <Flex justify="space-between" align="center" mb={4} gap={2}>
         <Text fontSize="lg" fontWeight="bold" color="gray.800">Results ({totalResults})</Text>
-        <Input
-          placeholder="Search results..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          width="300px"
-          borderColor="green.300"
-          _focus={{ borderColor: "green.300" }}
-          color="gray.800"
-          bg="white"
-        />
-        <Button size="sm" onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}>
-          {viewMode === "pagination" ? "Infinite" : "Pagination"}
-        </Button>
+        <Flex gap={2}>
+          <Input
+            placeholder="Search results..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            width="300px"
+            borderColor="green.300"
+            _focus={{ borderColor: "green.300" }}
+            color="gray.800"
+            bg="white"
+          />
+          <Button size="sm" onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}>
+            {viewMode === "pagination" ? "Infinite" : "Pagination"}
+          </Button>
+        </Flex>
       </Flex>
       <Card shadow="md" borderWidth="1px" bg="white">
         <CardBody>
@@ -754,7 +753,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
                 </Tbody>
               </Table>
               {pageCountResults > 1 && (
-                <Flex justify="center" mt={4} align="center">
+                <Flex justify="center" mt={4} align="center" gap={2}>
                   <Button size="sm" onClick={() => setCurrentPageResults(0)} isDisabled={currentPageResults === 0}>First</Button>
                   <Button size="sm" onClick={() => setCurrentPageResults((prev) => Math.max(prev - 1, 0))} isDisabled={currentPageResults === 0}>Previous</Button>
                   <Text mx={2}>Page {currentPageResults + 1} of {pageCountResults}</Text>
@@ -833,7 +832,6 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
     </Box>
   );
 };
-
 // RecordsTab Component
 const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
   const showToast = useCustomToast();
@@ -846,7 +844,7 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
   const [currentPageRecords, setCurrentPageRecords] = useState(0);
   const [viewMode, setViewMode] = useState<"pagination" | "infinite">("pagination");
   const [displayCount, setDisplayCount] = useState(50);
-  const itemsPerPage = 5; // Reduced to 5 per page
+  const itemsPerPage = 5; // Locked to 5 rows per page
 
   const handleSortRecords = (key: string) => {
     setSortConfigRecords((prev) => {
@@ -862,7 +860,8 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
     (record) =>
       (record.productModel || "").toLowerCase().includes(query) ||
       (record.productBrand || "").toLowerCase().includes(query) ||
-      (record.excelRowId?.toString() || "").toLowerCase().includes(query)
+      (record.excelRowId?.toString() || "").toLowerCase().includes(query) ||
+      record.entryId.toString().includes(query) // Search by entryId
   );
 
   const sortedRecords = [...filteredRecords].sort((a, b) => {
@@ -890,21 +889,23 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
 
   return (
     <Box p={4} bg="white">
-      <Flex justify="space-between" align="center" mb={4}>
+      <Flex justify="space-between" align="center" mb={4} gap={2}>
         <Text fontSize="lg" fontWeight="bold" color="gray.800">Records ({totalRecords})</Text>
-        <Input
-          placeholder="Search records..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          width="300px"
-          borderColor="green.300"
-          _focus={{ borderColor: "green.300" }}
-          color="gray.800"
-          bg="white"
-        />
-        <Button size="sm" onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}>
-          {viewMode === "pagination" ? "Infinite" : "Pagination"}
-        </Button>
+        <Flex gap={2}>
+          <Input
+            placeholder="Search records..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            width="300px"
+            borderColor="green.300"
+            _focus={{ borderColor: "green.300" }}
+            color="gray.800"
+            bg="white"
+          />
+          <Button size="sm" onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}>
+            {viewMode === "pagination" ? "Infinite" : "Pagination"}
+          </Button>
+        </Flex>
       </Flex>
       <Card shadow="md" borderWidth="1px" bg="white">
         <CardBody>
@@ -980,7 +981,7 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
                 </Tbody>
               </Table>
               {pageCountRecords > 1 && (
-                <Flex justify="center" mt={4} align="center">
+                <Flex justify="center" mt={4} align="center" gap={2}>
                   <Button size="sm" onClick={() => setCurrentPageRecords(0)} isDisabled={currentPageRecords === 0}>First</Button>
                   <Button size="sm" onClick={() => setCurrentPageRecords((prev) => Math.max(prev - 1, 0))} isDisabled={currentPageRecords === 0}>Previous</Button>
                   <Text mx={2}>Page {currentPageRecords + 1} of {pageCountRecords}</Text>
@@ -1069,7 +1070,6 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
     </Box>
   );
 };
- 
 
 // LogsTab Component
 const LogsTab = ({ job }: { job: JobDetails }) => {
