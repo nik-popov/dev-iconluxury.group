@@ -1136,15 +1136,20 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [displayCount, setDisplayCount] = useState(50);
   const itemsPerPage = 5;
+
   const query = (searchQuery || "").trim().toLowerCase();
+  console.log("Search Query:", searchQuery, "Processed Query:", query); // Debugging
+
   const filteredRecords = job.records.filter((record) =>
     (record.productModel || "").toLowerCase().includes(query) ||
     (record.productBrand || "").toLowerCase().includes(query) ||
     (record.productColor || "").toLowerCase().includes(query) ||
     (record.productCategory || "").toLowerCase().includes(query) ||
-    record.entryId.toString().includes(query) || // Ensures entryId is searchable
+    record.entryId.toString().includes(query) ||
     record.excelRowId.toString().includes(query)
   );
+  console.log("Filtered Records:", filteredRecords); // Debugging
+
   useEffect(() => {
     const maxImages = showResultDetails ? 1 : 5;
     setNumImages((prev) => (prev > maxImages ? maxImages : prev));
@@ -1189,9 +1194,9 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
     setNumImages((prev) => Math.max(prev - 1, 1));
   };
 
-  const handleRowIdClick = (e: React.MouseEvent<HTMLElement, MouseEvent>, entryId: string) => {
+  const handleRowIdClick = (e: React.MouseEvent<HTMLElement, MouseEvent>, entryId: number) => {
     e.preventDefault();
-    const url = `${window.location.pathname}?activeTab=2&search=${encodeURIComponent(entryId || "")}`;
+    const url = `${window.location.pathname}?activeTab=2&search=${encodeURIComponent(entryId.toString() || "")}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -1200,10 +1205,9 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
       const newDirection = prev.key === key && prev.direction === "ascending" ? "descending" : "ascending";
       return { key, direction: newDirection };
     });
-    setCurrentPage(0); // Reset to first page on sort
+    setCurrentPage(0);
   };
 
- 
   const displayedRecords = hideEmptyRows
     ? filteredRecords.filter((record) => getPositiveSortCountForEntry(record.entryId) > 0)
     : filteredRecords;
@@ -1335,7 +1339,14 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
                 </React.Fragment>
               ))}
               <Td w="90px">
-                <Text cursor="pointer" color="green.300" _hover={{ textDecoration: "underline" }} onClick={(e) => handleRowIdClick(e, record.productModel)}>{record.excelRowId}</Text>
+                <Text
+                  cursor="pointer"
+                  color="green.300"
+                  _hover={{ textDecoration: "underline" }}
+                  onClick={(e) => handleRowIdClick(e, record.entryId)}
+                >
+                  {record.excelRowId}
+                </Text>
               </Td>
               <Td w="150px">
                 {record.productModel ? (
@@ -1431,7 +1442,6 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
     </Box>
   );
 };
-
 // JobsDetailPage Component
 const JobsDetailPage = () => {
   const { jobId } = useParams({ from: "/_layout/scraping-api/scraping-jobs/$jobId" }) as { jobId: string };
