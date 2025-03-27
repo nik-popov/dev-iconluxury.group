@@ -20,31 +20,31 @@ const proxyData = {
     { region: "US-CENTRAL1", url: "https://us-central1-image-scraper-451516.cloudfunctions.net/main" },
     { region: "US-EAST1", url: "https://us-east1-image-scraper-451516.cloudfunctions.net/main" },
     // Add all Google Cloud URLs here
-    { region: "NORTHAMERICA-NORTHEAST1", url: "https://northamerica-northeast1-proxy2-455013.cloudfunctions.net/main" },
   ],
   "DataProxy": [
     { region: "US-EAST4", url: "https://us-east4-proxy1-454912.cloudfunctions.net/main" },
     { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-proxy1-454912.cloudfunctions.net/main" },
     { region: "US-CENTRAL1", url: "https://us-central1-proxy1-454912.cloudfunctions.net/main" },
     // Add all DataProxy URLs here
-    { region: "MIDDLEEAST-CENTRAL2", url: "https://me-central2-proxy6-455014.cloudfunctions.net/main" },
   ],
 };
 
 // Types
 interface ApiResponse {
   endpoint: string;
-  query: string; // This will be the full URL or raw query
+  query: string;
   status: string;
-  results?: any; // Adjust based on actual API response
+  results?: any;
   timestamp: string;
   error?: string;
+  details?: string; // For additional error info
 }
 
 const PlaygroundGSerp: React.FC = () => {
-  const [query, setQuery] = useState<string>(""); // Can be a full URL or just a query
-  const [provider, setProvider] = useState<"Google Cloud" | "DataProxy">("DataProxy"); // Default to DataProxy
+  const [query, setQuery] = useState<string>("flowers"); // Default for testing
+  const [provider, setProvider] = useState<"Google Cloud" | "DataProxy">("DataProxy");
   const [selectedUrl, setSelectedUrl] = useState<string>(proxyData["DataProxy"][0].url); // Default to US-EAST4
+  const [method, setMethod] = useState<"POST" | "GET">("POST"); // Allow method selection
   const [response, setResponse] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -52,7 +52,7 @@ const PlaygroundGSerp: React.FC = () => {
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newProvider = e.target.value as "Google Cloud" | "DataProxy";
     setProvider(newProvider);
-    setSelectedUrl(proxyData[newProvider][0].url); // Default to first URL of new provider
+    setSelectedUrl(proxyData[newProvider][0].url);
   };
 
   // Handle URL change
@@ -60,26 +60,40 @@ const PlaygroundGSerp: React.FC = () => {
     setSelectedUrl(e.target.value);
   };
 
+  // Handle method change
+  const handleMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setMethod(e.target.value as "POST" | "GET");
+  };
+
   // Handle API request
   const handleTestRequest = async () => {
     setIsLoading(true);
-    setResponse(""); // Clear previous response
+    setResponse("");
 
     try {
-      const res = await fetch(selectedUrl, {
-        method: "POST", // Assuming POST; adjust if your API uses GET
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }), // Send the full query (URL or raw string) as-is
-      });
+      let res: Response;
+      if (method === "POST") {
+        res = await fetch(selectedUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query }), // Sending { "query": "flowers" }
+        });
+      } else {
+        res = await fetch(`${selectedUrl}?query=${encodeURIComponent(query)}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+      }
 
       const data = await res.json();
       const apiResponse: ApiResponse = {
         endpoint: selectedUrl,
-        query, // Pass the full input (URL or query)
+        query,
         status: res.ok ? "success" : "error",
         results: res.ok ? data : undefined,
         timestamp: new Date().toISOString(),
         error: res.ok ? undefined : data.error || "Request failed",
+        details: res.ok ? undefined : `Status: ${res.status}, Text: ${res.statusText}`,
       };
       setResponse(JSON.stringify(apiResponse, null, 2));
     } catch (error) {
@@ -89,6 +103,7 @@ const PlaygroundGSerp: React.FC = () => {
         status: "error",
         timestamp: new Date().toISOString(),
         error: error.message || "Network error",
+        details: error instanceof Error ? error.stack : undefined,
       };
       setResponse(JSON.stringify(errorResponse, null, 2));
     } finally {
@@ -134,6 +149,13 @@ const PlaygroundGSerp: React.FC = () => {
                   {proxy.region} - {proxy.url}
                 </option>
               ))}
+            </Select>
+          </FormControl>
+          <FormControl flex="1" minW="100px">
+            <FormLabel fontSize="sm">Method</FormLabel>
+            <Select value={method} onChange={handleMethodChange} size="sm">
+              <option value="POST">POST</option>
+              <option value="GET">GET</option>
             </Select>
           </FormControl>
           <Box alignSelf="flex-end">
