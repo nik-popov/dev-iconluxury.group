@@ -1453,7 +1453,7 @@ const JobsDetailPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [jobData, setJobData] = useState<JobDetails | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>(initialSearch);
+  const [searchQuery, setSearchQuery] = useState<string>(String(initialSearch));
   const showToast = useCustomToast();
 
   const fetchJobData = async () => {
