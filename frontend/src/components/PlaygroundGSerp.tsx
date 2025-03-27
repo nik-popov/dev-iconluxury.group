@@ -11,45 +11,23 @@ import {
   Tooltip,
   FormControl,
   FormLabel,
+  Grid,
+  GridItem,
 } from "@chakra-ui/react";
 
-// Proxy Data (with /fetch path)
-const proxyData = {
-  "Google Cloud": [
-    { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-image-scraper-451516.cloudfunctions.net/main/fetch" },
-    { region: "US-CENTRAL1", url: "https://us-central1-image-scraper-451516.cloudfunctions.net/main/fetch" },
-    { region: "US-EAST1", url: "https://us-east1-image-scraper-451516.cloudfunctions.net/main/fetch" },
-    // Add all Google Cloud URLs here
-  ],
-  "DataProxy": [
-    { region: "US-EAST4", url: "https://us-east4-proxy1-454912.cloudfunctions.net/main/fetch" },
-    { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-proxy1-454912.cloudfunctions.net/main/fetch" },
-    { region: "US-CENTRAL1", url: "https://us-central1-proxy1-454912.cloudfunctions.net/main/fetch" },
-    // Add all DataProxy URLs here
-  ],
-};
-
-// Types
-interface ApiResponse {
-  endpoint: string;
-  url: string; // Changed from "query" to "url"
-  status: string;
-  results?: any;
-  timestamp: string;
-  error?: string;
-  details?: string;
-}
+// Place the proxyData object here (as defined above)
 
 const PlaygroundGSerp: React.FC = () => {
-  const [url, setUrl] = useState<string>("https://www.google.com/search?q=flowers&udm=2"); // Default to full URL
-  const [provider, setProvider] = useState<"Google Cloud" | "DataProxy">("DataProxy");
-  const [selectedUrl, setSelectedUrl] = useState<string>(proxyData["DataProxy"][0].url); // Default to US-EAST4
+  const [url, setUrl] = useState<string>("https://www.google.com/search?q=flowers&udm=2");
+  const [provider, setProvider] = useState<string>("DataProxy");
+  const [selectedUrl, setSelectedUrl] = useState<string>(proxyData["DataProxy"][0].url);
   const [response, setResponse] = useState<string>("");
+  const [htmlPreview, setHtmlPreview] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Handle provider change
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newProvider = e.target.value as "Google Cloud" | "DataProxy";
+    const newProvider = e.target.value;
     setProvider(newProvider);
     setSelectedUrl(proxyData[newProvider][0].url);
   };
@@ -59,46 +37,28 @@ const PlaygroundGSerp: React.FC = () => {
     setSelectedUrl(e.target.value);
   };
 
-  // Handle API request (POST only)
+  // Handle API request
   const handleTestRequest = async () => {
     setIsLoading(true);
     setResponse("");
+    setHtmlPreview("");
 
     try {
       const res = await fetch(selectedUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }), // Send { "url": "<full_url>" }
+        body: JSON.stringify({ url }),
       });
 
-      const contentType = res.headers.get("content-type");
-      let data: any;
-      if (contentType?.includes("application/json")) {
-        data = await res.json();
-      } else {
-        data = await res.text(); // Fallback for non-JSON responses
-      }
+      const data = await res.json();
+      setResponse(JSON.stringify(data, null, 2));
 
-      const apiResponse: ApiResponse = {
-        endpoint: selectedUrl,
-        url, // Reflect the full URL in the response
-        status: res.ok ? "success" : "error",
-        results: res.ok ? data : undefined,
-        timestamp: new Date().toISOString(),
-        error: res.ok ? undefined : data.error || "Request failed",
-        details: res.ok ? undefined : `Status: ${res.status}, Text: ${res.statusText}, Content-Type: ${contentType}`,
-      };
-      setResponse(JSON.stringify(apiResponse, null, 2));
+      // Load HTML result from data.results.result
+      if (data.results && data.results.result) {
+        setHtmlPreview(data.results.result);
+      }
     } catch (error) {
-      const errorResponse: ApiResponse = {
-        endpoint: selectedUrl,
-        url,
-        status: "error",
-        timestamp: new Date().toISOString(),
-        error: error.message || "Network error",
-        details: error instanceof Error ? error.stack : undefined,
-      };
-      setResponse(JSON.stringify(errorResponse, null, 2));
+      setResponse(`Error: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -130,8 +90,11 @@ const PlaygroundGSerp: React.FC = () => {
           <FormControl flex="1" minW="200px">
             <FormLabel fontSize="sm">Provider</FormLabel>
             <Select value={provider} onChange={handleProviderChange} size="sm">
-              <option value="Google Cloud">Google Cloud</option>
-              <option value="DataProxy">DataProxy</option>
+              {Object.keys(proxyData).map((prov) => (
+                <option key={prov} value={prov}>
+                  {prov}
+                </option>
+              ))}
             </Select>
           </FormControl>
           <FormControl flex="1" minW="200px">
@@ -161,28 +124,44 @@ const PlaygroundGSerp: React.FC = () => {
         </Flex>
       </Box>
 
-      {/* Response Section */}
-      <Box>
-        <Text fontSize="md" fontWeight="semibold" mb={2}>
-          Response
-        </Text>
-        {isLoading ? (
-          <Flex justify="center" align="center" h="200px">
-            <Spinner size="xl" color="blue.500" />
-          </Flex>
-        ) : (
-          <Textarea
-            value={response}
-            readOnly
-            height="300px"
-            bg="gray.700"
-            color="white"
-            placeholder="Response will appear here after testing"
-            size="sm"
-            resize="vertical"
-          />
-        )}
-      </Box>
+      {/* Response and Preview Section */}
+      <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
+        <GridItem>
+          <Text fontSize="md" fontWeight="semibold" mb={2}>
+            Response
+          </Text>
+          {isLoading ? (
+            <Flex justify="center" align="center" h="200px">
+              <Spinner size="xl" color="blue.500" />
+            </Flex>
+          ) : (
+            <Textarea
+              value={response}
+              readOnly
+              height="300px"
+              bg="gray.700"
+              color="white"
+              placeholder="Response will appear here after testing"
+              size="sm"
+              resize="vertical"
+            />
+          )}
+        </GridItem>
+        <GridItem>
+          <Text fontSize="md" fontWeight="semibold" mb={2}>
+            HTML Preview
+          </Text>
+          {htmlPreview ? (
+            <iframe
+              srcDoc={htmlPreview}
+              style={{ width: "100%", height: "300px", border: "1px solid #ccc" }}
+              title="HTML Preview"
+            />
+          ) : (
+            <Text>No preview available</Text>
+          )}
+        </GridItem>
+      </Grid>
     </Box>
   );
 };
