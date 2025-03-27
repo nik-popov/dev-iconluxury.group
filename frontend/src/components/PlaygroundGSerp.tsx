@@ -13,19 +13,19 @@ import {
   FormLabel,
 } from "@chakra-ui/react";
 
-// Proxy Data
+// Proxy Data (Updated with /fetch path where applicable)
 const proxyData = {
   "Google Cloud": [
-    { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-image-scraper-451516.cloudfunctions.net/main" },
-    { region: "US-CENTRAL1", url: "https://us-central1-image-scraper-451516.cloudfunctions.net/main" },
-    { region: "US-EAST1", url: "https://us-east1-image-scraper-451516.cloudfunctions.net/main" },
-    // Add all Google Cloud URLs here
+    { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-image-scraper-451516.cloudfunctions.net/main/fetch" },
+    { region: "US-CENTRAL1", url: "https://us-central1-image-scraper-451516.cloudfunctions.net/main/fetch" },
+    { region: "US-EAST1", url: "https://us-east1-image-scraper-451516.cloudfunctions.net/main/fetch" },
+    // Add all Google Cloud URLs with /fetch if needed
   ],
   "DataProxy": [
-    { region: "US-EAST4", url: "https://us-east4-proxy1-454912.cloudfunctions.net/main" },
-    { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-proxy1-454912.cloudfunctions.net/main" },
-    { region: "US-CENTRAL1", url: "https://us-central1-proxy1-454912.cloudfunctions.net/main" },
-    // Add all DataProxy URLs here
+    { region: "US-EAST4", url: "https://us-east4-proxy1-454912.cloudfunctions.net/main/fetch" },
+    { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-proxy1-454912.cloudfunctions.net/main/fetch" },
+    { region: "US-CENTRAL1", url: "https://us-central1-proxy1-454912.cloudfunctions.net/main/fetch" },
+    // Add all DataProxy URLs with /fetch if needed
   ],
 };
 
@@ -37,14 +37,14 @@ interface ApiResponse {
   results?: any;
   timestamp: string;
   error?: string;
-  details?: string; // For additional error info
+  details?: string;
 }
 
 const PlaygroundGSerp: React.FC = () => {
   const [query, setQuery] = useState<string>("flowers"); // Default for testing
   const [provider, setProvider] = useState<"Google Cloud" | "DataProxy">("DataProxy");
-  const [selectedUrl, setSelectedUrl] = useState<string>(proxyData["DataProxy"][0].url); // Default to US-EAST4
-  const [method, setMethod] = useState<"POST" | "GET">("POST"); // Allow method selection
+  const [selectedUrl, setSelectedUrl] = useState<string>(proxyData["DataProxy"][0].url); // Default to US-EAST4 with /fetch
+  const [method, setMethod] = useState<"POST" | "GET">("GET"); // Default to GET since /fetch might expect query params
   const [response, setResponse] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -70,35 +70,43 @@ const PlaygroundGSerp: React.FC = () => {
     setIsLoading(true);
     setResponse("");
 
+    let url = selectedUrl;
+    let fetchOptions: RequestInit = {
+      headers: { "Content-Type": "application/json" },
+    };
+
     try {
-      let res: Response;
       if (method === "POST") {
-        res = await fetch(selectedUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query }), // Sending { "query": "flowers" }
-        });
+        fetchOptions.method = "POST";
+        fetchOptions.body = JSON.stringify({ query });
       } else {
-        res = await fetch(`${selectedUrl}?query=${encodeURIComponent(query)}`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
+        url = `${selectedUrl}?query=${encodeURIComponent(query)}`;
+        fetchOptions.method = "GET";
       }
 
-      const data = await res.json();
+      const res = await fetch(url, fetchOptions);
+
+      const contentType = res.headers.get("content-type");
+      let data: any;
+      if (contentType?.includes("application/json")) {
+        data = await res.json();
+      } else {
+        data = await res.text(); // Fallback for non-JSON responses
+      }
+
       const apiResponse: ApiResponse = {
-        endpoint: selectedUrl,
+        endpoint: url,
         query,
         status: res.ok ? "success" : "error",
         results: res.ok ? data : undefined,
         timestamp: new Date().toISOString(),
         error: res.ok ? undefined : data.error || "Request failed",
-        details: res.ok ? undefined : `Status: ${res.status}, Text: ${res.statusText}`,
+        details: res.ok ? undefined : `Status: ${res.status}, Text: ${res.statusText}, Content-Type: ${contentType}`,
       };
       setResponse(JSON.stringify(apiResponse, null, 2));
     } catch (error) {
       const errorResponse: ApiResponse = {
-        endpoint: selectedUrl,
+        endpoint: url,
         query,
         status: "error",
         timestamp: new Date().toISOString(),
@@ -154,8 +162,8 @@ const PlaygroundGSerp: React.FC = () => {
           <FormControl flex="1" minW="100px">
             <FormLabel fontSize="sm">Method</FormLabel>
             <Select value={method} onChange={handleMethodChange} size="sm">
-              <option value="POST">POST</option>
               <option value="GET">GET</option>
+              <option value="POST">POST</option>
             </Select>
           </FormControl>
           <Box alignSelf="flex-end">
