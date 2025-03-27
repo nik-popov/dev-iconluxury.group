@@ -13,8 +13,9 @@ import {
   FormLabel,
   Grid,
   GridItem,
+  IconButton,
 } from "@chakra-ui/react";
-
+import { ExternalLinkIcon } from "@chakra-ui/icons";
 const proxyData = {
   "Google Cloud": [
     { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-image-scraper-451516.cloudfunctions.net/main/fetch" },
@@ -204,30 +205,33 @@ const PlaygroundGSerp: React.FC = () => {
   <Text fontSize="md" fontWeight="semibold" mb={2}>
     HTML Preview
   </Text>
-  {htmlPreview ? (
+  {htmlPreview && (
     <>
+      <Flex justifyContent="flex-end" mb={2}>
+        <Tooltip label="Open preview in new tab">
+          <IconButton
+            aria-label="Open preview"
+            icon={<ExternalLinkIcon />}
+            size="sm"
+            onClick={() => {
+              const newWindow = window.open("", "_blank");
+              if (newWindow) {
+                newWindow.document.write(htmlPreview);
+                newWindow.document.close();
+              } else {
+                alert("Popup blocked. Please allow popups for this site.");
+              }
+            }}
+          />
+        </Tooltip>
+      </Flex>
       <iframe
         srcDoc={htmlPreview}
         style={{ width: "100%", height: "300px", border: "1px solid #ccc" }}
         title="HTML Preview"
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
       />
-      <Button
-        onClick={() => {
-          const newWindow = window.open("", "_blank");
-          if (newWindow) {
-            newWindow.document.write(htmlPreview);
-            newWindow.document.close();
-          } else {
-            alert("Popup blocked. Please allow popups for this site.");
-          }
-        }}
-      >
-        Open Preview in New Tab
-      </Button>
     </>
-  ) : (
-    <Text color="gray.500">No HTML preview available. Check the response or try again.</Text>
   )}
 </GridItem>
       </Grid>

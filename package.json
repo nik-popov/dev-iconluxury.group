@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@chakra-ui/icons": "^2.2.4",
     "@tanstack/react-router": "^1.99.8",
     "chart.js": "^4.4.8",
     "leaflet": "^1.9.4",
