@@ -601,7 +601,27 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain, entryId, s
   const showToast = useCustomToast();
   const [selectedResult, setSelectedResult] = useState<ResultItem | null>(null);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
-  const query = searchQuery.trim().toLowerCase();
+  const query = (searchQuery || "").trim().toLowerCase();
+const filteredResults = job.results.filter((result) => {
+  const matchesSearchQuery =
+    (result.imageDesc || "").toLowerCase().includes(query) ||
+    (result.imageSource || "").toLowerCase().includes(query) ||
+    (result.aiJson || "").toLowerCase().includes(query) ||
+    (result.imageUrl || "").toLowerCase().includes(query) ||
+    (result.aiCaption || "").toLowerCase().includes(query) ||
+    (result.aiLabel || "").toLowerCase().includes(query) ||
+    (result.createTime || "").toLowerCase().includes(query) ||
+    result.entryId.toString().includes(query) || // Ensures entryId is searchable
+    result.resultId.toString().includes(query);
+
+  const matchesDomain = domain
+    ? new URL(result.imageSource).hostname.replace(/^www\./, "").includes(domain)
+    : true;
+
+  const matchesEntryId = entryId ? result.entryId.toString() === entryId : true;
+
+  return matchesSearchQuery && matchesDomain && matchesEntryId;
+});
 
   const [sortConfigResults, setSortConfigResults] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null);
   const [currentPageResults, setCurrentPageResults] = useState(0);
@@ -619,26 +639,6 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain, entryId, s
     setCurrentPageResults(0);
   };
 
-  const filteredResults = job.results.filter((result) => {
-    const matchesSearchQuery =
-      (result.imageDesc || "").toLowerCase().includes(query) ||
-      (result.imageSource || "").toLowerCase().includes(query) ||
-      (result.aiJson || "").toLowerCase().includes(query) ||
-      (result.imageUrl || "").toLowerCase().includes(query) ||
-      (result.aiCaption || "").toLowerCase().includes(query) ||
-      (result.aiLabel || "").toLowerCase().includes(query) ||
-      (result.createTime || "").toLowerCase().includes(query) ||
-      result.entryId.toString().includes(query) ||
-      result.resultId.toString().includes(query);
-
-    const matchesDomain = domain
-      ? new URL(result.imageSource).hostname.replace(/^www\./, "").includes(domain)
-      : true;
-
-    const matchesEntryId = entryId ? result.entryId.toString() === entryId : true;
-
-    return matchesSearchQuery && matchesDomain && matchesEntryId;
-  });
 
   const sortedResults = [...filteredResults].sort((a, b) => {
     if (a.sortOrder >= 0 && b.sortOrder < 0) return -1;
@@ -842,7 +842,6 @@ const RecordsTab: React.FC<RecordsTabProps> = ({ job, searchQuery }) => {
   const showToast = useCustomToast();
   const [selectedRecord, setSelectedRecord] = useState<RecordItem | null>(null);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-  const query = searchQuery.trim().toLowerCase();
 
   const [sortConfigRecords, setSortConfigRecords] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null);
   const [currentPageRecords, setCurrentPageRecords] = useState(0);
@@ -860,14 +859,15 @@ const RecordsTab: React.FC<RecordsTabProps> = ({ job, searchQuery }) => {
     setCurrentPageRecords(0);
   };
 
-  const filteredRecords = job.records.filter(
-    (record) =>
-      (record.productModel || "").toLowerCase().includes(query) ||
-      (record.productBrand || "").toLowerCase().includes(query) ||
-      (record.excelRowId?.toString() || "").toLowerCase().includes(query) ||
-      record.entryId.toString().includes(query)
-  );
-
+  const query = (searchQuery || "").trim().toLowerCase();
+  const filteredRecords = job.records.filter((record) =>
+  (record.productModel || "").toLowerCase().includes(query) ||
+  (record.productBrand || "").toLowerCase().includes(query) ||
+  (record.productColor || "").toLowerCase().includes(query) ||
+  (record.productCategory || "").toLowerCase().includes(query) ||
+  record.entryId.toString().includes(query) || // Ensures entryId is searchable
+  record.excelRowId.toString().includes(query)
+);
   const sortedRecords = [...filteredRecords].sort((a, b) => {
     if (sortConfigRecords) {
       const { key, direction } = sortConfigRecords;
@@ -1136,7 +1136,15 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [displayCount, setDisplayCount] = useState(50);
   const itemsPerPage = 5;
-
+  const query = (searchQuery || "").trim().toLowerCase();
+  const filteredRecords = job.records.filter((record) =>
+    (record.productModel || "").toLowerCase().includes(query) ||
+    (record.productBrand || "").toLowerCase().includes(query) ||
+    (record.productColor || "").toLowerCase().includes(query) ||
+    (record.productCategory || "").toLowerCase().includes(query) ||
+    record.entryId.toString().includes(query) || // Ensures entryId is searchable
+    record.excelRowId.toString().includes(query)
+  );
   useEffect(() => {
     const maxImages = showResultDetails ? 1 : 5;
     setNumImages((prev) => (prev > maxImages ? maxImages : prev));
@@ -1181,9 +1189,9 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
     setNumImages((prev) => Math.max(prev - 1, 1));
   };
 
-  const handleRowIdClick = (e: React.MouseEvent<HTMLElement, MouseEvent>, productModel: string) => {
+  const handleRowIdClick = (e: React.MouseEvent<HTMLElement, MouseEvent>, entryId: string) => {
     e.preventDefault();
-    const url = `${window.location.pathname}?activeTab=2&search=${encodeURIComponent(productModel || "")}`;
+    const url = `${window.location.pathname}?activeTab=2&search=${encodeURIComponent(entryId || "")}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -1195,17 +1203,7 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
     setCurrentPage(0); // Reset to first page on sort
   };
 
-  const query = searchQuery.trim().toLowerCase();
-
-  const filteredRecords = job.records.filter((record) =>
-    (record.productModel || "").toLowerCase().includes(query) ||
-    (record.productBrand || "").toLowerCase().includes(query) ||
-    (record.productColor || "").toLowerCase().includes(query) ||
-    (record.productCategory || "").toLowerCase().includes(query) ||
-    record.entryId.toString().includes(query) ||
-    record.excelRowId.toString().includes(query)
-  );
-
+ 
   const displayedRecords = hideEmptyRows
     ? filteredRecords.filter((record) => getPositiveSortCountForEntry(record.entryId) > 0)
     : filteredRecords;
