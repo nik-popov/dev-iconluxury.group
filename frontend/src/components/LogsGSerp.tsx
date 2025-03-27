@@ -162,7 +162,6 @@ const LogsGSerp: React.FC = () => {
   return (
     <Box p={4} width="100%">
       <Flex justify="space-between" align="center" mb={4}>
-        <Text fontSize="lg" fontWeight="bold">API Request Logs</Text>
         <Flex gap={2}>
           <Tooltip label="Refresh log files">
             <Button
