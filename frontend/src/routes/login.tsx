@@ -185,11 +185,11 @@ const XLogo = () => (
       </Text>
 
       {/* Social media icons row pushed lower by increasing the top margin */}
-      <Flex direction="row" justify="center" align="center" gap={4} mt={12}>
+      {/* <Flex direction="row" justify="center" align="center" gap={4} mt={12}>
         <GitHubLogo />
         <LinkedInLogo />
         <XLogo />
-      </Flex>
+      </Flex> */}
     </Container>
   )
 }
