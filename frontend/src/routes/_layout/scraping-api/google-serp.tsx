@@ -14,7 +14,7 @@ const GoogleSerpPage = () => {
 const tabsConfig = [
   // { title: "Overview", component: () => <OverviewGSerp /> },
   { title: "Logs", component: () => <LogsGSerp /> },
-  { title: "Playground", component: () => <PlaygroundGSerp /> },
+  { title: "Sandbox", component: () => <PlaygroundGSerp /> },
   { title: "Whitelist", component: () => <WhitelistGSerp /> },
   { title: "References", component: () => <OptimalReferencesTable /> },
 ];
