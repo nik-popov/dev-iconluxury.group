@@ -134,7 +134,7 @@ const PlaygroundGSerp: React.FC = () => {
     setSelectedUrl(e.target.value);
   };
 
-  // Handle API request
+
   const handleTestRequest = async () => {
     setIsLoading(true);
     setResponse("");
@@ -148,10 +148,14 @@ const PlaygroundGSerp: React.FC = () => {
       });
 
       const data = await res.json();
+      console.log("API Response:", data); // Log the full response for debugging
       setResponse(JSON.stringify(data, null, 2));
 
-      if (data.results && data.results.result) {
-        setHtmlPreview(data.results.result);
+      if (data.result) {
+        console.log("Setting HTML preview:", data.result.substring(0, 100)); // Log the first 100 characters of the HTML
+        setHtmlPreview(data.result);
+      } else {
+        console.log("No HTML content found in data.result"); // Log if no HTML is found
       }
     } catch (error) {
       setResponse(`Error: ${error.message}`);
