@@ -283,15 +283,34 @@ const PlaygroundGSerp: React.FC = () => {
           <Text fontSize="md" fontWeight="semibold" mb={2}>
             HTML Preview
           </Text>
-          {htmlPreview ? (
-            <iframe
-              srcDoc={htmlPreview}
-              style={{ width: "100%", height: "300px", border: "1px solid #ccc" }}
-              title="HTML Preview"
-            />
-          ) : (
-            <Text>No preview available</Text>
-          )}
+          {htmlPreview && (
+  <>
+    <iframe
+      srcDoc={htmlPreview}
+      style={{ width: "100%", height: "300px", border: "1px solid #ccc" }}
+      title="HTML Preview"
+      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+    />
+    <Button
+      onClick={() => {
+        const newWindow = window.open("", "_blank");
+        if (newWindow) {
+          // Only proceed if newWindow is not null
+          newWindow.document.write("Hello, world!");
+          newWindow.document.close();
+        } else {
+          // Handle the case where the popup was blocked
+          alert("Popup blocked. Please allow popups for this site.");
+        }
+      }}
+      size="sm"
+      colorScheme="gray"
+      mt={2}
+    >
+      Open Preview in New Tab
+    </Button>
+  </>
+)}
         </GridItem>
       </Grid>
     </Box>
