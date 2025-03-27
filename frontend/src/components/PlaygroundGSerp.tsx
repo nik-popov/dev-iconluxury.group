@@ -13,38 +13,87 @@ import {
   FormLabel,
 } from "@chakra-ui/react";
 
-// Constants
-const ENDPOINTS = ["SOUTHAMERICA-WEST1", "US-CENTRAL1", "US-EAST1"];
+// Proxy Data
+const proxyData = {
+  "Google Cloud": [
+    { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-image-scraper-451516.cloudfunctions.net/main" },
+    { region: "US-CENTRAL1", url: "https://us-central1-image-scraper-451516.cloudfunctions.net/main" },
+    { region: "US-EAST1", url: "https://us-east1-image-scraper-451516.cloudfunctions.net/main" },
+    // Add all Google Cloud URLs from your original list here
+    { region: "NORTHAMERICA-NORTHEAST1", url: "https://northamerica-northeast1-proxy2-455013.cloudfunctions.net/main" },
+  ],
+  "DataProxy": [
+    { region: "US-EAST4", url: "https://us-east4-proxy1-454912.cloudfunctions.net/main" },
+    { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-proxy1-454912.cloudfunctions.net/main" },
+    { region: "US-CENTRAL1", url: "https://us-central1-proxy1-454912.cloudfunctions.net/main" },
+    // Add all DataProxy URLs from your original list here
+    { region: "MIDDLEEAST-CENTRAL2", url: "https://me-central2-proxy6-455014.cloudfunctions.net/main" },
+  ],
+};
 
 // Types
 interface ApiResponse {
   endpoint: string;
   query: string;
   status: string;
-  results: number;
+  results?: any; // Adjust based on actual API response
   timestamp: string;
+  error?: string;
 }
 
 const PlaygroundGSerp: React.FC = () => {
   const [query, setQuery] = useState<string>("");
-  const [endpoint, setEndpoint] = useState<string>(ENDPOINTS[1]); // Default to US-CENTRAL1
+  const [provider, setProvider] = useState<"Google Cloud" | "DataProxy">("Google Cloud");
+  const [selectedUrl, setSelectedUrl] = useState<string>(proxyData["Google Cloud"][1].url); // Default to US-CENTRAL1
   const [response, setResponse] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Simulate API request
-  const handleTestRequest = () => {
+  // Handle provider change
+  const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newProvider = e.target.value as "Google Cloud" | "DataProxy";
+    setProvider(newProvider);
+    setSelectedUrl(proxyData[newProvider][0].url); // Default to first URL of new provider
+  };
+
+  // Handle URL change
+  const handleUrlChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedUrl(e.target.value);
+  };
+
+  // Handle API request
+  const handleTestRequest = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      const mockResponse: ApiResponse = {
-        endpoint,
+    setResponse(""); // Clear previous response
+
+    try {
+      const res = await fetch(selectedUrl, {
+        method: "POST", // Adjust method as per your API (e.g., GET, POST)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }), // Adjust payload structure as needed
+      });
+
+      const data = await res.json();
+      const apiResponse: ApiResponse = {
+        endpoint: selectedUrl,
         query,
-        status: "success",
-        results: Math.floor(Math.random() * 100),
+        status: res.ok ? "success" : "error",
+        results: res.ok ? data : undefined,
         timestamp: new Date().toISOString(),
+        error: res.ok ? undefined : data.error || "Request failed",
       };
-      setResponse(JSON.stringify(mockResponse, null, 2));
+      setResponse(JSON.stringify(apiResponse, null, 2));
+    } catch (error) {
+      const errorResponse: ApiResponse = {
+        endpoint: selectedUrl,
+        query,
+        status: "error",
+        timestamp: new Date().toISOString(),
+        error: error.message || "Network error",
+      };
+      setResponse(JSON.stringify(errorResponse, null, 2));
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -71,15 +120,18 @@ const PlaygroundGSerp: React.FC = () => {
             />
           </FormControl>
           <FormControl flex="1" minW="200px">
-            <FormLabel fontSize="sm">Endpoint</FormLabel>
-            <Select
-              value={endpoint}
-              onChange={(e) => setEndpoint(e.target.value)}
-              size="sm"
-            >
-              {ENDPOINTS.map((ep) => (
-                <option key={ep} value={ep}>
-                  {ep}
+            <FormLabel fontSize="sm">Provider</FormLabel>
+            <Select value={provider} onChange={handleProviderChange} size="sm">
+              <option value="Google Cloud">Google Cloud</option>
+              <option value="DataProxy">DataProxy</option>
+            </Select>
+          </FormControl>
+          <FormControl flex="1" minW="200px">
+            <FormLabel fontSize="sm">Endpoint URL</FormLabel>
+            <Select value={selectedUrl} onChange={handleUrlChange} size="sm">
+              {proxyData[provider].map((proxy) => (
+                <option key={proxy.url} value={proxy.url}>
+                  {proxy.region} - {proxy.url}
                 </option>
               ))}
             </Select>
