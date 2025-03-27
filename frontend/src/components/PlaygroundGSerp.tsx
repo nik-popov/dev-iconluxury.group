@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Text,
@@ -116,6 +116,7 @@ const PlaygroundGSerp: React.FC = () => {
   const [url, setUrl] = useState<string>("https://www.google.com/search?q=flowers&udm=2");
   const [provider, setProvider] = useState<string>("DataProxy");
   const [selectedUrl, setSelectedUrl] = useState<string>(proxyData["DataProxy"][0].url);
+  const [regionFilter, setRegionFilter] = useState<string>("");
   const [response, setResponse] = useState<string>("");
   const [htmlPreview, setHtmlPreview] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -124,6 +125,7 @@ const PlaygroundGSerp: React.FC = () => {
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newProvider = e.target.value;
     setProvider(newProvider);
+    setRegionFilter(""); // Reset filter
     setSelectedUrl(proxyData[newProvider][0].url);
   };
 
@@ -148,7 +150,6 @@ const PlaygroundGSerp: React.FC = () => {
       const data = await res.json();
       setResponse(JSON.stringify(data, null, 2));
 
-      // Load HTML result from data.results.result
       if (data.results && data.results.result) {
         setHtmlPreview(data.results.result);
       }
@@ -158,6 +159,25 @@ const PlaygroundGSerp: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  // Filter regions based on regionFilter
+  const filteredRegions = proxyData[provider].filter((proxy) =>
+    proxy.region.toLowerCase().includes(regionFilter.toLowerCase())
+  );
+
+  // Sync selectedUrl with filtered regions
+  useEffect(() => {
+    const filtered = proxyData[provider].filter((proxy) =>
+      proxy.region.toLowerCase().includes(regionFilter.toLowerCase())
+    );
+    if (filtered.length > 0) {
+      if (!filtered.some((proxy) => proxy.url === selectedUrl)) {
+        setSelectedUrl(filtered[0].url);
+      }
+    } else {
+      setSelectedUrl("");
+    }
+  }, [provider, regionFilter]);
 
   return (
     <Box p={4} width="100%">
@@ -194,13 +214,24 @@ const PlaygroundGSerp: React.FC = () => {
           </FormControl>
           <FormControl flex="1" minW="200px">
             <FormLabel fontSize="sm">Endpoint URL</FormLabel>
-            <Select value={selectedUrl} onChange={handleUrlChange} size="sm">
-              {proxyData[provider].map((proxy) => (
-                <option key={proxy.url} value={proxy.url}>
-                  {proxy.region} - {proxy.url}
-                </option>
-              ))}
-            </Select>
+            <Input
+              value={regionFilter}
+              onChange={(e) => setRegionFilter(e.target.value)}
+              placeholder="Filter regions"
+              size="sm"
+              mb={2}
+            />
+            {filteredRegions.length > 0 ? (
+              <Select value={selectedUrl} onChange={handleUrlChange} size="sm">
+                {filteredRegions.map((proxy) => (
+                  <option key={proxy.url} value={proxy.url}>
+                    {proxy.region} - {proxy.url}
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <Select isDisabled placeholder="No regions match the filter" size="sm" />
+            )}
           </FormControl>
           <Box alignSelf="flex-end">
             <Tooltip label="Send test request">
@@ -209,7 +240,7 @@ const PlaygroundGSerp: React.FC = () => {
                 colorScheme="blue"
                 onClick={handleTestRequest}
                 isLoading={isLoading}
-                isDisabled={!url.trim()}
+                isDisabled={!url.trim() || !selectedUrl}
                 mt={{ base: 0, md: 6 }}
               >
                 Test
