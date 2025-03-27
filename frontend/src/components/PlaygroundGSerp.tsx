@@ -191,63 +191,69 @@ const PlaygroundGSerp: React.FC = () => {
         <Text fontSize="md" fontWeight="semibold" mb={2}>
           Test Parameters
         </Text>
-        <Flex direction={{ base: "column", md: "row" }} gap={4}>
-          <FormControl flex="1" minW="200px">
-            <FormLabel fontSize="sm">Search URL</FormLabel>
-            <Input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="e.g., https://www.google.com/search?q=flowers&udm=2"
-              size="sm"
-              isRequired
-            />
-          </FormControl>
-          <FormControl flex="1" minW="200px">
-            <FormLabel fontSize="sm">Provider</FormLabel>
-            <Select value={provider} onChange={handleProviderChange} size="sm">
-              {Object.keys(proxyData).map((prov) => (
-                <option key={prov} value={prov}>
-                  {prov}
-                </option>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl flex="1" minW="200px">
-            <FormLabel fontSize="sm">Endpoint URL</FormLabel>
-            <Input
-              value={regionFilter}
-              onChange={(e) => setRegionFilter(e.target.value)}
-              placeholder="Filter regions"
-              size="sm"
-              mb={2}
-            />
-            {filteredRegions.length > 0 ? (
-              <Select value={selectedUrl} onChange={handleUrlChange} size="sm">
-                {filteredRegions.map((proxy) => (
-                  <option key={proxy.url} value={proxy.url}>
-                    {proxy.region} - {proxy.url}
-                  </option>
-                ))}
-              </Select>
-            ) : (
-              <Select isDisabled placeholder="No regions match the filter" size="sm" />
-            )}
-          </FormControl>
-          <Box alignSelf="flex-end">
-            <Tooltip label="Send test request">
-              <Button
-                size="sm"
-                colorScheme="blue"
-                onClick={handleTestRequest}
-                isLoading={isLoading}
-                isDisabled={!url.trim() || !selectedUrl}
-                mt={{ base: 0, md: 6 }}
-              >
-                Test
-              </Button>
-            </Tooltip>
-          </Box>
-        </Flex>
+        <Flex direction="column" gap={4}>
+  {/* Search URL */}
+  <FormControl>
+    <FormLabel fontSize="sm">Search URL</FormLabel>
+    <Input
+      value={url}
+      onChange={(e) => setUrl(e.target.value)}
+      placeholder="e.g., https://www.google.com/search?q=flowers&udm=2"
+      size="sm"
+      isRequired
+    />
+  </FormControl>
+
+  {/* Provider */}
+  <FormControl>
+    <FormLabel fontSize="sm">Provider</FormLabel>
+    <Select value={provider} onChange={handleProviderChange} size="sm">
+      {Object.keys(proxyData).map((prov) => (
+        <option key={prov} value={prov}>
+          {prov}
+        </option>
+      ))}
+    </Select>
+  </FormControl>
+
+  {/* Endpoint with Filter */}
+  <FormControl>
+    <FormLabel fontSize="sm">Endpoint URL</FormLabel>
+    <Input
+      value={regionFilter}
+      onChange={(e) => setRegionFilter(e.target.value)}
+      placeholder="Filter regions"
+      size="sm"
+      mb={2}
+    />
+    {filteredRegions.length > 0 ? (
+      <Select value={selectedUrl} onChange={handleUrlChange} size="sm">
+        {filteredRegions.map((proxy) => (
+          <option key={proxy.url} value={proxy.url}>
+            {proxy.region} - {proxy.url}
+          </option>
+        ))}
+      </Select>
+    ) : (
+      <Select isDisabled placeholder="No regions match the filter" size="sm" />
+    )}
+  </FormControl>
+
+  {/* Test Button */}
+  <Box>
+    <Tooltip label="Send test request">
+      <Button
+        size="sm"
+        colorScheme="blue"
+        onClick={handleTestRequest}
+        isLoading={isLoading}
+        isDisabled={!url.trim() || !selectedUrl}
+      >
+        Test
+      </Button>
+    </Tooltip>
+  </Box>
+</Flex>
       </Box>
 
       {/* Response and Preview Section */}
