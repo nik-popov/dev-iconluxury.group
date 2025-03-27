@@ -13,26 +13,26 @@ import {
   FormLabel,
 } from "@chakra-ui/react";
 
-// Proxy Data (Updated with /fetch path where applicable)
+// Proxy Data (with /fetch path)
 const proxyData = {
   "Google Cloud": [
     { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-image-scraper-451516.cloudfunctions.net/main/fetch" },
     { region: "US-CENTRAL1", url: "https://us-central1-image-scraper-451516.cloudfunctions.net/main/fetch" },
     { region: "US-EAST1", url: "https://us-east1-image-scraper-451516.cloudfunctions.net/main/fetch" },
-    // Add all Google Cloud URLs with /fetch if needed
+    // Add all Google Cloud URLs here
   ],
   "DataProxy": [
     { region: "US-EAST4", url: "https://us-east4-proxy1-454912.cloudfunctions.net/main/fetch" },
     { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-proxy1-454912.cloudfunctions.net/main/fetch" },
     { region: "US-CENTRAL1", url: "https://us-central1-proxy1-454912.cloudfunctions.net/main/fetch" },
-    // Add all DataProxy URLs with /fetch if needed
+    // Add all DataProxy URLs here
   ],
 };
 
 // Types
 interface ApiResponse {
   endpoint: string;
-  query: string;
+  url: string; // Changed from "query" to "url"
   status: string;
   results?: any;
   timestamp: string;
@@ -41,10 +41,9 @@ interface ApiResponse {
 }
 
 const PlaygroundGSerp: React.FC = () => {
-  const [query, setQuery] = useState<string>("flowers"); // Default for testing
+  const [url, setUrl] = useState<string>("https://www.google.com/search?q=flowers&udm=2"); // Default to full URL
   const [provider, setProvider] = useState<"Google Cloud" | "DataProxy">("DataProxy");
-  const [selectedUrl, setSelectedUrl] = useState<string>(proxyData["DataProxy"][0].url); // Default to US-EAST4 with /fetch
-  const [method, setMethod] = useState<"POST" | "GET">("GET"); // Default to GET since /fetch might expect query params
+  const [selectedUrl, setSelectedUrl] = useState<string>(proxyData["DataProxy"][0].url); // Default to US-EAST4
   const [response, setResponse] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -60,31 +59,17 @@ const PlaygroundGSerp: React.FC = () => {
     setSelectedUrl(e.target.value);
   };
 
-  // Handle method change
-  const handleMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setMethod(e.target.value as "POST" | "GET");
-  };
-
-  // Handle API request
+  // Handle API request (POST only)
   const handleTestRequest = async () => {
     setIsLoading(true);
     setResponse("");
 
-    let url = selectedUrl;
-    let fetchOptions: RequestInit = {
-      headers: { "Content-Type": "application/json" },
-    };
-
     try {
-      if (method === "POST") {
-        fetchOptions.method = "POST";
-        fetchOptions.body = JSON.stringify({ query });
-      } else {
-        url = `${selectedUrl}?query=${encodeURIComponent(query)}`;
-        fetchOptions.method = "GET";
-      }
-
-      const res = await fetch(url, fetchOptions);
+      const res = await fetch(selectedUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }), // Send { "url": "<full_url>" }
+      });
 
       const contentType = res.headers.get("content-type");
       let data: any;
@@ -95,8 +80,8 @@ const PlaygroundGSerp: React.FC = () => {
       }
 
       const apiResponse: ApiResponse = {
-        endpoint: url,
-        query,
+        endpoint: selectedUrl,
+        url, // Reflect the full URL in the response
         status: res.ok ? "success" : "error",
         results: res.ok ? data : undefined,
         timestamp: new Date().toISOString(),
@@ -106,8 +91,8 @@ const PlaygroundGSerp: React.FC = () => {
       setResponse(JSON.stringify(apiResponse, null, 2));
     } catch (error) {
       const errorResponse: ApiResponse = {
-        endpoint: url,
-        query,
+        endpoint: selectedUrl,
+        url,
         status: "error",
         timestamp: new Date().toISOString(),
         error: error.message || "Network error",
@@ -133,11 +118,11 @@ const PlaygroundGSerp: React.FC = () => {
         </Text>
         <Flex direction={{ base: "column", md: "row" }} gap={4}>
           <FormControl flex="1" minW="200px">
-            <FormLabel fontSize="sm">Search Query</FormLabel>
+            <FormLabel fontSize="sm">Search URL</FormLabel>
             <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="e.g., https://www.google.com/search?q=flowers&udm=2 or flowers"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="e.g., https://www.google.com/search?q=flowers&udm=2"
               size="sm"
               isRequired
             />
@@ -159,13 +144,6 @@ const PlaygroundGSerp: React.FC = () => {
               ))}
             </Select>
           </FormControl>
-          <FormControl flex="1" minW="100px">
-            <FormLabel fontSize="sm">Method</FormLabel>
-            <Select value={method} onChange={handleMethodChange} size="sm">
-              <option value="GET">GET</option>
-              <option value="POST">POST</option>
-            </Select>
-          </FormControl>
           <Box alignSelf="flex-end">
             <Tooltip label="Send test request">
               <Button
@@ -173,7 +151,7 @@ const PlaygroundGSerp: React.FC = () => {
                 colorScheme="blue"
                 onClick={handleTestRequest}
                 isLoading={isLoading}
-                isDisabled={!query.trim()}
+                isDisabled={!url.trim()}
                 mt={{ base: 0, md: 6 }}
               >
                 Test
