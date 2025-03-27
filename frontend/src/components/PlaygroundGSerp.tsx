@@ -262,7 +262,6 @@ const PlaygroundGSerp: React.FC = () => {
             <Text fontSize="md" fontWeight="semibold">HTML Preview</Text>
             {htmlPreview && (
               <Flex align="center" gap={2}>
-                <Image src="https://openm.ai/favicon.ico" alt="OpenM" boxSize="16px" />
                 <Tooltip label="Open preview in new tab">
                   <IconButton
                     aria-label="Open preview"
