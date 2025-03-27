@@ -216,43 +216,43 @@ const PlaygroundGSerp: React.FC = () => {
     </Select>
   </FormControl>
 
-  {/* Endpoint with Filter */}
-  <FormControl>
-    <FormLabel fontSize="sm">Endpoint URL</FormLabel>
-    <Input
-      value={regionFilter}
-      onChange={(e) => setRegionFilter(e.target.value)}
-      placeholder="Filter regions"
-      size="sm"
-      mb={2}
-    />
-    {filteredRegions.length > 0 ? (
-      <Select value={selectedUrl} onChange={handleUrlChange} size="sm">
-        {filteredRegions.map((proxy) => (
-          <option key={proxy.url} value={proxy.url}>
-            {proxy.region} - {proxy.url}
-          </option>
-        ))}
-      </Select>
-    ) : (
-      <Select isDisabled placeholder="No regions match the filter" size="sm" />
-    )}
-  </FormControl>
-
-  {/* Test Button */}
-  <Box>
-    <Tooltip label="Send test request">
-      <Button
+  {/* Endpoint URL and Test Button */}
+  <Flex direction="row" gap={4} alignItems="flex-end">
+    <FormControl flex="1">
+      <FormLabel fontSize="sm">Endpoint URL</FormLabel>
+      <Input
+        value={regionFilter}
+        onChange={(e) => setRegionFilter(e.target.value)}
+        placeholder="Filter regions"
         size="sm"
-        colorScheme="blue"
-        onClick={handleTestRequest}
-        isLoading={isLoading}
-        isDisabled={!url.trim() || !selectedUrl}
-      >
-        Test
-      </Button>
-    </Tooltip>
-  </Box>
+        mb={2}
+      />
+      {filteredRegions.length > 0 ? (
+        <Select value={selectedUrl} onChange={handleUrlChange} size="sm">
+          {filteredRegions.map((proxy) => (
+            <option key={proxy.url} value={proxy.url}>
+              {proxy.region} - {proxy.url}
+            </option>
+          ))}
+        </Select>
+      ) : (
+        <Select isDisabled placeholder="No regions match the filter" size="sm" />
+      )}
+    </FormControl>
+    <Box>
+      <Tooltip label="Send test request">
+        <Button
+          size="sm"
+          colorScheme="blue"
+          onClick={handleTestRequest}
+          isLoading={isLoading}
+          isDisabled={!url.trim() || !selectedUrl}
+        >
+          Test
+        </Button>
+      </Tooltip>
+    </Box>
+  </Flex>
 </Flex>
       </Box>
 
