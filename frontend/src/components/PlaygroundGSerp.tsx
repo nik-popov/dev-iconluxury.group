@@ -19,14 +19,14 @@ const proxyData = {
     { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-image-scraper-451516.cloudfunctions.net/main" },
     { region: "US-CENTRAL1", url: "https://us-central1-image-scraper-451516.cloudfunctions.net/main" },
     { region: "US-EAST1", url: "https://us-east1-image-scraper-451516.cloudfunctions.net/main" },
-    // Add all Google Cloud URLs from your original list here
+    // Add all Google Cloud URLs here
     { region: "NORTHAMERICA-NORTHEAST1", url: "https://northamerica-northeast1-proxy2-455013.cloudfunctions.net/main" },
   ],
   "DataProxy": [
     { region: "US-EAST4", url: "https://us-east4-proxy1-454912.cloudfunctions.net/main" },
     { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-proxy1-454912.cloudfunctions.net/main" },
     { region: "US-CENTRAL1", url: "https://us-central1-proxy1-454912.cloudfunctions.net/main" },
-    // Add all DataProxy URLs from your original list here
+    // Add all DataProxy URLs here
     { region: "MIDDLEEAST-CENTRAL2", url: "https://me-central2-proxy6-455014.cloudfunctions.net/main" },
   ],
 };
@@ -34,7 +34,7 @@ const proxyData = {
 // Types
 interface ApiResponse {
   endpoint: string;
-  query: string;
+  query: string; // This will be the full URL or raw query
   status: string;
   results?: any; // Adjust based on actual API response
   timestamp: string;
@@ -42,9 +42,9 @@ interface ApiResponse {
 }
 
 const PlaygroundGSerp: React.FC = () => {
-  const [query, setQuery] = useState<string>("");
-  const [provider, setProvider] = useState<"Google Cloud" | "DataProxy">("Google Cloud");
-  const [selectedUrl, setSelectedUrl] = useState<string>(proxyData["Google Cloud"][1].url); // Default to US-CENTRAL1
+  const [query, setQuery] = useState<string>(""); // Can be a full URL or just a query
+  const [provider, setProvider] = useState<"Google Cloud" | "DataProxy">("DataProxy"); // Default to DataProxy
+  const [selectedUrl, setSelectedUrl] = useState<string>(proxyData["DataProxy"][0].url); // Default to US-EAST4
   const [response, setResponse] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -67,15 +67,15 @@ const PlaygroundGSerp: React.FC = () => {
 
     try {
       const res = await fetch(selectedUrl, {
-        method: "POST", // Adjust method as per your API (e.g., GET, POST)
+        method: "POST", // Assuming POST; adjust if your API uses GET
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }), // Adjust payload structure as needed
+        body: JSON.stringify({ query }), // Send the full query (URL or raw string) as-is
       });
 
       const data = await res.json();
       const apiResponse: ApiResponse = {
         endpoint: selectedUrl,
-        query,
+        query, // Pass the full input (URL or query)
         status: res.ok ? "success" : "error",
         results: res.ok ? data : undefined,
         timestamp: new Date().toISOString(),
@@ -114,7 +114,7 @@ const PlaygroundGSerp: React.FC = () => {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Enter search query"
+              placeholder="e.g., https://www.google.com/search?q=flowers&udm=2 or flowers"
               size="sm"
               isRequired
             />
