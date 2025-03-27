@@ -161,21 +161,6 @@ const LogsGSerp: React.FC = () => {
 
   return (
     <Box p={4} width="100%">
-      <Flex justify="space-between" align="center" mb={4}>
-        <Flex gap={2}>
-          <Tooltip label="Refresh log files">
-            <Button
-              size="sm"
-              colorScheme="blue"
-              onClick={debouncedFetchLogFiles}
-              isLoading={isLoading}
-            >
-              Refresh
-            </Button>
-          </Tooltip>
-        </Flex>
-      </Flex>
-
       {isLoading ? (
         <Flex justify="center" align="center" h="200px">
           <Spinner size="xl" color="blue.500" />
