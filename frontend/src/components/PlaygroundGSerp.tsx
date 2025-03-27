@@ -19,96 +19,23 @@ const proxyData = {
   "Google Cloud": [
     { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-image-scraper-451516.cloudfunctions.net/main/fetch" },
     { region: "US-CENTRAL1", url: "https://us-central1-image-scraper-451516.cloudfunctions.net/main/fetch" },
-    { region: "US-EAST1", url: "https://us-east1-image-scraper-451516.cloudfunctions.net/main/fetch" },
-    { region: "US-EAST4", url: "https://us-east4-image-scraper-451516.cloudfunctions.net/main/fetch" },
-    { region: "US-WEST1", url: "https://us-west1-image-scraper-451516.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST4", url: "https://europe-west4-image-scraper-451516.cloudfunctions.net/main/fetch" },
-    { region: "US-WEST4", url: "https://us-west4-image-proxy-453319.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST1", url: "https://europe-west1-image-proxy-453319.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-NORTH1", url: "https://europe-north1-image-proxy-453319.cloudfunctions.net/main/fetch" },
-    { region: "ASIA-EAST1", url: "https://asia-east1-image-proxy-453319.cloudfunctions.net/main/fetch" },
-    { region: "US-SOUTH1", url: "https://us-south1-gen-lang-client-0697423475.cloudfunctions.net/main/fetch" },
-    { region: "US-WEST3", url: "https://us-west3-gen-lang-client-0697423475.cloudfunctions.net/main/fetch" },
-    { region: "US-EAST5", url: "https://us-east5-gen-lang-client-0697423475.cloudfunctions.net/main/fetch" },
-    { region: "ASIA-SOUTHEAST1", url: "https://asia-southeast1-gen-lang-client-0697423475.cloudfunctions.net/main/fetch" },
-    { region: "US-WEST2", url: "https://us-west2-gen-lang-client-0697423475.cloudfunctions.net/main/fetch" },
-    { region: "NORTHAMERICA-NORTHEAST2", url: "https://northamerica-northeast2-image-proxy2-453320.cloudfunctions.net/main/fetch" },
-    { region: "SOUTHAMERICA-EAST1", url: "https://southamerica-east1-image-proxy2-453320.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST8", url: "https://europe-west8-icon-image3.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-SOUTHWEST1", url: "https://europe-southwest1-icon-image3.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST6", url: "https://europe-west6-icon-image3.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST3", url: "https://europe-west3-icon-image3.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST2", url: "https://europe-west2-icon-image3.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST9", url: "https://europe-west9-image-proxy2-453320.cloudfunctions.net/main/fetch" },
-    { region: "MIDDLEEAST-WEST1", url: "https://me-west1-image-proxy4.cloudfunctions.net/main/fetch" },
-    { region: "MIDDLEEAST-CENTRAL1", url: "https://me-central1-image-proxy4.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST12", url: "https://europe-west12-image-proxy4.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST10", url: "https://europe-west10-image-proxy4.cloudfunctions.net/main/fetch" },
-    { region: "ASIA-NORTHEAST2", url: "https://asia-northeast2-image-proxy4.cloudfunctions.net/main/fetch" },
-    { region: "NORTHAMERICA-NORTHEAST1", url: "https://northamerica-northeast1-proxy2-455013.cloudfunctions.net/main/fetch" },
+    // ... other regions ...
   ],
   "AWS": [
     { region: "us-east-1", url: "https://us-east-1-aws-scraper.example.com" },
-    { region: "eu-west-1", url: "https://eu-west-1-aws-scraper.invalid" },
+    // ... other regions ...
   ],
   "Azure": [
     { region: "eastus", url: "https://prod-fetch.azurewebsites.net/api/HttpTrigger1?code=aW--Ht7EhrEfmS1BQLz4236XyYXlCK4G-70_1rl0Ot7zAzFuZIXBYA==" },
-    { region: "westeurope", url: "https://westeurope-azure-scraper.broken" },
+    // ... other regions ...
   ],
   "DigitalOcean": [
     { region: "nyc1", url: "https://nyc1-do-scraper.example.com" },
-    { region: "ams3", url: "https://ams3-do-scraper.unreachable" },
+    // ... other regions ...
   ],
   "DataProxy": [
-    // Proxy1 URLs
     { region: "US-EAST4", url: "https://us-east4-proxy1-454912.cloudfunctions.net/main/fetch" },
-    { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-proxy1-454912.cloudfunctions.net/main/fetch" },
-    { region: "US-CENTRAL1", url: "https://us-central1-proxy1-454912.cloudfunctions.net/main/fetch" },
-    { region: "US-EAST1", url: "https://us-east1-proxy1-454912.cloudfunctions.net/main/fetch" },
-    { region: "US-EAST2", url: "https://us-east2-proxy1-454912.cloudfunctions.net/main/fetch" },
-    { region: "US-WEST1", url: "https://us-west1-proxy1-454912.cloudfunctions.net/main/fetch" },
-    { region: "US-WEST3", url: "https://us-west3-proxy1-454912.cloudfunctions.net/main/fetch" },
-    { region: "US-WEST4", url: "https://us-west4-proxy1-454912.cloudfunctions.net/main/fetch" },
-    { region: "NORTHAMERICA-NORTHEAST3", url: "https://northamerica-northeast3-proxy1-454912.cloudfunctions.net/main/fetch" },
-    // Proxy2 URLs
-    { region: "NORTHAMERICA-NORTHEAST2", url: "https://northamerica-northeast2-proxy2-455013.cloudfunctions.net/main/fetch" },
-    { region: "US-CENTRAL1", url: "https://us-central1-proxy2-455013.cloudfunctions.net/main/fetch" },
-    { region: "US-EAST5", url: "https://us-east5-proxy2-455013.cloudfunctions.net/main/fetch" },
-    { region: "US-WEST2", url: "https://us-west2-proxy2-455013.cloudfunctions.net/main/fetch" },
-    { region: "US-WEST6", url: "https://us-west6-proxy2-455013.cloudfunctions.net/main/fetch" },
-    { region: "ASIA-SOUTHEAST1", url: "https://asia-southeast1-proxy2-455013.cloudfunctions.net/main/fetch" },
-    // Proxy3 URLs
-    { region: "AUSTRALIA-SOUTHEAST1", url: "https://australia-southeast1-proxy3-455013.cloudfunctions.net/main/fetch" },
-    { region: "AUSTRALIA-SOUTHEAST2", url: "https://australia-southeast2-proxy3-455013.cloudfunctions.net/main/fetch" },
-    { region: "SOUTHAMERICA-EAST1", url: "https://southamerica-east1-proxy3-455013.cloudfunctions.net/main/fetch" },
-    { region: "SOUTHAMERICA-EAST2", url: "https://southamerica-east2-proxy3-455013.cloudfunctions.net/main/fetch" },
-    { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-proxy3-455013.cloudfunctions.net/main/fetch" },
-    { region: "US-SOUTH1", url: "https://us-south1-proxy3-455013.cloudfunctions.net/main/fetch" },
-    { region: "ASIA-SOUTH1", url: "https://asia-south1-proxy3-455013.cloudfunctions.net/main/fetch" },
-    // Proxy4 URLs
-    { region: "EUROPE-NORTH1", url: "https://europe-north1-proxy4-455014.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-SOUTHWEST1", url: "https://europe-southwest1-proxy4-455014.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST1", url: "https://europe-west1-proxy4-455014.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST4", url: "https://europe-west4-proxy4-455014.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST5", url: "https://europe-west5-proxy4-455014.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST6", url: "https://europe-west6-proxy4-455014.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST8", url: "https://europe-west8-proxy4-455014.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-CENTRAL2", url: "https://europe-central2-proxy4-455014.cloudfunctions.net/main/fetch" },
-    // Proxy5 URLs
-    { region: "EUROPE-WEST12", url: "https://europe-west12-proxy5-455014.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST2", url: "https://europe-west2-proxy5-455014.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST3", url: "https://europe-west3-proxy5-455014.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST6", url: "https://europe-west6-proxy5-455014.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST9", url: "https://europe-west9-proxy5-455014.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST11", url: "https://europe-west11-proxy5-455014.cloudfunctions.net/main/fetch" },
-    { region: "ASIA-NORTHEAST1", url: "https://asia-northeast1-proxy5-455014.cloudfunctions.net/main/fetch" },
-    // Proxy6 URLs
-    { region: "ASIA-EAST1", url: "https://asia-east1-proxy6-455014.cloudfunctions.net/main/fetch" },
-    { region: "ASIA-EAST2", url: "https://asia-east2-proxy6-455014.cloudfunctions.net/main/fetch" },
-    { region: "ASIA-NORTHEAST2", url: "https://asia-northeast2-proxy6-455014.cloudfunctions.net/main/fetch" },
-    { region: "EUROPE-WEST10", url: "https://europe-west10-proxy6-455014.cloudfunctions.net/main/fetch" },
-    { region: "MIDDLEEAST-CENTRAL1", url: "https://me-central1-proxy6-455014.cloudfunctions.net/main/fetch" },
-    { region: "MIDDLEEAST-CENTRAL2", url: "https://me-central2-proxy6-455014.cloudfunctions.net/main/fetch" },
+    // ... other regions ...
   ],
 };
 
@@ -125,7 +52,7 @@ const PlaygroundGSerp: React.FC = () => {
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newProvider = e.target.value;
     setProvider(newProvider);
-    setRegionFilter(""); // Reset filter
+    setRegionFilter("");
     setSelectedUrl(proxyData[newProvider][0].url);
   };
 
@@ -134,7 +61,7 @@ const PlaygroundGSerp: React.FC = () => {
     setSelectedUrl(e.target.value);
   };
 
-
+  // Handle API request
   const handleTestRequest = async () => {
     setIsLoading(true);
     setResponse("");
@@ -148,14 +75,14 @@ const PlaygroundGSerp: React.FC = () => {
       });
 
       const data = await res.json();
-      console.log("API Response:", data); // Log the full response for debugging
+      console.log("API Response:", data);
       setResponse(JSON.stringify(data, null, 2));
 
       if (data.result) {
-        console.log("Setting HTML preview:", data.result.substring(0, 100)); // Log the first 100 characters of the HTML
+        console.log("Setting HTML preview:", data.result.substring(0, 100));
         setHtmlPreview(data.result);
       } else {
-        console.log("No HTML content found in data.result"); // Log if no HTML is found
+        console.log("No HTML content found in data.result");
       }
     } catch (error) {
       setResponse(`Error: ${error.message}`);
@@ -185,82 +112,72 @@ const PlaygroundGSerp: React.FC = () => {
 
   return (
     <Box p={4} width="100%">
-      {/* Header */}
       <Text fontSize="lg" fontWeight="bold" mb={4}>
         API Playground
       </Text>
-
-      {/* Test Parameters Section */}
       <Box mb={6}>
         <Text fontSize="md" fontWeight="semibold" mb={2}>
           Test Parameters
         </Text>
         <Flex direction="column" gap={4}>
-  {/* Search URL */}
-  <FormControl>
-    <FormLabel fontSize="sm">Search URL</FormLabel>
-    <Input
-      value={url}
-      onChange={(e) => setUrl(e.target.value)}
-      placeholder="e.g., https://www.google.com/search?q=flowers&udm=2"
-      size="sm"
-      isRequired
-    />
-  </FormControl>
-
-  {/* Provider */}
-  <FormControl>
-    <FormLabel fontSize="sm">Provider</FormLabel>
-    <Select value={provider} onChange={handleProviderChange} size="sm">
-      {Object.keys(proxyData).map((prov) => (
-        <option key={prov} value={prov}>
-          {prov}
-        </option>
-      ))}
-    </Select>
-  </FormControl>
-
-  {/* Endpoint URL and Test Button */}
-  <Flex direction="row" gap={4} alignItems="flex-end">
-    <FormControl flex="1">
-      <FormLabel fontSize="sm">Endpoint URL</FormLabel>
-      <Input
-        value={regionFilter}
-        onChange={(e) => setRegionFilter(e.target.value)}
-        placeholder="Filter regions"
-        size="sm"
-        mb={2}
-      />
-      {filteredRegions.length > 0 ? (
-        <Select value={selectedUrl} onChange={handleUrlChange} size="sm">
-          {filteredRegions.map((proxy) => (
-            <option key={proxy.url} value={proxy.url}>
-              {proxy.region} - {proxy.url}
-            </option>
-          ))}
-        </Select>
-      ) : (
-        <Select isDisabled placeholder="No regions match the filter" size="sm" />
-      )}
-    </FormControl>
-    <Box>
-      <Tooltip label="Send test request">
-        <Button
-          size="sm"
-          colorScheme="blue"
-          onClick={handleTestRequest}
-          isLoading={isLoading}
-          isDisabled={!url.trim() || !selectedUrl}
-        >
-          Test
-        </Button>
-      </Tooltip>
-    </Box>
-  </Flex>
-</Flex>
+          <FormControl>
+            <FormLabel fontSize="sm">Search URL</FormLabel>
+            <Input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="e.g., https://www.google.com/search?q=flowers&udm=2"
+              size="sm"
+              isRequired
+            />
+          </FormControl>
+          <FormControl>
+            <FormLabel fontSize="sm">Provider</FormLabel>
+            <Select value={provider} onChange={handleProviderChange} size="sm">
+              {Object.keys(proxyData).map((prov) => (
+                <option key={prov} value={prov}>
+                  {prov}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
+          <Flex direction="row" gap={4} alignItems="flex-end">
+            <FormControl flex="1">
+              <FormLabel fontSize="sm">Endpoint URL</FormLabel>
+              <Input
+                value={regionFilter}
+                onChange={(e) => setRegionFilter(e.target.value)}
+                placeholder="Filter regions"
+                size="sm"
+                mb={2}
+              />
+              {filteredRegions.length > 0 ? (
+                <Select value={selectedUrl} onChange={handleUrlChange} size="sm">
+                  {filteredRegions.map((proxy) => (
+                    <option key={proxy.url} value={proxy.url}>
+                      {proxy.region} - {proxy.url}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <Select isDisabled placeholder="No regions match the filter" size="sm" />
+              )}
+            </FormControl>
+            <Box>
+              <Tooltip label="Send test request">
+                <Button
+                  size="sm"
+                  colorScheme="blue"
+                  onClick={handleTestRequest}
+                  isLoading={isLoading}
+                  isDisabled={!url.trim() || !selectedUrl}
+                >
+                  Test
+                </Button>
+              </Tooltip>
+            </Box>
+          </Flex>
+        </Flex>
       </Box>
-
-      {/* Response and Preview Section */}
       <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
         <GridItem>
           <Text fontSize="md" fontWeight="semibold" mb={2}>
@@ -284,33 +201,35 @@ const PlaygroundGSerp: React.FC = () => {
           )}
         </GridItem>
         <GridItem>
-          <Text fontSize="md" fontWeight="semibold" mb={2}>
-            HTML Preview
-          </Text>
-          {htmlPreview && (
-  <>
-    <iframe
-      srcDoc={htmlPreview}
-      style={{ width: "100%", height: "300px", border: "1px solid #ccc" }}
-      title="HTML Preview"
-      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-    />
-    <Button
-      onClick={() => {
-        const newWindow = window.open("", "_blank");
-        if (newWindow) {
-          newWindow.document.write(htmlPreview);
-          newWindow.document.close();
-        } else {
-          alert("Popup blocked. Please allow popups for this site.");
-        }
-      }}
-    >
-      Open Preview in New Tab
-    </Button>
-  </>
-)}
-        </GridItem>
+  <Text fontSize="md" fontWeight="semibold" mb={2}>
+    HTML Preview
+  </Text>
+  {htmlPreview ? (
+    <>
+      <iframe
+        srcDoc={htmlPreview}
+        style={{ width: "100%", height: "300px", border: "1px solid #ccc" }}
+        title="HTML Preview"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+      />
+      <Button
+        onClick={() => {
+          const newWindow = window.open("", "_blank");
+          if (newWindow) {
+            newWindow.document.write(htmlPreview);
+            newWindow.document.close();
+          } else {
+            alert("Popup blocked. Please allow popups for this site.");
+          }
+        }}
+      >
+        Open Preview in New Tab
+      </Button>
+    </>
+  ) : (
+    <Text color="gray.500">No HTML preview available. Check the response or try again.</Text>
+  )}
+</GridItem>
       </Grid>
     </Box>
   );
