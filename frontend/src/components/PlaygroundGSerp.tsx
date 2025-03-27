@@ -295,17 +295,12 @@ const PlaygroundGSerp: React.FC = () => {
       onClick={() => {
         const newWindow = window.open("", "_blank");
         if (newWindow) {
-          // Only proceed if newWindow is not null
-          newWindow.document.write("Hello, world!");
+          newWindow.document.write(htmlPreview);
           newWindow.document.close();
         } else {
-          // Handle the case where the popup was blocked
           alert("Popup blocked. Please allow popups for this site.");
         }
       }}
-      size="sm"
-      colorScheme="gray"
-      mt={2}
     >
       Open Preview in New Tab
     </Button>
