@@ -200,18 +200,22 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveT
   const domainData = job.results.reduce((acc, result) => {
     const domain = getDomain(result.imageSource);
     if (!acc[domain]) {
-      acc[domain] = { totalResults: 0, positiveSortOrderCount: 0 };
+      acc[domain] = { totalResults: 0, positiveSortOrderCount: 0, entryIds: new Set<number>() };
     }
     acc[domain].totalResults += 1;
-    if (result.sortOrder > 0) acc[domain].positiveSortOrderCount += 1;
+    if (result.sortOrder > 0) {
+      acc[domain].positiveSortOrderCount += 1;
+      acc[domain].entryIds.add(result.entryId);
+    }
     return acc;
-  }, {} as Record<string, { totalResults: number; positiveSortOrderCount: number }>);
+  }, {} as Record<string, { totalResults: number; positiveSortOrderCount: number; entryIds: Set<number> }>);
 
   const topDomains = Object.entries(domainData)
     .map(([domain, data]) => ({
       domain,
       totalResults: data.totalResults,
       positiveSortOrderCount: data.positiveSortOrderCount,
+      entryIds: Array.from(data.entryIds),
     }))
     .sort((a, b) => b.positiveSortOrderCount - a.positiveSortOrderCount)
     .slice(0, 20);
@@ -240,11 +244,11 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveT
     });
   };
 
-  const handleDomainClick = (domain: string) => {
+  const handleDomainClick = (domain: string, entryId: number) => {
     navigate({
       to: "/_layout/scraping-api/scraping-jobs/$jobId",
       params: { jobId: String(job.id) },
-      search: { activeTab: "2", domain },
+      search: { activeTab: "2", domain, entryId: String(entryId) },
     });
     setActiveTab(2); // Switch to "Results" tab
   };
@@ -411,10 +415,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveT
               </Tr>
             </Thead>
             <Tbody>
-              {sortedTopDomains.map(({ domain, totalResults, positiveSortOrderCount }) => (
+              {sortedTopDomains.map(({ domain, totalResults, positiveSortOrderCount, entryIds }) => (
                 <Tr key={domain}>
                   <Td>
-                    <Text color="green.300" cursor="pointer" onClick={() => handleDomainClick(domain)} _hover={{ textDecoration: "underline" }}>
+                    <Text color="green.300" cursor="pointer" onClick={() => handleDomainClick(domain, entryIds[0] || 0)} _hover={{ textDecoration: "underline" }}>
                       {domain}
                     </Text>
                   </Td>
@@ -582,25 +586,27 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
   );
 };
 
-// ResultsTab Component with Domain Filtering
+// ResultsTab Component with Domain and EntryId Filtering
 interface ResultsTabProps {
   job: JobDetails;
   sortBy: "match" | "linesheet" | null;
   domain?: string;
+  entryId?: string;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
-const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
+const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain, entryId, searchQuery }) => {
   const showToast = useCustomToast();
   const [selectedResult, setSelectedResult] = useState<ResultItem | null>(null);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const query = searchQuery.trim().toLowerCase();
 
   const [sortConfigResults, setSortConfigResults] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null);
   const [currentPageResults, setCurrentPageResults] = useState(0);
-  const [viewMode, setViewMode] = useState<"pagination" | "infinite">("infinite"); // Changed to "infinite"
+  const [viewMode, setViewMode] = useState<"pagination" | "infinite">("infinite");
   const [displayCount, setDisplayCount] = useState(50);
-  const itemsPerPage = 5; // Locked to 5 rows per page
+  const itemsPerPage = 5;
 
   const handleSortResults = (key: string) => {
     setSortConfigResults((prev) => {
@@ -621,17 +627,18 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
       (result.aiCaption || "").toLowerCase().includes(query) ||
       (result.aiLabel || "").toLowerCase().includes(query) ||
       (result.createTime || "").toLowerCase().includes(query) ||
-      result.entryId.toString().includes(query) || // Search by entryId
+      result.entryId.toString().includes(query) ||
       result.resultId.toString().includes(query);
 
     const matchesDomain = domain
       ? new URL(result.imageSource).hostname.replace(/^www\./, "").includes(domain)
       : true;
 
-    return matchesSearchQuery && matchesDomain;
+    const matchesEntryId = entryId ? result.entryId.toString() === entryId : true;
+
+    return matchesSearchQuery && matchesDomain && matchesEntryId;
   });
 
-  // Reordered sorting: Negative sortOrder values come last
   const sortedResults = [...filteredResults].sort((a, b) => {
     if (a.sortOrder >= 0 && b.sortOrder < 0) return -1;
     if (a.sortOrder < 0 && b.sortOrder >= 0) return 1;
@@ -674,16 +681,6 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
       <Flex justify="space-between" align="center" mb={4} gap={2}>
         <Text fontSize="lg" fontWeight="bold" color="gray.800">Results ({totalResults})</Text>
         <Flex gap={2}>
-          <Input
-            placeholder="Search results..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            width="300px"
-            borderColor="green.300"
-            _focus={{ borderColor: "green.300" }}
-            color="gray.800"
-            bg="white"
-          />
           <Button size="sm" onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}>
             {viewMode === "pagination" ? "Infinite" : "Pagination"}
           </Button>
@@ -832,19 +829,25 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ job, sortBy, domain }) => {
     </Box>
   );
 };
+
 // RecordsTab Component
-const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
+interface RecordsTabProps {
+  job: JobDetails;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+}
+
+const RecordsTab: React.FC<RecordsTabProps> = ({ job, searchQuery }) => {
   const showToast = useCustomToast();
   const [selectedRecord, setSelectedRecord] = useState<RecordItem | null>(null);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const query = searchQuery.trim().toLowerCase();
 
   const [sortConfigRecords, setSortConfigRecords] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null);
   const [currentPageRecords, setCurrentPageRecords] = useState(0);
-  const [viewMode, setViewMode] = useState<"pagination" | "infinite">("infinite"); // Changed to "infinite"
+  const [viewMode, setViewMode] = useState<"pagination" | "infinite">("infinite");
   const [displayCount, setDisplayCount] = useState(50);
-  const itemsPerPage = 5; // Locked to 5 rows per page
+  const itemsPerPage = 5;
 
   const handleSortRecords = (key: string) => {
     setSortConfigRecords((prev) => {
@@ -861,7 +864,7 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
       (record.productModel || "").toLowerCase().includes(query) ||
       (record.productBrand || "").toLowerCase().includes(query) ||
       (record.excelRowId?.toString() || "").toLowerCase().includes(query) ||
-      record.entryId.toString().includes(query) // Search by entryId
+      record.entryId.toString().includes(query)
   );
 
   const sortedRecords = [...filteredRecords].sort((a, b) => {
@@ -892,16 +895,6 @@ const RecordsTab: React.FC<{ job: JobDetails }> = ({ job }) => {
       <Flex justify="space-between" align="center" mb={4} gap={2}>
         <Text fontSize="lg" fontWeight="bold" color="gray.800">Records ({totalRecords})</Text>
         <Flex gap={2}>
-          <Input
-            placeholder="Search records..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            width="300px"
-            borderColor="green.300"
-            _focus={{ borderColor: "green.300" }}
-            color="gray.800"
-            bg="white"
-          />
           <Button size="sm" onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}>
             {viewMode === "pagination" ? "Infinite" : "Pagination"}
           </Button>
@@ -1091,7 +1084,7 @@ const LogsTab = ({ job }: { job: JobDetails }) => {
               <Thead bg="gray.100">
                 <Tr>
                   <Th color="gray.800">Event</Th>
-                  <Th color="gray.aink800">Details</Th>
+                  <Th color="gray.800">Details</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -1397,13 +1390,14 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job }) => {
 // JobsDetailPage Component
 const JobsDetailPage = () => {
   const { jobId } = useParams({ from: "/_layout/scraping-api/scraping-jobs/$jobId" }) as { jobId: string };
-  const searchParams = useSearch({ from: "/_layout/scraping-api/scraping-jobs/$jobId" }) as { search?: string; activeTab?: string; domain?: string };
+  const searchParams = useSearch({ from: "/_layout/scraping-api/scraping-jobs/$jobId" }) as { search?: string; activeTab?: string; domain?: string; entryId?: string };
   const initialTab = searchParams.activeTab ? parseInt(searchParams.activeTab, 10) : 4;
   const [activeTab, setActiveTab] = useState<number>(isNaN(initialTab) || initialTab < 0 || initialTab > 5 ? 4 : initialTab);
   const [sortBy, setSortBy] = useState<"match" | "linesheet" | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [jobData, setJobData] = useState<JobDetails | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>(""); // New state for search query
   const showToast = useCustomToast();
 
   const fetchJobData = async () => {
@@ -1448,8 +1442,8 @@ const JobsDetailPage = () => {
   const tabsConfig = [
     { title: "Overview", component: () => <OverviewTab job={jobData} sortBy={sortBy} setSortBy={setSortBy} fetchJobData={fetchJobData} setActiveTab={setActiveTab} /> },
     { title: "Usage", component: () => <UsageTab job={jobData} /> },
-    { title: "Results", component: () => <ResultsTab job={jobData} sortBy={sortBy} domain={searchParams.domain} /> },
-    { title: "Records", component: () => <RecordsTab job={jobData} /> },
+    { title: "Results", component: () => <ResultsTab job={jobData} sortBy={sortBy} domain={searchParams.domain} entryId={searchParams.entryId} searchQuery={searchQuery} setSearchQuery={setSearchQuery} /> },
+    { title: "Records", component: () => <RecordsTab job={jobData} searchQuery={searchQuery} setSearchQuery={setSearchQuery} /> },
     { title: "Logs", component: () => <LogsTab job={jobData} /> },
     { title: "File Rows", component: () => <SearchRowsTab job={jobData} /> },
   ];
@@ -1467,6 +1461,17 @@ const JobsDetailPage = () => {
           {tabsConfig.map((tab) => (
             <Tab key={tab.title} _selected={{ bg: "white", color: "green.300", borderColor: "green.300" }} color="gray.600">{tab.title}</Tab>
           ))}
+          <Input
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            width="300px"
+            borderColor="green.300"
+            _focus={{ borderColor: "green.300" }}
+            color="gray.800"
+            bg="white"
+            ml="auto" // Push to the right
+          />
         </TabList>
         <TabPanels>{tabsConfig.map((tab) => <TabPanel key={tab.title}>{tab.component()}</TabPanel>)}</TabPanels>
       </Tabs>
