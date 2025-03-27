@@ -171,7 +171,7 @@ const PlaygroundGSerp: React.FC = () => {
                   isLoading={isLoading}
                   isDisabled={!url.trim() || !selectedUrl}
                 >
-                  Test
+                  POST
                 </Button>
               </Tooltip>
             </Box>
