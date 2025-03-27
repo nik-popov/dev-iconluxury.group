@@ -172,7 +172,6 @@ const PlaygroundGSerp: React.FC = () => {
 
   return (
     <Box p={4} width="100%">
-      <Text fontSize="lg" fontWeight="bold" mb={4}>API Playground</Text>
       <Box mb={6}>
         <Text fontSize="md" fontWeight="semibold" mb={2}>Test Parameters</Text>
         <Flex direction="column" gap={4}>
