@@ -299,10 +299,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveT
     }
 };
 const handleInitialSort = () =>
-    handleApiCall(`https://dev-image-distro.popovtech.com/initial_sort/${job.id}`, "GET", setIsInitialSort, "Initial Sort");
+    handleApiCall(`https://dev-image-distro.popovtech.com/initial_sort/`, "GET", setIsInitialSort, "Initial Sort",   job.id.toString());
 
 const handleSearchSort = () =>
-    handleApiCall(`https://dev-image-distro.popovtech.com/search_sort/${job.id}`, "GET", setIsSearchSort, "Search Sort");
+    handleApiCall(`https://dev-image-distro.popovtech.com/search_sort/`, "GET", setIsSearchSort, "Search Sort",   job.id.toString());
 
 const handleRestartClick = () =>
     handleApiCall(
