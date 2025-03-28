@@ -27,7 +27,7 @@ import ExcelJS from 'exceljs';
 import ExcelDataTable from '../../../../components/ExcelDataTable';
 import useCustomToast from '../../../../hooks/useCustomToast';
 
-// Interfaces and Constants (same as GoogleSerpForm)
+// Interfaces
 interface ColumnMapping {
   style: number | null;
   brand: number | null;
@@ -42,14 +42,15 @@ interface ExcelData {
   rows: { row: ExcelJS.CellValue[] }[];
 }
 
+// Constants
 const REQUIRED_COLUMNS = ['style', 'brand'] as const;
 const OPTIONAL_COLUMNS = ['category', 'colorName', 'readImage', 'imageAdd'] as const;
 const ALL_COLUMNS = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS] as const;
 const TARGET_HEADERS = ['BRAND', 'STYLE'] as const;
 const SERVER_URL = 'https://backend-dev.iconluxury.group';
-const MAX_ROWS = 1000; // Keep GoogleSerpForm’s limit for all features
+const MAX_ROWS = 1000;
 
-// Helper Functions (same as GoogleSerpForm)
+// Helper Functions
 const getDisplayValue = (cellValue: any): string => {
   if (cellValue == null) return '';
   if (typeof cellValue === 'string' || typeof cellValue === 'number' || typeof cellValue === 'boolean') {
@@ -103,7 +104,7 @@ const CMSGoogleSerpForm: React.FC = () => {
 
   const showToast = useCustomToast();
 
-  // File Handling (unchanged)
+  // File Handling
   const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (!selectedFile) return;
@@ -179,7 +180,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     return mapping;
   };
 
-  // Header Selection (unchanged)
+  // Header Selection
   const handleRowSelect = useCallback((rowIndex: number) => {
     setSelectedRowIndex(rowIndex);
     setIsConfirmModalOpen(true);
@@ -192,7 +193,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     setIsConfirmModalOpen(false);
   }, [selectedRowIndex, previewRows]);
 
-  // Manual Brand (keep GoogleSerpForm behavior: append at end)
+  // Manual Brand
   const applyManualBrand = useCallback(() => {
     if (!manualBrand || columnMapping.brand !== null) return;
     const newHeaders = [...excelData.headers, 'BRAND (Manual)'];
@@ -202,7 +203,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     showToast('Manual Brand Applied', `Brand "${manualBrand}" added`, 'success');
   }, [manualBrand, columnMapping.brand, excelData, showToast]);
 
-  // Form Submission (modified for reload and sendToEmail)
+  // Form Submission
   const handleSubmit = useCallback(async () => {
     if (!validateForm()) return;
 
@@ -219,7 +220,7 @@ const CMSGoogleSerpForm: React.FC = () => {
 
       showToast('Success', 'Data submitted successfully', 'success');
       setTimeout(() => {
-        window.location.reload(); // CMS behavior
+        window.location.reload(); // CMS-specific behavior
       }, 1000);
     } catch (error) {
       showToast('Submission Error', error instanceof Error ? error.message : 'Unknown error', 'error');
@@ -280,13 +281,13 @@ const CMSGoogleSerpForm: React.FC = () => {
     formData.append('header_index', String(headerRowIndex + 1));
 
     // CMS-specific: Add sendToEmail if userEmail is available
-    const userEmail = 'nik@luxurymarket.com'; // Placeholder; ideally from search params
+    const userEmail = 'nik@luxurymarket.com'; // Placeholder; replace with actual user email if available
     if (userEmail) formData.append('sendToEmail', userEmail);
 
     return formData;
   };
 
-  // Column Mapping (unchanged logic, updated styling later)
+  // Column Mapping
   const handleMappingConfirm = useCallback((confirm: boolean) => {
     if (!confirm || selectedColumn === null) {
       resetMappingModal();
@@ -326,7 +327,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     return '';
   };
 
-  // Computed Values (unchanged)
+  // Computed Values
   const allRequiredSelected = REQUIRED_COLUMNS.every(col => columnMapping[col] !== null);
   const missingRequired = REQUIRED_COLUMNS.filter(col => columnMapping[col] === null);
   const mappedColumns = Object.entries(columnMapping)
@@ -337,7 +338,6 @@ const CMSGoogleSerpForm: React.FC = () => {
   return (
     <Container maxW="container.xl" p={4} bg="white" color="black">
       <VStack spacing={4} align="stretch">
-        {/* Simplified Header (CMS style: minimal) */}
         <Text fontSize="2xl" fontWeight="bold">Submit Form</Text>
         <ControlSection
           isLoading={isLoadingFile}
@@ -392,6 +392,16 @@ const CMSGoogleSerpForm: React.FC = () => {
 };
 
 // Sub-components with CMS Styling
+interface ControlSectionProps {
+  isLoading: boolean;
+  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onSubmit: () => void;
+  canSubmit: boolean;
+  rowCount: number;
+  missingRequired: string[];
+  mappedColumns: string[];
+}
+
 const ControlSection: React.FC<ControlSectionProps> = ({
   isLoading,
   onFileChange,
@@ -447,6 +457,14 @@ const ControlSection: React.FC<ControlSectionProps> = ({
   </HStack>
 );
 
+interface ManualBrandSectionProps {
+  isVisible: boolean;
+  manualBrand: string;
+  setManualBrand: (value: string) => void;
+  onApply: () => void;
+  isLoading: boolean;
+}
+
 const ManualBrandSection: React.FC<ManualBrandSectionProps> = ({
   isVisible,
   manualBrand,
@@ -483,6 +501,14 @@ const ManualBrandSection: React.FC<ManualBrandSectionProps> = ({
   </>
 );
 
+interface DataTableSectionProps {
+  isLoading: boolean;
+  excelData: ExcelData;
+  columnMapping: ColumnMapping;
+  onColumnClick: (columnIndex: number) => void;
+  isManualBrand: boolean;
+}
+
 const DataTableSection: React.FC<DataTableSectionProps> = ({
   isLoading,
   excelData,
@@ -510,6 +536,18 @@ const DataTableSection: React.FC<DataTableSectionProps> = ({
     )}
   </>
 );
+
+interface MappingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedColumn: number | null;
+  headers: string[];
+  selectedField: string;
+  setSelectedField: (value: string) => void;
+  onConfirm: () => void;
+  allColumns: readonly string[];
+  optionalMappings: string;
+}
 
 const MappingModal: React.FC<MappingModalProps> = ({
   isOpen,
@@ -559,7 +597,13 @@ const MappingModal: React.FC<MappingModalProps> = ({
   </Modal>
 );
 
-// HeaderSelectionModal and ConfirmHeaderModal (updated styling only)
+interface HeaderSelectionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  previewRows: any[];
+  onRowSelect: (rowIndex: number) => void;
+}
+
 const HeaderSelectionModal: React.FC<HeaderSelectionModalProps> = ({
   isOpen,
   onClose,
@@ -592,6 +636,14 @@ const HeaderSelectionModal: React.FC<HeaderSelectionModalProps> = ({
   </Modal>
 );
 
+interface ConfirmHeaderModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedRowIndex: number | null;
+  previewRows: any[];
+  onConfirm: () => void;
+}
+
 const ConfirmHeaderModal: React.FC<ConfirmHeaderModalProps> = ({
   isOpen,
   onClose,
@@ -621,5 +673,4 @@ const ConfirmHeaderModal: React.FC<ConfirmHeaderModalProps> = ({
 
 export const Route = createFileRoute('/google-serp-cms')({
   component: CMSGoogleSerpForm,
-  validateSearch: searchSchema, // Assuming searchSchema exists for userEmail
 });
