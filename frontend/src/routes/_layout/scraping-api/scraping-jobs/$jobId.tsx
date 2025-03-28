@@ -334,7 +334,7 @@ const handleRestartClick = () =>
             Generate Download
           </Button>
           <Button size="sm" colorScheme="purple" onClick={handleProcessAI} isLoading={isProcessingAI}>
-            Restat AI
+          Restart AI
           </Button>
           <Button size="sm" onClick={() => setIsFileModalOpen(true)}>
             File Metadata
