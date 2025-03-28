@@ -264,7 +264,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveT
     file_id?: string // Consider making this required if the API always needs it
 ) => {
     setLoading(true);
-    showToast("Action Started", `Initiating ${successMessage.toLowerCase()}`, "info");
+    showToast("Job Restarted", `Initiating ${successMessage.toLowerCase()}`, "success");
 
     try {
         const headers: Record<string, string> = { Accept: "application/json" };
