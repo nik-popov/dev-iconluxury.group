@@ -811,14 +811,26 @@ const RecordsTab: React.FC<RecordsTabProps> = ({ job, searchQuery }) => {
 
   return (
     <Box p={4} bg="white">
-      <Flex justify="space-between" align="center" mb={4} gap={2}>
-        <Text fontSize="lg" fontWeight="bold" color="gray.800">Records ({totalRecords})</Text>
-        <Flex gap={2}>
-          <Button size="sm" onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}>
-            {viewMode === "pagination" ? "Infinite" : "Pagination"}
-          </Button>
-        </Flex>
+    <Flex justify="space-between" align="center" mb={4} gap={2}>
+      <Text fontSize="lg" fontWeight="bold" color="gray.800">Records ({totalRecords})</Text>
+      <Flex gap={2}>
+      <Button
+  size="sm"
+  bg={viewMode === "pagination" ? "green.500" : "white"}
+  borderWidth={viewMode === "infinite" ? "1px" : "0"}
+  borderColor="gray.200"
+  transition="all 0.2s" // Smooth transition for bg and border
+  onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}
+  p={2}
+>
+  <Icon
+    as={FiFileText}
+    color={viewMode === "pagination" ? "white" : "green.500"}
+    transition="color 0.2s" // Smooth transition for icon color
+  />
+</Button>
       </Flex>
+    </Flex>
       <Card shadow="md" borderWidth="1px" bg="white">
         <CardBody>
           {viewMode === "pagination" ? (
@@ -1322,9 +1334,21 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
             <Text color="gray.800">{numImages}</Text>
             <Button size="sm" onClick={handleIncreaseImages} isDisabled={numImages >= (showResultDetails ? 1 : 5)} colorScheme="blue">+</Button>
           </Flex>
-          <Button size="sm" onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}>
-            {viewMode === "pagination" ? "Infinite" : "Pagination"}
-          </Button>
+      <Button
+  size="sm"
+  bg={viewMode === "pagination" ? "green.500" : "white"}
+  borderWidth={viewMode === "infinite" ? "1px" : "0"}
+  borderColor="gray.200"
+  transition="all 0.2s" // Smooth transition for bg and border
+  onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}
+  p={2}
+>
+  <Icon
+    as={FiFileText}
+    color={viewMode === "pagination" ? "white" : "green.500"}
+    transition="color 0.2s" // Smooth transition for icon color
+  />
+</Button>
         </Flex>
       </Flex>
 
