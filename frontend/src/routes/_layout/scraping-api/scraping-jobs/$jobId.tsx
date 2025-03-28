@@ -259,44 +259,45 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveT
     method: "GET" | "POST",
     setLoading: (value: boolean) => void,
     successMessage: string,
-    body?: any
+    file_id?: any // Consider making this required if the API always needs it
 ) => {
     setLoading(true);
     showToast("Action Started", `Initiating ${successMessage.toLowerCase()}`, "info");
 
     try {
-      const headers: Record<string, string> = { Accept: "application/json" };
-      if (method === "POST") headers["Content-Type"] = "application/json";
-  
-      // Ensure file_id_db is included in the URL
-      const fileId = "your-file-id-here"; // Replace with the actual value
-      const urlWithParams = `${url}?file_id_db=${fileId}`;
-  
-      const response = await fetch(urlWithParams, {
-          method,
-          headers,
-          body: method === "POST" && body ? JSON.stringify(body) : undefined,
-      });
-  
-      if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
-      }
-  
-      const data = await response.json();
-      setLoading(false);
-      showToast("Success", `${successMessage}: ${data.message || "Completed"}`, "success");
-      fetchJobData();
-  } catch (error) {
-      setLoading(false);
-      showToast(
-          "Error",
-          `Failed to ${successMessage.toLowerCase()}: ${error instanceof Error ? error.message : "Unknown error"}`,
-          "error"
-      );
-  }
-};
+        const headers: Record<string, string> = { Accept: "application/json" };
+        if (method === "POST") headers["Content-Type"] = "application/json";
 
+        // Ensure file_id_db is included and valid (match API expectation)
+        if (!file_id) {
+            throw new Error("file_id_db is required but was not provided");
+        }
+        const urlWithParams = `${url}?file_id_db=${file_id}`; // Use file_id_db instead of file_id
+
+        const response = await fetch(urlWithParams, {
+            method,
+            headers,
+            body: method === "POST" ? JSON.stringify({ file_id_db: file_id }) : undefined, // Include body for POST
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+        }
+
+        const data = await response.json();
+        setLoading(false);
+        showToast("Success", `${successMessage}: ${data.message || "Completed"}`, "success");
+        fetchJobData();
+    } catch (error) {
+        setLoading(false);
+        showToast(
+            "Error",
+            `Failed to ${successMessage.toLowerCase()}: ${error instanceof Error ? error.message : "Unknown error"}`,
+            "error"
+        );
+    }
+};
 const handleInitialSort = () =>
     handleApiCall(`https://dev-image-distro.popovtech.com/initial_sort/${job.id}`, "GET", setIsInitialSort, "Initial Sort");
 
@@ -309,7 +310,7 @@ const handleRestartClick = () =>
         "POST",
         setIsRestarting,
         "Restart Failed Batch",
-        { file_id_db: String(job.id) }
+        { file_id: String(job.id) }
     );
   const handleGenerateDownload = () =>
     handleApiCall(`https://dev-image-distro.popovtech.com/generate-download-file/`, "POST", setIsGeneratingDownload, "Generate Download File", { file_id: job.id });
