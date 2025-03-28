@@ -260,7 +260,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveT
     method: "GET" | "POST",
     setLoading: (value: boolean) => void,
     successMessage: string,
-    file_id?: any // Consider making this required if the API always needs it
+    file_id?: string // Consider making this required if the API always needs it
 ) => {
     setLoading(true);
     showToast("Action Started", `Initiating ${successMessage.toLowerCase()}`, "info");
@@ -311,7 +311,7 @@ const handleRestartClick = () =>
         "POST",
         setIsRestarting,
         "Restart Failed Batch",
-        { file_id: String(job.id) }
+        job.id.toString()
     );
   const handleGenerateDownload = () =>
     handleApiCall(`https://dev-image-distro.popovtech.com/generate-download-file/`, "POST", setIsGeneratingDownload, "Generate Download File", { file_id: job.id });
