@@ -320,23 +320,26 @@ const ProxyPage = memo(() => {
           />
           <HStack spacing={4} ml={{ md: "auto" }} align="center" flexWrap="wrap">
             {providerCategories.map((provider) => (
-              <Button
-                key={provider}
-                size="sm"
-                fontWeight="bold"
-                borderRadius="full"
-                colorScheme={providerFilter === provider ? "green" : "gray"}
-                variant={providerFilter === provider ? "solid" : "outline"}
-                onClick={() => setProviderFilter(provider)}
-                color={providerFilter === provider ? "white" : "gray.800"}
-                borderColor={providerFilter === provider ? "green.500" : "gray.300"}
-                _hover={{
-                  bg: providerFilter === provider ? "green.600" : "gray.100",
-                  borderColor: providerFilter === provider ? "green.600" : "gray.400",
-                }}
-              >
-                {provider === "all" ? "All" : provider}
-              </Button>
+           <Button
+           key={provider}
+           size="sm"
+           fontWeight="bold"
+           borderRadius="full"
+           colorScheme={providerFilter === provider ? "green" : "gray"}
+           variant={providerFilter === provider ? "solid" : "outline"}
+           onClick={() => {
+             setProviderFilter(provider);
+             setRegionFilter("all"); // Reset region filter
+           }}
+           color={providerFilter === provider ? "white" : "gray.800"}
+           borderColor={providerFilter === provider ? "green.500" : "gray.300"}
+           _hover={{
+             bg: providerFilter === provider ? "green.600" : "gray.100",
+             borderColor: providerFilter === provider ? "green.600" : "gray.400",
+           }}
+         >
+           {provider === "all" ? "All" : provider}
+         </Button>
             ))}
             <Select
               value={healthFilter}
