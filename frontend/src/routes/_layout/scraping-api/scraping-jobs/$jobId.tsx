@@ -260,51 +260,53 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveT
     setLoading: (value: boolean) => void,
     successMessage: string,
     body?: any
-  ) => {
+) => {
     setLoading(true);
     showToast("Action Started", `Initiating ${successMessage.toLowerCase()}`, "info");
 
     try {
-      const headers: Record<string, string> = { Accept: "application/json" };
-      if (method === "POST") headers["Content-Type"] = "application/json";
+        const headers: Record<string, string> = { Accept: "application/json" };
+        if (method === "POST") headers["Content-Type"] = "application/json";
 
-      const response = await fetch(url, {
-        method,
-        headers,
-        body: method === "POST" && body ? JSON.stringify(body) : undefined,
-      });
+        const response = await fetch(url, {
+            method,
+            headers,
+            body: method === "POST" && body ? JSON.stringify(body) : undefined,
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
-      }
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+        }
 
-      const data = await response.json();
-      setLoading(false);
-      showToast("Success", `${successMessage}: ${data.message || "Completed"}`, "success");
-      fetchJobData();
+        const data = await response.json();
+        setLoading(false);
+        showToast("Success", `${successMessage}: ${data.message || "Completed"}`, "success");
+        fetchJobData();
     } catch (error) {
-      setLoading(false);
-      showToast(
-        "Error",
-        `Failed to ${successMessage.toLowerCase()}: ${error instanceof Error ? error.message : "Unknown error"}`,
-        "error"
-      );
+        setLoading(false);
+        showToast(
+            "Error",
+            `Failed to ${successMessage.toLowerCase()}: ${error instanceof Error ? error.message : "Unknown error"}`,
+            "error"
+        );
     }
-  };
+};
 
-  const handleMatchAISort = () =>
-    handleApiCall(`https://dev-image-distro.popovtech.com/match_ai_sort/${job.id}`, "GET", setIsMatchAISort, "Match AI Sort");
-
-  const handleInitialSort = () =>
+const handleInitialSort = () =>
     handleApiCall(`https://dev-image-distro.popovtech.com/initial_sort/${job.id}`, "GET", setIsInitialSort, "Initial Sort");
 
-  const handleSearchSort = () =>
+const handleSearchSort = () =>
     handleApiCall(`https://dev-image-distro.popovtech.com/search_sort/${job.id}`, "GET", setIsSearchSort, "Search Sort");
 
-  const handleRestartClick = () =>
-    handleApiCall(`https://dev-image-distro.popovtech.com/restart-failed-batch/`, "POST", setIsRestarting, "Restart Failed Batch", { file_id_db: String(job.id) });
-
+const handleRestartClick = () =>
+    handleApiCall(
+        `https://dev-image-distro.popovtech.com/restart-failed-batch/`,
+        "POST",
+        setIsRestarting,
+        "Restart Failed Batch",
+        { file_id_db: String(job.id) }
+    );
   const handleGenerateDownload = () =>
     handleApiCall(`https://dev-image-distro.popovtech.com/generate-download-file/`, "POST", setIsGeneratingDownload, "Generate Download File", { file_id: job.id });
 
