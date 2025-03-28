@@ -1125,7 +1125,7 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
 
   const handleRowIdClick = (e: React.MouseEvent<HTMLElement, MouseEvent>, entryId: number) => {
     e.preventDefault();
-    const url = `${window.location.pathname}?activeTab=2&search=${encodeURIComponent(entryId.toString() || "")}`;
+    const url = `${window.location.pathname}?activeTab=1&search=${encodeURIComponent(entryId.toString() || "")}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
