@@ -317,11 +317,11 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveT
         <Text fontSize="lg" fontWeight="bold" color="gray.800">Job Overview</Text>
         <Flex gap={3} justify="flex-end" flexWrap="wrap">
           <Button size="sm" colorScheme="red" onClick={handleRestartClick} isLoading={isRestarting}>
-            Dev Restart
+          Restart Search
           </Button>
-          <Button size="sm" colorScheme="green" onClick={handleMatchAISort} isLoading={isMatchAISort}>
-            Match AI Sort
-          </Button>
+          {/* <Button size="sm" colorScheme="green" onClick={handleMatchAISort} isLoading={isMatchAISort}>
+            Match_ Sort
+          </Button> */}
           <Button size="sm" colorScheme="green" onClick={handleInitialSort} isLoading={isInitialSort}>
             Initial Sort
           </Button>
@@ -332,10 +332,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveT
             Generate Download
           </Button>
           <Button size="sm" colorScheme="purple" onClick={handleProcessAI} isLoading={isProcessingAI}>
-            Process AI
+            Restat AI
           </Button>
           <Button size="sm" onClick={() => setIsFileModalOpen(true)}>
-            View File Details
+            File Metadata
           </Button>
           <DetailsModal
             isOpen={isFileModalOpen}
