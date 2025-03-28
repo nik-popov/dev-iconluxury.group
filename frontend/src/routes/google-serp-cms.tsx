@@ -337,7 +337,6 @@ const CMSGoogleSerpForm: React.FC = () => {
   return (
     <Container maxW="container.xl" p={4} bg="white" color="black">
       <VStack spacing={4} align="stretch">
-        <Text fontSize="2xl" fontWeight="bold">Submit Form</Text>
         <ControlSection
           isLoading={isLoadingFile}
           onFileChange={handleFileChange}
