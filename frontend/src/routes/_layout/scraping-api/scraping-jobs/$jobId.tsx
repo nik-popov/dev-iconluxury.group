@@ -316,7 +316,7 @@ const handleRestartClick = () =>
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4} flexWrap="wrap" gap={3}>
-        <Text fontSize="lg" fontWeight="bold" color="gray.800">Job Overview</Text>
+    
         <Flex gap={3} justify="flex-end" flexWrap="wrap">
           <Button size="sm" colorScheme="red" onClick={handleRestartClick} isLoading={isRestarting}>
           Restart Search
@@ -362,10 +362,6 @@ const handleRestartClick = () =>
       </Flex>
 
       <Box mb={6}>
-        <Stat>
-          <StatLabel color="gray.600">Job ID</StatLabel>
-          <StatNumber color="gray.800">{job.id}</StatNumber>
-        </Stat>
         <Stat mt={4}>
           <StatLabel color="gray.600">Input File</StatLabel>
           <StatHelpText wordBreak="break-all">
@@ -388,10 +384,6 @@ const handleRestartClick = () =>
             </StatNumber>
           </Stat>
         )}
-        <Stat mt={4}>
-          <StatLabel color="gray.600">API Used</StatLabel>
-          <StatHelpText color="gray.800">{job.apiUsed}</StatHelpText>
-        </Stat>
         <Stat mt={4}>
           <StatLabel color="gray.600">Total Results</StatLabel>
           <StatNumber color="gray.800">{job.results.length}</StatNumber>
