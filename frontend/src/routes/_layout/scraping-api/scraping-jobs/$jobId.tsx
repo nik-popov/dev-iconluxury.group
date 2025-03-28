@@ -314,10 +314,10 @@ const handleRestartClick = () =>
         job.id.toString()
     );
   const handleGenerateDownload = () =>
-    handleApiCall(`https://dev-image-distro.popovtech.com/generate-download-file/`, "POST", setIsGeneratingDownload, "Generate Download File", { file_id: job.id });
+    handleApiCall(`https://dev-image-distro.popovtech.com/generate-download-file/`, "POST", setIsGeneratingDownload, "Generate Download File",   job.id.toString());
 
   const handleProcessAI = () =>
-    handleApiCall(`https://dev-image-distro.popovtech.com/process-ai-analysis/`, "POST", setIsProcessingAI, "Process AI Analysis", { file_id: String(job.id) });
+    handleApiCall(`https://dev-image-distro.popovtech.com/process-ai-analysis/`, "POST", setIsProcessingAI, "Process AI Analysis",   job.id.toString());
 
   return (
     <Box p={4} bg="white">
