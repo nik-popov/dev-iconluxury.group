@@ -29,7 +29,7 @@ interface Proxy {
 
 // Mock proxy data remains unchanged
 const proxyData: Record<string, { region: string; url: string }[]> = {
-    "Google Cloud": [
+    "GoogleCloud": [
       { region: "SOUTHAMERICA-WEST1", url: "https://southamerica-west1-image-scraper-451516.cloudfunctions.net/main" },
       { region: "US-CENTRAL1", url: "https://us-central1-image-scraper-451516.cloudfunctions.net/main" },
       { region: "US-EAST1", url: "https://us-east1-image-scraper-451516.cloudfunctions.net/main" },
