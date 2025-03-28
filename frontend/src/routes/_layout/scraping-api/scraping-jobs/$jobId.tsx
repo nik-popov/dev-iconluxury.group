@@ -335,14 +335,11 @@ const handleRestartClick = () =>
           <Button size="sm" colorScheme="green" onClick={handleSearchSort} isLoading={isSearchSort}>
             Search Sort
           </Button>
-          <Button size="sm" colorScheme="blue" onClick={handleGenerateDownload} isLoading={isGeneratingDownload}>
+          <Button size="sm" colorScheme="green" onClick={handleGenerateDownload} isLoading={isGeneratingDownload}>
             Generate Download
           </Button>
-          <Button size="sm" colorScheme="purple" onClick={handleProcessAI} isLoading={isProcessingAI}>
+          <Button size="sm" colorScheme="green" onClick={handleProcessAI} isLoading={isProcessingAI}>
           Restart AI
-          </Button>
-          <Button size="sm" onClick={() => setIsFileModalOpen(true)}>
-            File Metadata
           </Button>
           <DetailsModal
             isOpen={isFileModalOpen}
@@ -364,6 +361,9 @@ const handleRestartClick = () =>
             }}
           />
         </Flex>
+        <Button size="sm" onClick={() => setIsFileModalOpen(true)}>
+            File Metadata
+          </Button>
       </Flex>
 
       <Box mb={6}>
