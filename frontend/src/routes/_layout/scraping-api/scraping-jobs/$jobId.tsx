@@ -270,14 +270,14 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveT
 
         // Ensure file_id_db is included and valid (match API expectation)
         if (!file_id) {
-            throw new Error("file_id_db is required but was not provided");
+            throw new Error("file_id is required but was not provided");
         }
-        const urlWithParams = `${url}?file_id_db=${file_id}`; // Use file_id_db instead of file_id
+        const urlWithParams = `${url}?file_id=${file_id}`; // Use file_id_db instead of file_id
 
         const response = await fetch(urlWithParams, {
             method,
             headers,
-            body: method === "POST" ? JSON.stringify({ file_id_db: file_id }) : undefined, // Include body for POST
+            body: method === "POST" ? JSON.stringify({ file_id: file_id }) : undefined, // Include body for POST
         });
 
         if (!response.ok) {
