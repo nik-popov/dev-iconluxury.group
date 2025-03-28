@@ -433,99 +433,6 @@ const handleRestartClick = () =>
     </Box>
   );
 };
-
-// UsageTab Component
-const UsageTab = ({ job }: { job: JobDetails }) => {
-  const totalRecords = job.records.length;
-  const completedRecords = job.records.filter((record) => record.completeTime).length;
-  const pendingRecords = totalRecords - completedRecords;
-  const totalImages = job.results.length;
-  const imagesPerRecord = totalRecords > 0 ? Math.round(totalImages / totalRecords) : "N/A";
-  const totalRequests = totalRecords;
-  const successfulRequests = job.records.filter((record) => job.results.some((result) => result.entryId === record.entryId)).length;
-  const successRate = totalRequests > 0 ? `${((successfulRequests / totalRequests) * 100).toFixed(1)}%` : "N/A";
-
-  const calculateAvgResponseTime = (): string => {
-    const completedRecordsWithTimes = job.records.filter((record) => record.createTime && record.completeTime);
-    if (completedRecordsWithTimes.length === 0) return "N/A";
-    const totalDuration = completedRecordsWithTimes.reduce((sum, record) => {
-      const start = new Date(record.createTime!).getTime();
-      const end = new Date(record.completeTime!).getTime();
-      return sum + (end - start);
-    }, 0);
-    const avgDurationSec = (totalDuration / completedRecordsWithTimes.length / 1000).toFixed(2);
-    return `${avgDurationSec} seconds`;
-  };
-  const avgResponseTime = calculateAvgResponseTime();
-
-  return (
-    <Box p={4} bg="white">
-      <Text fontSize="lg" fontWeight="bold" mb={4} color="gray.800">Usage Statistics</Text>
-      <Flex direction="column" gap={6}>
-        <Card shadow="md" borderWidth="1px" bg="white">
-          <CardBody>
-            <Stat>
-              <StatLabel color="gray.600">Total Records</StatLabel>
-              <StatNumber color="gray.800">{totalRecords}</StatNumber>
-            </Stat>
-            <Stat mt={4}>
-              <StatLabel color="gray.600">Completed Records</StatLabel>
-              <StatNumber color="gray.800">{completedRecords}</StatNumber>
-            </Stat>
-            <Stat mt={4}>
-              <StatLabel color="gray.600">Pending Records</StatLabel>
-              <StatNumber color="gray.800">{pendingRecords}</StatNumber>
-            </Stat>
-          </CardBody>
-        </Card>
-        <Card shadow="md" borderWidth="1px" bg="white">
-          <CardBody>
-            <Stat>
-              <StatLabel color="gray.600">Total Images Scraped</StatLabel>
-              <StatNumber color="gray.800">{totalImages}</StatNumber>
-            </Stat>
-            <Stat mt={4}>
-              <StatLabel color="gray.600">Average Images per Record</StatLabel>
-              <StatNumber color="gray.800">{imagesPerRecord}</StatNumber>
-            </Stat>
-          </CardBody>
-        </Card>
-        <Card shadow="md" borderWidth="1px" bg="white">
-          <CardBody>
-            <Text fontSize="md" fontWeight="semibold" mb={2} color="gray.800">Scraping Metrics</Text>
-            <Table variant="simple" size="sm" colorScheme="blue">
-              <Thead bg="gray.100">
-                <Tr>
-                  <Th color="gray.800">Metric</Th>
-                  <Th color="gray.800">Value</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                <Tr>
-                  <Td color="gray.800">Total Requests</Td>
-                  <Td color="gray.800">{totalRequests}</Td>
-                </Tr>
-                <Tr>
-                  <Td color="gray.800">Successful Requests</Td>
-                  <Td color="gray.800">{successfulRequests}</Td>
-                </Tr>
-                <Tr>
-                  <Td color="gray.800">Success Rate</Td>
-                  <Td color="gray.800">{successRate}</Td>
-                </Tr>
-                <Tr>
-                  <Td color="gray.800">Average Response Time</Td>
-                  <Td color="gray.800">{avgResponseTime}</Td>
-                </Tr>
-              </Tbody>
-            </Table>
-          </CardBody>
-        </Card>
-      </Flex>
-    </Box>
-  );
-};
-
 // DetailsModal Component
 const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, data }) => {
   const capitalizeKey = (key: string) => key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()).trim();
@@ -1069,7 +976,6 @@ const LogsTab = ({ job }: { job: JobDetails }) => {
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4}>
-        <Text fontSize="lg" fontWeight="bold" color="gray.800">Logs</Text>
         {job.logFileUrl && (
           <Button size="sm" colorScheme="blue" onClick={() => window.open(job.logFileUrl as string, "_blank")}>
             Download Log File
@@ -1496,7 +1402,6 @@ const JobsDetailPage = () => {
 
   const tabsConfig = [
     { title: "Overview", component: () => <OverviewTab job={jobData} sortBy={sortBy} setSortBy={setSortBy} fetchJobData={fetchJobData} setActiveTab={setActiveTab} /> },
-    { title: "Usage", component: () => <UsageTab job={jobData} /> },
     { title: "Results", component: () => <ResultsTab job={jobData} sortBy={sortBy} domain={searchParams.domain} entryId={searchParams.entryId} searchQuery={searchQuery} setSearchQuery={setSearchQuery} /> },
     { title: "Records", component: () => <RecordsTab job={jobData} searchQuery={searchQuery} setSearchQuery={setSearchQuery} /> },
     { title: "Logs", component: () => <LogsTab job={jobData} /> },
