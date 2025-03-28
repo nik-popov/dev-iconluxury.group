@@ -588,16 +588,21 @@ const filteredResults = job.results.filter((result) => {
     <Flex justify="space-between" align="center" mb={4} gap={2}>
       <Text fontSize="lg" fontWeight="bold" color="gray.800">Results ({totalResults})</Text>
       <Flex gap={2}>
-        <Button
-          size="sm"
-          bg="white"
-          borderWidth="1px"
-          borderColor="gray.200"
-          onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}
-          p={2}
-        >
-          <Icon as={FiFileText} color="green.500" /> {/* Green icon */}
-        </Button>
+      <Button
+  size="sm"
+  bg={viewMode === "pagination" ? "green.500" : "white"}
+  borderWidth={viewMode === "infinite" ? "1px" : "0"}
+  borderColor="gray.200"
+  transition="all 0.2s" // Smooth transition for bg and border
+  onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}
+  p={2}
+>
+  <Icon
+    as={FiFileText}
+    color={viewMode === "pagination" ? "white" : "green.500"}
+    transition="color 0.2s" // Smooth transition for icon color
+  />
+</Button>
       </Flex>
     </Flex>
     <Card shadow="md" borderWidth="1px" bg="white">
