@@ -166,7 +166,6 @@ const CMSGoogleSerpForm: React.FC = () => {
     setExcelData({ headers, rows: newRows });
     setColumnMapping(newMapping);
     setHeaderRowIndex(index);
-    showToast('Header Auto-Detected', `Row ${index + 1} selected`, 'info');
   };
 
   const autoMapColumns = (headers: string[]): ColumnMapping => {
@@ -199,8 +198,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     const newRows = excelData.rows.map(row => ({ row: [...row.row, manualBrand] }));
     setExcelData({ headers: newHeaders, rows: newRows });
     setColumnMapping(prev => ({ ...prev, brand: newHeaders.length - 1 }));
-    showToast('Manual Brand Applied', `Brand "${manualBrand}" added`, 'success');
-  }, [manualBrand, columnMapping.brand, excelData, showToast]);
+  }, [manualBrand, columnMapping.brand, excelData]);
 
   // Form Submission
   const handleSubmit = useCallback(async () => {
@@ -216,8 +214,6 @@ const CMSGoogleSerpForm: React.FC = () => {
 
       if (!response.ok) throw new Error(`Server error: ${response.status} - ${await response.text()}`);
       await response.json();
-
-      showToast('Success', 'Data submitted successfully', 'success');
       setTimeout(() => {
         window.location.reload(); // CMS-specific behavior
       }, 1000);
