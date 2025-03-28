@@ -37,6 +37,7 @@ import {
 } from "@chakra-ui/react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import useCustomToast from "../../../../hooks/useCustomToast";
+import { FiFileText } from "react-icons/fi";
 
 // Interfaces
 interface JobDetails {
@@ -584,17 +585,21 @@ const filteredResults = job.results.filter((result) => {
   };
 
   return (
-    <Box p={4} bg="white">
-      <Flex justify="space-between" align="center" mb={4} gap={2}>
-        <Text fontSize="lg" fontWeight="bold" color="gray.800">Results ({totalResults})</Text>
-        <Flex gap={2}>
-          <Button size="sm" onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}>
-            {viewMode === "pagination" ? "Infinite" : "Pagination"}
-          </Button>
+      <Box p={4} bg="white">
+        <Flex justify="space-between" align="center" mb={4} gap={2}>
+          <Text fontSize="lg" fontWeight="bold" color="gray.800">Results ({totalResults})</Text>
+          <Flex gap={2}>
+            <Button
+              size="sm"
+              onClick={() => setViewMode(viewMode === "pagination" ? "infinite" : "pagination")}
+            >
+              {viewMode === "pagination" ? "Infinite" : "Pagination"}
+              <FiFileText style={{ color: "blue", marginLeft: "4px" }} /> {/* Change color here */}
+            </Button>
+          </Flex>
         </Flex>
-      </Flex>
-      <Card shadow="md" borderWidth="1px" bg="white">
-        <CardBody>
+        <Card shadow="md" borderWidth="1px" bg="white">
+          <CardBody>
           {viewMode === "pagination" ? (
             <>
               <Table variant="simple" size="sm" colorScheme="blue">
