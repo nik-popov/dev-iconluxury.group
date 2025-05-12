@@ -47,7 +47,7 @@ const UserMenu = () => {
             color="gray.800"
             boxShadow="md"
           >
-            <MenuItem
+            {/* <MenuItem
               icon={<FiUser fontSize="18px" color="gray.600" />}
               as={Link}
               to="/settings"
@@ -55,7 +55,7 @@ const UserMenu = () => {
               _hover={{ bg: "green.100", color: "green.500" }}
             >
               Settings
-            </MenuItem>
+            </MenuItem> */}
             <MenuItem
               icon={<FiLogOut fontSize="18px" color="red.500" />}
               onClick={handleLogout}
