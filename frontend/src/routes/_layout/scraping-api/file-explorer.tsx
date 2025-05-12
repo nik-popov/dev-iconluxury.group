@@ -17,9 +17,9 @@ import { FiFolder, FiFile, FiDownload } from "react-icons/fi";
 import AWS, { S3 } from "aws-sdk";
 
 // Configuration for Cloudflare R2 (S3-compatible)
-const S3_BUCKET = process.env.REACT_APP_R2_BUCKET || "iconluxurygroup";
-const REGION = "auto";
-const ENDPOINT = process.env.REACT_APP_R2_ENDPOINT || "https://aa2f6aae69e7fb4bd8e2cd4311c411cb.r2.cloudflarestorage.com";
+const S3_BUCKET: string = process.env.REACT_APP_R2_BUCKET || "iconluxurygroup";
+const REGION: string = "auto";
+const ENDPOINT: string = process.env.REACT_APP_R2_ENDPOINT || "https://aa2f6aae69e7fb4bd8e2cd4311c411cb.r2.cloudflarestorage.com";
 
 // Configure AWS SDK for R2
 AWS.config.update({
@@ -70,7 +70,7 @@ async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
   return response.json();
 }
 
-async function listS3Objects(prefix = "", continuationToken?: string): Promise<S3ListResponse> {
+async function listS3Objects(prefix: string = "", continuationToken?: string): Promise<S3ListResponse> {
   const params: S3.ListObjectsV2Request = {
     Bucket: S3_BUCKET,
     Prefix: prefix,
@@ -79,12 +79,12 @@ async function listS3Objects(prefix = "", continuationToken?: string): Promise<S
   };
 
   const data = await s3.listObjectsV2(params).promise();
-  const folders = (data.CommonPrefixes || []).map((prefix) => ({
+  const folders: S3Object[] = (data.CommonPrefixes || []).map((prefix) => ({
     type: "folder" as const,
     name: prefix.Prefix ? prefix.Prefix.replace(params.Prefix, "").replace("/", "") : "",
     path: prefix.Prefix || "",
   }));
-  const files = (data.Contents || [])
+  const files: S3Object[] = (data.Contents || [])
     .filter((obj) => obj.Key && obj.Key !== prefix && !obj.Key.endsWith("/"))
     .map((obj) => ({
       type: "file" as const,
@@ -109,7 +109,7 @@ export const Route = createFileRoute("/_layout/scraping-api/file-explorer")({
   component: FileExplorer,
 });
 
-function FileExplorer() {
+function FileExplorer(): JSX.Element {
   const navigate = useNavigate();
   const [currentPath, setCurrentPath] = useState<string>("");
   const [objects, setObjects] = useState<S3Object[]>([]);
@@ -118,14 +118,14 @@ function FileExplorer() {
   const [continuationToken, setContinuationToken] = useState<string | undefined>(undefined);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
-  const { data: subscriptionStatus, isLoading: isSubLoading, error: subError } = useQuery({
+  const { data: subscriptionStatus, isLoading: isSubLoading, error: subError } = useQuery<SubscriptionStatus, Error>({
     queryKey: ["subscriptionStatus", "s3"],
     queryFn: fetchSubscriptionStatus,
     staleTime: 5 * 60 * 1000,
     retry: (failureCount: number, error: Error) => (error.message.includes("Unauthorized") ? false : failureCount < 3),
   });
 
-  const { data, isFetching } = useQuery({
+  const { data, isFetching } = useQuery<S3ListResponse>({
     queryKey: ["s3Objects", currentPath],
     queryFn: () => listS3Objects(currentPath),
     placeholderData: keepPreviousData,
@@ -139,20 +139,20 @@ function FileExplorer() {
     }
   }, [data, continuationToken]);
 
-  const handleFolderClick = (path: string) => {
+  const handleFolderClick = (path: string): void => {
     setCurrentPath(path);
     setObjects([]);
     setContinuationToken(undefined);
   };
 
-  const handleGoBack = () => {
+  const handleGoBack = (): void => {
     const parentPath = currentPath.split("/").slice(0, -2).join("/") + "/";
     setCurrentPath(parentPath);
     setObjects([]);
     setContinuationToken(undefined);
   };
 
-  const handleDownload = async (key: string) => {
+  const handleDownload = async (key: string): Promise<void> => {
     try {
       const url = await getDownloadUrl(key);
       window.open(url, "_blank");
@@ -161,12 +161,12 @@ function FileExplorer() {
     }
   };
 
-  const handleLoadMore = async () => {
+  const handleLoadMore = async (): Promise<void> => {
     if (continuationToken && !loadingMore) {
       setLoadingMore(true);
       try {
         const moreData = await listS3Objects(currentPath, continuationToken);
-        setObjects((prev) => [...prev, ...[...moreData.folders, ...moreData.files]));
+        setObjects((prev) => [...prev, ...[...moreData.folders, ...moreData.files]]);
         setContinuationToken(moreData.nextToken);
       } catch (error) {
         console.error("Error loading more objects:", error);
@@ -176,7 +176,7 @@ function FileExplorer() {
     }
   };
 
-  const filteredObjects = objects.filter((obj) => {
+  const filteredObjects: S3Object[] = objects.filter((obj) => {
     const matchesSearch = obj.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === "all" || obj.type === typeFilter;
     return matchesSearch && matchesType;
@@ -205,12 +205,12 @@ function FileExplorer() {
     );
   }
 
-  const { hasSubscription, isTrial, isDeactivated } = subscriptionStatus || {
+  const { hasSubscription, isTrial, isDeactivated }: SubscriptionStatus = subscriptionStatus || {
     hasSubscription: false,
     isTrial: false,
     isDeactivated: false,
   };
-  const isLocked = !hasSubscription && !isTrial;
+  const isLocked: boolean = !hasSubscription && !isTrial;
 
   return (
     <Container maxW="full" bg="white" color="gray.800">
@@ -269,7 +269,7 @@ function FileExplorer() {
             </Flex>
             <VStack spacing={4} align="stretch">
               {filteredObjects.map((obj, index) => (
-                <Box key={index} p="4" borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="white">
+                <Box key={index} p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="white">
                   <Flex justify="space-between" align="center">
                     <Flex align="center" gap={2}>
                       {obj.type === "folder" ? <FiFolder /> : <FiFile />}
@@ -322,8 +322,8 @@ function FileExplorer() {
               )}
             </VStack>
           </Box>
-          <Box w={{ base: "100%", md: "250px" }} p="4" borderLeft={{ md: "1px solid" }} borderColor="gray.200">
-            <VStack spacing="4" align="stretch">
+          <Box w={{ base: "100%", md: "250px" }} p={4} borderLeft={{ md: "1px solid" }} borderColor="gray.200">
+            <VStack spacing={4} align="stretch">
               <Text fontWeight="bold" color="black">
                 Quick Actions
               </Text>
