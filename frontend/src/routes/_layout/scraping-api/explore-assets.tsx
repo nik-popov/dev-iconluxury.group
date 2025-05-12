@@ -719,7 +719,7 @@ function FileExplorer() {
                               colorScheme="blue"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDownload(obj.path, obj.name);
+                                handleDownload(obj.path);
                               }}
                               isDisabled={isFetching}
                             />
@@ -732,7 +732,7 @@ function FileExplorer() {
                               colorScheme="gray"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleCopyUrl(obj.path, obj.name);
+                                handleCopyUrl(obj.path);
                               }}
                               isDisabled={isFetching}
                             />
@@ -803,7 +803,7 @@ function FileExplorer() {
                             colorScheme="blue"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDownload(obj.path, obj.name);
+                              handleDownload(obj.path);
                             }}
                             isDisabled={isFetching}
                           />
