@@ -73,8 +73,9 @@ async function getDownloadUrl(key: string): Promise<string> {
 }
 
 // File type icon mapping based on extension
+// File type icon mapping based on extension
 const getFileIcon = (name: string) => {
-  const extension = name.split(".").pop()?.toLowerCase();
+  const extension = (name.split(".").pop()?.toLowerCase() || "");
   switch (extension) {
     case "jpg":
     case "jpeg":
@@ -94,6 +95,14 @@ const getFileIcon = (name: string) => {
   }
 };
 
+// Determine file type for preview
+const getFileType = (name: string) => {
+  const extension = (name.split(".").pop()?.toLowerCase() || "");
+  if (["jpg", "jpeg", "png", "gif"].includes(extension)) return "image";
+  if (["txt", "json", "md"].includes(extension)) return "text";
+  if (extension === "pdf") return "pdf";
+  return "unsupported";
+};
 export const Route = createFileRoute("/_layout/scraping-api/explore-assets")({
   component: FileExplorer,
 });
