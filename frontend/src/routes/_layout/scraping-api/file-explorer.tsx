@@ -9,26 +9,57 @@ import {
   Button,
   Divider,
   Flex,
-  HStack,
   Input,
   Select,
+  useToast,
 } from "@chakra-ui/react";
 import { FiFolder, FiFile, FiDownload } from "react-icons/fi";
-import AWS, { S3 } from "aws-sdk";
 
-// Configuration for Cloudflare R2 (S3-compatible)
-const S3_BUCKET: string = process.env.REACT_APP_R2_BUCKET || "iconluxurygroup";
-const REGION: string = "auto";
-const ENDPOINT: string = process.env.REACT_APP_R2_ENDPOINT || "https://aa2f6aae69e7fb4bd8e2cd4311c411cb.r2.cloudflarestorage.com";
+// Explicit AWS SDK v3 imports
+import { S3Client } from "@aws-sdk/client-s3";
+import { ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-// Configure AWS SDK for R2
-AWS.config.update({
-  accessKeyId: process.env.REACT_APP_R2_ACCESS_KEY_ID || "AKIA2CUNLEV6V627SWI7",
-  secretAccessKey: process.env.REACT_APP_R2_SECRET_ACCESS_KEY || "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",
-  region: REGION,
-  s3ForcePathStyle: true,
-});
-const s3 = new AWS.S3({ endpoint: ENDPOINT });
+// Log imports to debug module resolution
+console.log("AWS SDK imports:", { S3Client, ListObjectsV2Command, GetObjectCommand, getSignedUrl });
+
+// Configuration for Cloudflare R2
+const S3_BUCKET = process.env.REACT_APP_R2_BUCKET || "iconluxurygroup";
+const REGION = "auto";
+const ENDPOINT = process.env.REACT_APP_R2_ENDPOINT || "https://aa2f6aae69e7fb4bd8e2cd4311c411cb.r2.cloudflarestorage.com";
+const API_URL = process.env.REACT_APP_API_URL || "https://api.iconluxury.group";
+
+// Validate environment variables
+const missingEnvVars = [
+  !process.env.REACT_APP_R2_BUCKET && "REACT_APP_R2_BUCKET",
+  !process.env.REACT_APP_R2_ENDPOINT && "REACT_APP_R2_ENDPOINT",
+  !process.env.REACT_APP_R2_ACCESS_KEY_ID && "REACT_APP_R2_ACCESS_KEY_ID",
+  !process.env.REACT_APP_R2_SECRET_ACCESS_KEY && "REACT_APP_R2_SECRET_ACCESS_KEY",
+  !process.env.REACT_APP_API_URL && "REACT_APP_API_URL",
+].filter(Boolean);
+if (missingEnvVars.length > 0) {
+  console.error("Missing environment variables:", missingEnvVars.join(", "));
+  throw new Error(`Missing environment variables: ${missingEnvVars.join(", ")}`);
+}
+
+// Initialize S3 client
+let s3Client: S3Client;
+try {
+  s3Client = new S3Client({
+    region: REGION,
+    endpoint: ENDPOINT,
+    credentials: {
+      accessKeyId: process.env.REACT_APP_R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.REACT_APP_R2_SECRET_ACCESS_KEY!,
+    },
+    forcePathStyle: true,
+  });
+  console.log("S3Client initialized successfully");
+} catch (error) {
+  console.error("Failed to initialize S3Client:", error);
+  throw new Error("Failed to initialize S3 client");
+}
 
 interface SubscriptionStatus {
   hasSubscription: boolean;
@@ -50,67 +81,106 @@ interface S3ListResponse {
   nextToken: string | undefined;
 }
 
-const getAuthToken = (): string | null => localStorage.getItem("access_token");
+// Utility functions
+const getAuthToken = (): string | null => {
+  try {
+    return localStorage.getItem("access_token");
+  } catch (error) {
+    console.error("Error accessing localStorage:", error);
+    return null;
+  }
+};
 
 async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
   const token = getAuthToken();
-  const response = await fetch("https://api.iconluxury.group/api/v1/subscription-status/s3", {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new Error("Unauthorized: Please log in again.");
+  try {
+    const response = await fetch(`${API_URL}/api/v1/subscription-status/s3`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("Unauthorized: Please log in again.");
+      }
+      throw new Error(`Failed to fetch subscription status: ${response.status}`);
     }
-    throw new Error(`Failed to fetch subscription status: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching subscription status:", error);
+    throw error;
   }
-  return response.json();
 }
 
-async function listS3Objects(prefix: string = "", continuationToken?: string): Promise<S3ListResponse> {
-  const params: S3.ListObjectsV2Request = {
-    Bucket: S3_BUCKET,
-    Prefix: prefix,
-    Delimiter: "/",
-    ContinuationToken: continuationToken,
-  };
-
-  const data = await s3.listObjectsV2(params).promise();
-  const folders: S3Object[] = (data.CommonPrefixes || []).map((prefix) => ({
-    type: "folder" as const,
-    name: prefix.Prefix ? prefix.Prefix!.replace(params.Prefix!, "").replace("/", "") : "",
-    path: prefix.Prefix || "",
-  }));
-  const files: S3Object[] = (data.Contents || [])
-    .filter((obj) => obj.Key && obj.Key !== prefix && !obj.Key.endsWith("/"))
-    .map((obj) => ({
-      type: "file" as const,
-      name: obj.Key ? obj.Key!.replace(params.Prefix!, "") : "",
-      path: obj.Key || "",
-      size: obj.Size,
-      lastModified: obj.LastModified,
+async function listS3Objects(prefix = "", continuationToken?: string): Promise<S3ListResponse> {
+  if (!s3Client) {
+    console.error("S3Client is not initialized");
+    throw new Error("S3 client not initialized");
+  }
+  try {
+    console.log("Listing S3 objects with prefix:", prefix, "token:", continuationToken);
+    const command = new ListObjectsV2Command({
+      Bucket: S3_BUCKET,
+      Prefix: prefix,
+      Delimiter: "/",
+      ContinuationToken: continuationToken,
+    });
+    const data = await s3Client.send(command);
+    if (!data) {
+      console.error("No data returned from S3");
+      throw new Error("No data returned from S3");
+    }
+    const folders: S3Object[] = (data.CommonPrefixes || []).map((prefix) => ({
+      type: "folder",
+      name: prefix.Prefix?.replace(prefix || "", "").replace("/", "") || "",
+      path: prefix.Prefix || "",
     }));
-
-  return { folders, files, nextToken: data.NextContinuationToken };
+    const files: S3Object[] = (data.Contents || [])
+      .filter((obj) => obj.Key && obj.Key !== prefix && !obj.Key.endsWith("/"))
+      .map((obj) => ({
+        type: "file",
+        name: obj.Key?.replace(prefix || "", "") || "",
+        path: obj.Key || "",
+        size: obj.Size,
+        lastModified: obj.LastModified,
+      }));
+    console.log("S3 objects listed:", { folders, files });
+    return { folders, files, nextToken: data.NextContinuationToken };
+  } catch (error) {
+    console.error("Error listing S3 objects:", error);
+    throw new Error("Failed to list S3 objects");
+  }
 }
 
 async function getDownloadUrl(key: string): Promise<string> {
-  return s3.getSignedUrlPromise("getObject", {
-    Bucket: S3_BUCKET,
-    Key: key,
-    Expires: 3600,
-  });
+  if (!s3Client) {
+    console.error("S3Client is not initialized");
+    throw new Error("S3 client not initialized");
+  }
+  try {
+    console.log("Generating download URL for key:", key);
+    const command = new GetObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: key,
+    });
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    console.log("Download URL generated:", url);
+    return url;
+  } catch (error) {
+    console.error("Error generating download URL:", error);
+    throw new Error("Failed to generate download URL");
+  }
 }
 
 export const Route = createFileRoute("/_layout/scraping-api/file-explorer")({
-  component: FileExplorer,
+  component: FileExplorerWithErrorBoundary,
 });
 
 function FileExplorer(): JSX.Element {
   const navigate = useNavigate();
+  const toast = useToast();
   const [currentPath, setCurrentPath] = useState<string>("");
   const [objects, setObjects] = useState<S3Object[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -118,23 +188,51 @@ function FileExplorer(): JSX.Element {
   const [continuationToken, setContinuationToken] = useState<string | undefined>(undefined);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
-  const { data: subscriptionStatus, isLoading: isSubLoading, error: subError } = useQuery<SubscriptionStatus, Error>({
+  const { data: subscriptionStatus, isLoading: isSubLoading, error: subError } = useQuery<
+    SubscriptionStatus,
+    Error
+  >({
     queryKey: ["subscriptionStatus", "s3"],
     queryFn: fetchSubscriptionStatus,
     staleTime: 5 * 60 * 1000,
-    retry: (failureCount: number, error: Error) => (error.message.includes("Unauthorized") ? false : failureCount < 3),
+    retry: (failureCount: number, error: Error) =>
+      error.message.includes("Unauthorized") ? false : failureCount < 3,
+    onError: (error) => {
+      console.error("Subscription status query error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load subscription status",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    },
   });
 
-  const { data, isFetching } = useQuery<S3ListResponse>({
+  const { data, isFetching, error: s3Error } = useQuery<S3ListResponse>({
     queryKey: ["s3Objects", currentPath],
     queryFn: () => listS3Objects(currentPath),
     placeholderData: keepPreviousData,
     enabled: !!subscriptionStatus?.hasSubscription || !!subscriptionStatus?.isTrial,
+    onError: (error) => {
+      console.error("S3 objects query error:", error);
+      toast({
+        title: "Failed to Load Files",
+        description: error.message || "An error occurred while fetching files",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    },
   });
 
   useEffect(() => {
     if (data) {
-      setObjects((prev) => (continuationToken ? [...prev, ...[...data.folders, ...data.files]] : [...data.folders, ...data.files]));
+      setObjects((prev) =>
+        continuationToken
+          ? [...prev, ...[...data.folders, ...data.files]]
+          : [...data.folders, ...data.files]
+      );
       setContinuationToken(data.nextToken);
     }
   }, [data, continuationToken]);
@@ -157,7 +255,14 @@ function FileExplorer(): JSX.Element {
       const url = await getDownloadUrl(key);
       window.open(url, "_blank");
     } catch (error) {
-      console.error("Error generating download URL:", error);
+      console.error("Download error:", error);
+      toast({
+        title: "Download Failed",
+        description: (error as Error).message || "Unable to generate download URL",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
     }
   };
 
@@ -169,7 +274,14 @@ function FileExplorer(): JSX.Element {
         setObjects((prev) => [...prev, ...[...moreData.folders, ...moreData.files]]);
         setContinuationToken(moreData.nextToken);
       } catch (error) {
-        console.error("Error loading more objects:", error);
+        console.error("Load more error:", error);
+        toast({
+          title: "Load More Failed",
+          description: (error as Error).message || "Unable to load more items",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
       } finally {
         setLoadingMore(false);
       }
@@ -184,7 +296,7 @@ function FileExplorer(): JSX.Element {
 
   if (isSubLoading) {
     return (
-      <Container maxW="full" bg="white" color="gray.800">
+      <Container maxW="full" bg="white" color="gray.800" py={6}>
         <Text>Loading...</Text>
       </Container>
     );
@@ -192,15 +304,25 @@ function FileExplorer(): JSX.Element {
 
   if (subError) {
     return (
-      <Container maxW="full" bg="white" color="gray.800">
+      <Container maxW="full" bg="white" color="gray.800" py={6}>
         <Text color="red.500">
-          {subError.message.includes("Unauthorized") ? "Session expired. Please log in again." : "Error loading status."}
+          {subError.message.includes("Unauthorized")
+            ? "Session expired. Please log in again."
+            : "Error loading subscription status"}
         </Text>
         {subError.message.includes("Unauthorized") && (
           <Button mt={4} colorScheme="blue" onClick={() => navigate({ to: "/login" })}>
             Log In
           </Button>
         )}
+      </Container>
+    );
+  }
+
+  if (s3Error) {
+    return (
+      <Container maxW="full" bg="white" color="gray.800" py={6}>
+        <Text color="red.500">Error loading files: {(s3Error as Error).message}</Text>
       </Container>
     );
   }
@@ -213,8 +335,8 @@ function FileExplorer(): JSX.Element {
   const isLocked: boolean = !hasSubscription && !isTrial;
 
   return (
-    <Container maxW="full" bg="white" color="gray.800">
-      <Flex align="center" justify="space-between" py={6} flexWrap="wrap" gap={4}>
+    <Container maxW="full" bg="white" color="gray.800" py={6}>
+      <Flex align="center" justify="space-between" flexWrap="wrap" gap={4}>
         <Box textAlign="left" flex="1">
           <Text fontSize="xl" fontWeight="bold" color="black">
             S3 File Explorer
@@ -269,7 +391,14 @@ function FileExplorer(): JSX.Element {
             </Flex>
             <VStack spacing={4} align="stretch">
               {filteredObjects.map((obj, index) => (
-                <Box key={index} p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="white">
+                <Box
+                  key={`${obj.path}-${index}`}
+                  p={4}
+                  borderWidth="1px"
+                  borderRadius="lg"
+                  borderColor="gray.200"
+                  bg="white"
+                >
                   <Flex justify="space-between" align="center">
                     <Flex align="center" gap={2}>
                       {obj.type === "folder" ? <FiFolder /> : <FiFile />}
@@ -299,6 +428,7 @@ function FileExplorer(): JSX.Element {
                         colorScheme="blue"
                         leftIcon={<FiDownload />}
                         onClick={() => handleDownload(obj.path)}
+                        isDisabled={isFetching}
                       >
                         Download
                       </Button>
@@ -315,7 +445,14 @@ function FileExplorer(): JSX.Element {
                 <Text fontSize="sm" color="gray.500">Loading...</Text>
               ) : (
                 continuationToken && (
-                  <Button colorScheme="green" size="sm" onClick={handleLoadMore} mt={4} alignSelf="center">
+                  <Button
+                    colorScheme="green"
+                    size="sm"
+                    onClick={handleLoadMore}
+                    mt={4}
+                    alignSelf="center"
+                    isLoading={loadingMore}
+                  >
                     Load More
                   </Button>
                 )
@@ -341,4 +478,30 @@ function FileExplorer(): JSX.Element {
   );
 }
 
-export default FileExplorer;
+// Error boundary to catch runtime errors
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
+  state = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Container maxW="full" bg="white" color="gray.800" py={6}>
+          <Text color="red.500">Error: {this.state.error?.message || "Something went wrong"}</Text>
+        </Container>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function FileExplorerWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <FileExplorer />
+    </ErrorBoundary>
+  );
+}
