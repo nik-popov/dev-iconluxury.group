@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import {
   Box,
@@ -12,8 +12,14 @@ import {
   Input,
   Select,
   useToast,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  IconButton,
+  HStack,
 } from "@chakra-ui/react";
-import { FiFolder, FiFile, FiDownload } from "react-icons/fi";
+import { FiFolder, FiFile, FiDownload, FiChevronRight, FiChevronDown, FiArrowUp, FiArrowDown } from "react-icons/fi";
+import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel, FaFile } from "react-icons/fa";
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -48,11 +54,11 @@ async function listS3Objects(prefix: string, page: number, pageSize = 10): Promi
       throw new Error(`Failed to list objects: ${response.statusText}`);
     }
     const data = await response.json();
-    return data.map(item => ({
+    return data.map((item: any) => ({
       ...item,
       lastModified: item.lastModified ? new Date(item.lastModified) : undefined,
     }));
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching S3 objects:", error);
     const message = error.message?.includes("CORS")
       ? "CORS error: Ensure the FastAPI server is configured to allow requests from https://dashboard.iconluxury.group."
@@ -60,23 +66,48 @@ async function listS3Objects(prefix: string, page: number, pageSize = 10): Promi
     throw new Error(message);
   }
 }
+
 async function getDownloadUrl(key: string): Promise<string> {
   const command = new GetObjectCommand({ Bucket: S3_BUCKET, Key: key });
   return getSignedUrl(s3Client, command, { expiresIn: 3600 });
 }
+
+// File type icon mapping based on extension
+const getFileIcon = (name: string) => {
+  const extension = name.split(".").pop()?.toLowerCase();
+  switch (extension) {
+    case "jpg":
+    case "jpeg":
+    case "png":
+    case "gif":
+      return <FaFileImage />;
+    case "pdf":
+      return <FaFilePdf />;
+    case "doc":
+    case "docx":
+      return <FaFileWord />;
+    case "xls":
+    case "xlsx":
+      return <FaFileExcel />;
+    default:
+      return <FiFile />;
+  }
+};
 
 export const Route = createFileRoute("/_layout/scraping-api/explore-assets")({
   component: FileExplorer,
 });
 
 function FileExplorer() {
-  const navigate = useNavigate();
   const toast = useToast();
   const [currentPath, setCurrentPath] = useState("");
   const [objects, setObjects] = useState<S3Object[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "folder" | "file">("all");
   const [page, setPage] = useState(1);
+  const [sortField, setSortField] = useState<"name" | "size" | "lastModified">("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
 
   const { data: s3Objects, isFetching, error: s3Error } = useQuery<S3Object[], Error>({
     queryKey: ["s3Objects", currentPath, page],
@@ -90,28 +121,43 @@ function FileExplorer() {
     }
   }, [s3Objects, page]);
 
+  // Handle folder click (navigate or toggle expansion)
   const handleFolderClick = (path: string) => {
+    if (expandedFolders.includes(path)) {
+      setExpandedFolders(expandedFolders.filter((p) => p !== path));
+    } else {
+      setExpandedFolders([...expandedFolders, path]);
+      setCurrentPath(path);
+      setPage(1);
+    }
+  };
+
+  // Handle breadcrumb navigation
+  const handleBreadcrumbClick = (path: string) => {
     setCurrentPath(path);
     setObjects([]);
     setPage(1);
+    setExpandedFolders(expandedFolders.filter((p) => !p.startsWith(path) || p === path));
   };
 
+  // Handle going back to parent directory
   const handleGoBack = () => {
     const parentPath = currentPath.split("/").slice(0, -2).join("/") + "/";
     setCurrentPath(parentPath);
     setObjects([]);
     setPage(1);
+    setExpandedFolders(expandedFolders.filter((p) => !p.startsWith(parentPath) || p === parentPath));
   };
 
+  // Handle file download
   const handleDownload = async (key: string) => {
     try {
       const url = await getDownloadUrl(key);
       window.open(url, "_blank");
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Unable to generate download URL";
+    } catch (error: any) {
       toast({
         title: "Download Failed",
-        description: message,
+        description: error.message || "Unable to generate download URL",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -119,13 +165,52 @@ function FileExplorer() {
     }
   };
 
+  // Handle load more for pagination
   const handleLoadMore = () => setPage((prev) => prev + 1);
 
-  const filteredObjects = objects.filter((obj) => {
-    const matchesSearch = obj.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = typeFilter === "all" || obj.type === typeFilter;
-    return matchesSearch && matchesType;
-  });
+  // Handle sorting
+  const handleSort = (field: "name" | "size" | "lastModified") => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  // Generate breadcrumbs
+  const breadcrumbs = () => {
+    const parts = currentPath.split("/").filter((p) => p);
+    const crumbs = [
+      { name: "Home", path: "" },
+      ...parts.map((part, index) => ({
+        name: part,
+        path: parts.slice(0, index + 1).join("/") + "/",
+      })),
+    ];
+    return crumbs;
+  };
+
+  // Filter and sort objects
+  const filteredObjects = objects
+    .filter((obj) => {
+      const matchesSearch = obj.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesType = typeFilter === "all" || obj.type === typeFilter;
+      return matchesSearch && matchesType;
+    })
+    .sort((a, b) => {
+      if (a.type === "folder" && b.type === "file") return -1;
+      if (a.type === "file" && b.type === "folder") return 1;
+      let comparison = 0;
+      if (sortField === "name") {
+        comparison = a.name.localeCompare(b.name);
+      } else if (sortField === "size") {
+        comparison = (a.size || 0) - (b.size || 0);
+      } else if (sortField === "lastModified") {
+        comparison = (a.lastModified?.getTime() || 0) - (b.lastModified?.getTime() || 0);
+      }
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
 
   if (s3Error) {
     return (
@@ -137,10 +222,11 @@ function FileExplorer() {
 
   return (
     <Container maxW="full" bg="white" color="gray.800" py={6}>
+      {/* Header */}
       <Flex align="center" justify="space-between" flexWrap="wrap" gap={4}>
         <Box textAlign="left" flex="1">
           <Text fontSize="xl" fontWeight="bold" color="black">
-           File Explorer
+            File Explorer
           </Text>
           <Text fontSize="sm" color="gray.600">
             Browse and download files from S3 storage
@@ -152,7 +238,29 @@ function FileExplorer() {
           </Button>
         )}
       </Flex>
+
+      {/* Breadcrumbs */}
+      <Box my={4}>
+        <Breadcrumb separator={<FiChevronRight color="gray.500" />}>
+          {breadcrumbs().map((crumb, index) => (
+            <BreadcrumbItem
+              key={crumb.path}
+              isCurrentPage={index === breadcrumbs().length - 1}
+            >
+              <BreadcrumbLink
+                onClick={() => handleBreadcrumbClick(crumb.path)}
+                color="green.500"
+              >
+                {crumb.name || "Home"}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+          ))}
+        </Breadcrumb>
+      </Box>
+
       <Divider my="4" borderColor="gray.200" />
+
+      {/* Filters and Search */}
       <Flex gap={6} justify="space-between" align="stretch" wrap="wrap">
         <Box flex="1" minW={{ base: "100%", md: "65%" }}>
           <Flex direction={{ base: "column", md: "row" }} gap={4} mb={4}>
@@ -180,6 +288,33 @@ function FileExplorer() {
               <option value="file">Files</option>
             </Select>
           </Flex>
+
+          {/* Sorting Headers */}
+          <Flex bg="gray.100" p={2} borderRadius="md" mb={2}>
+            <Box flex="2" cursor="pointer" onClick={() => handleSort("name")}>
+              <HStack>
+                <Text fontWeight="bold">Name</Text>
+                {sortField === "name" && (sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />)}
+              </HStack>
+            </Box>
+            <Box flex="1" cursor="pointer" onClick={() => handleSort("size")}>
+              <HStack>
+                <Text fontWeight="bold">Size</Text>
+                {sortField === "size" && (sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />)}
+              </HStack>
+            </Box>
+            <Box flex="1" cursor="pointer" onClick={() => handleSort("lastModified")}>
+              <HStack>
+                <Text fontWeight="bold">Modified</Text>
+                {sortField === "lastModified" && (sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />)}
+              </HStack>
+            </Box>
+            <Box flex="1" textAlign="right">
+              <Text fontWeight="bold">Actions</Text>
+            </Box>
+          </Flex>
+
+          {/* File/Folder List */}
           <VStack spacing={4} align="stretch">
             {filteredObjects.map((obj, index) => (
               <Box
@@ -192,7 +327,16 @@ function FileExplorer() {
               >
                 <Flex justify="space-between" align="center">
                   <Flex align="center" gap={2}>
-                    {obj.type === "folder" ? <FiFolder /> : <FiFile />}
+                    {obj.type === "folder" ? (
+                      <IconButton
+                        aria-label={expandedFolders.includes(obj.path) ? "Collapse" : "Expand"}
+                        icon={expandedFolders.includes(obj.path) ? <FiChevronDown /> : <FiChevronRight />}
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleFolderClick(obj.path)}
+                      />
+                    ) : null}
+                    {obj.type === "folder" ? <FiFolder /> : getFileIcon(obj.name)}
                     <Box>
                       <Text fontWeight="medium" color="gray.800">
                         {obj.name}
@@ -210,7 +354,11 @@ function FileExplorer() {
                     </Box>
                   </Flex>
                   {obj.type === "folder" ? (
-                    <Button size="sm" colorScheme="green" onClick={() => handleFolderClick(obj.path)}>
+                    <Button
+                      size="sm"
+                      colorScheme="green"
+                      onClick={() => handleFolderClick(obj.path)}
+                    >
                       Open
                     </Button>
                   ) : (
@@ -250,7 +398,7 @@ function FileExplorer() {
           </VStack>
         </Box>
         <Box w={{ base: "100%", md: "250px" }} p={4} borderLeft={{ md: "1px solid" }} borderColor="gray.200">
-    
+          {/* Sidebar placeholder for future use */}
         </Box>
       </Flex>
     </Container>
