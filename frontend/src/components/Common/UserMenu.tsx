@@ -64,7 +64,7 @@ const UserMenu = () => {
               bg="gray.50"
               _hover={{ bg: "red.100" }}
             >
-              Log out
+              Sign out
             </MenuItem>
           </MenuList>
         </Menu>

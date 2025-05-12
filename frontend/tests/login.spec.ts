@@ -92,7 +92,7 @@ test("Successful log out", async ({ page }) => {
   ).toBeVisible()
 
   await page.getByTestId("user-menu").click()
-  await page.getByRole("menuitem", { name: "Log out" }).click()
+  await page.getByRole("menuitem", { name: "Sign out" }).click()
   await page.waitForURL("/login")
 })
 

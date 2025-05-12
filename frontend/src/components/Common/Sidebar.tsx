@@ -67,7 +67,7 @@ const Sidebar = () => {
                   alignItems="center"
                 >
                   <FiLogOut />
-                  <Text color={{textColor}} ml={2}>Log out</Text>
+                  <Text color={{textColor}} ml={2}>Sign out</Text>
                 </Flex>
               </Box>
             </Flex>
