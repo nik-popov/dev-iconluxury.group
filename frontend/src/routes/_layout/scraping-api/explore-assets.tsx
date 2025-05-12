@@ -153,7 +153,7 @@ function FileExplorer() {
       <Flex align="center" justify="space-between" flexWrap="wrap" gap={4}>
         <Box textAlign="left" flex="1">
           <Text fontSize="xl" fontWeight="bold" color="black">
-            S3 File Explorer
+            File Explorer
           </Text>
           <Text fontSize="sm" color="gray.600">
             Browse and download files from R2 storage
@@ -263,17 +263,6 @@ function FileExplorer() {
           </VStack>
         </Box>
         <Box w={{ base: "100%", md: "250px" }} p={4} borderLeft={{ md: "1px solid" }} borderColor="gray.200">
-          <VStack spacing={4} align="stretch">
-            <Text fontWeight="bold" color="black">
-              Quick Actions
-            </Text>
-            <Button as="a" href="/s3-explorer/upload" variant="outline" size="sm" colorScheme="green">
-              Upload File
-            </Button>
-            <Button as="a" href="/s3-explorer/create-folder" variant="outline" size="sm" colorScheme="green">
-              Create Folder
-            </Button>
-          </VStack>
         </Box>
       </Flex>
     </Container>
