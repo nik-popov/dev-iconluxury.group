@@ -12,29 +12,28 @@ s3_client = client(
     aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID","8b5a4a988c474205e0172eab5479d6f2"),
     aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY","8ff719bbf2946c1b6a81fcf2121e1a41604a0b6f2890f308871b381e98a8d725")
 )
-
 @router.get("/s3/list", tags=["s3"])
-async def list_s3_objects(prefix: str = "", page: int = 1, page_size: int = 10):
+async def list_s3_objects(prefix: str = "", page: int = 1, page_size: int = 10, continuation_token: Optional[str] = None):
     try:
         response = s3_client.list_objects_v2(
             Bucket="iconluxurygroup",
             Prefix=prefix,
             Delimiter="/",
             MaxKeys=page_size,
-            StartAfter=f"{prefix}{(page - 1) * page_size}" if page > 1 else ""
+            ContinuationToken=continuation_token if continuation_token else None
         )
         folders = [
             {
                 "type": "folder",
-                "name": prefix["Prefix"].rstrip("/").split("/")[-1],
-                "path": prefix["Prefix"]
+                "name": prefix_data["Prefix"].rstrip("/").split("/")[-1] if prefix_data["Prefix"] else "",
+                "path": prefix_data["Prefix"]
             }
-            for prefix in response.get("CommonPrefixes", [])
+            for prefix_data in response.get("CommonPrefixes", [])
         ]
         files = [
             {
                 "type": "file",
-                "name": obj["Key"].replace(prefix, "", 1),
+                "name": obj["Key"].replace(prefix, "", 1) if prefix else obj["Key"],
                 "path": obj["Key"],
                 "size": obj["Size"],
                 "lastModified": obj["LastModified"].isoformat()
@@ -42,6 +41,9 @@ async def list_s3_objects(prefix: str = "", page: int = 1, page_size: int = 10):
             for obj in response.get("Contents", [])
             if obj["Key"] != prefix and not obj["Key"].endswith("/")
         ]
-        return folders + files
+        return {
+            "objects": folders + files,
+            "nextToken": response.get("NextContinuationToken")
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
