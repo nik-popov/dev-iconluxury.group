@@ -19,7 +19,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const S3_BUCKET = process.env.REACT_APP_R2_BUCKET || "iconluxurygroup";
 const REGION = "auto";
-const ENDPOINT = process.env.REACT_APP_R2_ENDPOINT || "https://aa2f6aae69e7fb4bd8e2cd4311c411cb.r2.cloudflarestorage.com";
+const ENDPOINT = process.env.REACT_APP_R2_ENDPOINT || "https://iconluxury.group";
 
 const s3Client = new S3Client({
   region: REGION,
