@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import {
@@ -27,11 +28,10 @@ import {
   Image,
   useDisclosure,
   Textarea,
-  Icon,
   SimpleGrid,
   Tooltip,
 } from "@chakra-ui/react";
-import { FiFolder, FiFile, FiDownload, FiChevronRight, FiChevronDown, FiArrowUp, FiArrowDown, FiCopy, FiInfo, FiGrid, FiList, FiFileText, FiEye, FiEyeOff } from "react-icons/fi";
+import { FiFolder, FiFile, FiDownload, FiChevronRight, FiChevronDown, FiArrowUp, FiArrowDown, FiCopy, FiInfo, FiGrid, FiList, FiEye, FiEyeOff } from "react-icons/fi";
 import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel, FaFile } from "react-icons/fa";
 
 const API_BASE_URL = "https://api.iconluxury.group/api/v1";
@@ -43,13 +43,6 @@ interface S3Object {
   size?: number;
   lastModified?: Date;
   count?: number;
-}
-
-interface LogEntry {
-  id: number;
-  action: string;
-  file: string;
-  timestamp: string;
 }
 
 async function listS3Objects(prefix: string, page: number, pageSize = 10, continuationToken: string | null = null): Promise<{ objects: S3Object[], hasMore: boolean, nextContinuationToken: string | null }> {
@@ -162,6 +155,48 @@ const truncateName = (name: string, maxLength: number = 20) => {
   return `${start}...${end}`;
 };
 
+// Resize Handle Component
+const ResizeHandle = ({ onResize }: { onResize: (newWidth: number) => void }) => {
+  const handleRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = handleRef.current?.parentElement?.offsetWidth || 0;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const newWidth = startWidth + (moveEvent.clientX - startX);
+      const minWidth = 200;
+      const maxWidth = window.innerWidth * 0.8;
+      const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+      onResize(constrainedWidth);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  return (
+    <Box
+      ref={handleRef}
+      w="6px"
+      bg="gray.300"
+      cursor="col-resize"
+      _hover={{ bg: "gray.400" }}
+      onMouseDown={handleMouseDown}
+      position="absolute"
+      top="0"
+      bottom="0"
+      left="-3px"
+    />
+  );
+};
+
 export const Route = createFileRoute("/_layout/scraping-api/explore-assets")({
   component: FileExplorer,
 });
@@ -169,7 +204,6 @@ export const Route = createFileRoute("/_layout/scraping-api/explore-assets")({
 function FileExplorer() {
   const toast = useToast();
   const { isOpen: isDetailsOpen, onOpen: onDetailsOpen, onClose: onDetailsClose } = useDisclosure();
-  const { isOpen: isLogsOpen, onOpen: onLogsOpen, onClose: onLogsClose } = useDisclosure();
   const [currentPath, setCurrentPath] = useState("");
   const [objects, setObjects] = useState<S3Object[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -183,10 +217,10 @@ function FileExplorer() {
   const [selectedFile, setSelectedFile] = useState<S3Object | null>(null);
   const [previewContent, setPreviewContent] = useState<string>("");
   const [previewUrl, setPreviewUrl] = useState<string>("");
-  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [isPreviewOpen, setIsPreviewOpen] = useState(true);
-  const [isLogsPanelOpen, setIsLogsPanelOpen] = useState(true);
+  const [detailsWidth, setDetailsWidth] = useState(600); // Initial width for details modal
+  const [previewWidth, setPreviewWidth] = useState(300); // Initial width for preview panel
 
   const { data, isFetching, error: s3Error } = useQuery<{ objects: S3Object[], hasMore: boolean, nextContinuationToken: string | null }, Error>({
     queryKey: ["s3Objects", currentPath, page, continuationToken],
@@ -210,18 +244,6 @@ function FileExplorer() {
     }
   }, [data, page]);
 
-  const addLog = (action: string, file: string) => {
-    setLogs((prev) => [
-      {
-        id: Date.now(),
-        action,
-        file,
-        timestamp: new Date().toLocaleString(),
-      },
-      ...prev.slice(0, 9),
-    ]);
-  };
-
   const handleFolderClick = (path: string) => {
     if (expandedFolders.includes(path)) {
       setExpandedFolders(expandedFolders.filter((p) => p !== path));
@@ -243,7 +265,6 @@ function FileExplorer() {
       try {
         const url = await getSignedUrl(obj.path);
         setPreviewUrl(url);
-        addLog("Previewed", obj.name);
         const fileType = getFileType(obj.name);
         if (fileType === "text") {
           const content = await getFileContent(obj.path);
@@ -265,7 +286,6 @@ function FileExplorer() {
       try {
         const url = await getSignedUrl(obj.path);
         setPreviewUrl(url);
-        addLog("Viewed Details", obj.name);
         onDetailsOpen();
       } catch (error: any) {
         toast({
@@ -306,7 +326,6 @@ function FileExplorer() {
     try {
       const url = await getSignedUrl(key);
       window.open(url, "_blank");
-      addLog("Downloaded", name);
     } catch (error: any) {
       toast({
         title: "Download Failed",
@@ -329,7 +348,6 @@ function FileExplorer() {
         duration: 3000,
         isClosable: true,
       });
-      addLog("Copied URL", name);
     } catch (error: any) {
       toast({
         title: "Copy Failed",
@@ -351,7 +369,6 @@ function FileExplorer() {
         duration: 3000,
         isClosable: true,
       });
-      addLog("Copied Content", selectedFile?.name || "Unknown");
     } catch (error: any) {
       toast({
         title: "Copy Failed",
@@ -500,25 +517,15 @@ function FileExplorer() {
           </Text>
         </Box>
         <HStack>
-          <Tooltip label={isLogsPanelOpen ? "Hide Logs" : "Show Logs"}>
-            <IconButton
-              aria-label={isLogsPanelOpen ? "Hide Logs" : "Show Logs"}
-              icon={isLogsPanelOpen ? <FiFileText /> : <FiFileText />}
-              size="sm"
-              colorScheme={isLogsPanelOpen ? "green" : "gray"}
-              onClick={() => setIsLogsPanelOpen(!isLogsPanelOpen)}
-            />
-          </Tooltip>
           <Tooltip label={isPreviewOpen ? "Hide Preview" : "Show Preview"}>
             <IconButton
               aria-label={isPreviewOpen ? "Hide Preview" : "Show Preview"}
-              icon={isPreviewOpen ? <FiEyeOff /> : <FiEyeOff />}
+              icon={isPreviewOpen ? <FiEyeOff /> : <FiEye />}
               size="sm"
               colorScheme={isPreviewOpen ? "green" : "gray"}
               onClick={() => setIsPreviewOpen(!isPreviewOpen)}
             />
           </Tooltip>
-          
           <IconButton
             aria-label="List View"
             icon={<FiList />}
@@ -568,7 +575,7 @@ function FileExplorer() {
           maxH="70vh"
           overflowY="auto"
           overflowX="auto"
-          pr={isPreviewOpen || isLogsPanelOpen ? 0 : 4}
+          pr={isPreviewOpen ? 0 : 4}
         >
           <Flex direction={{ base: "column", md: "row" }} gap={4} mb={4}>
             <Input
@@ -828,46 +835,9 @@ function FileExplorer() {
           )}
         </Box>
 
-        {isLogsPanelOpen ? (
-          <Box
-            w={{ base: "100%", md: "250px" }}
-            p={4}
-            borderLeft={{ md: "1px solid" }}
-            borderColor="gray.200"
-            position="sticky"
-            top="0"
-            alignSelf="flex-start"
-            maxH="70vh"
-            overflowY="auto"
-          >
-            <VStack spacing={2} align="stretch">
-              {logs.length === 0 ? (
-                <Text fontSize="sm" color="gray.500">No actions logged</Text>
-              ) : (
-                logs.map((log) => (
-                  <Box key={log.id} p={2} bg="gray.50" borderRadius="md">
-                    <Text fontSize="sm" fontWeight="medium">{log.action}: {truncateName(log.file, 20)}</Text>
-                    <Text fontSize="xs" color="gray.500">{log.timestamp}</Text>
-                  </Box>
-                ))
-              )}
-            </VStack>
-          </Box>
-        ) : (
-          <Box
-            w="50px"
-            p={2}
-            position="sticky"
-            top="0"
-            alignSelf="flex-start"
-          >
-        
-          </Box>
-        )}
-
         {isPreviewOpen ? (
           <Box
-            w={{ base: "100%", md: "300px" }}
+            w={{ base: "100%", md: `${previewWidth}px`}}
             p={4}
             borderLeft={{ md: "1px solid" }}
             borderColor="gray.200"
@@ -876,27 +846,32 @@ function FileExplorer() {
             alignSelf="flex-start"
             maxH="70vh"
             overflowY="auto"
+            pos="relative"
           >
+            <ResizeHandle onResize={setPreviewWidth} />
+            <Text fontWeight="bold" mb={2}>Preview</Text>
             <Box>
               {renderPreview(selectedFile, previewUrl, previewContent)}
             </Box>
           </Box>
         ) : (
-          <Box
-            w="50px"
-            p={2}
+          <IconButton
+            aria-label="Show Preview"
+            icon={<FiEye />}
+            size="sm"
+            colorScheme="gray"
+            onClick={() => setIsPreviewOpen(true)}
             position="sticky"
             top="0"
             alignSelf="flex-start"
-          >
-           
-          </Box>
+          />
         )}
       </Flex>
 
-      <Modal isOpen={isDetailsOpen} onClose={onDetailsClose} size="lg">
+      <Modal isOpen={isDetailsOpen} onClose={onDetailsClose}>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent w={`${detailsWidth}px`} maxW="80vw" pos="relative">
+          <ResizeHandle onResize={setDetailsWidth} />
           <ModalHeader>File/Folder Details</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -917,34 +892,6 @@ function FileExplorer() {
           </ModalBody>
           <ModalFooter>
             <Button colorScheme="blue" onClick={onDetailsClose}>
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      <Modal isOpen={isLogsOpen} onClose={onLogsClose} size="lg">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Action Logs</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <VStack spacing={4} align="stretch" maxH="70vh" overflowY="auto">
-              {logs.length === 0 ? (
-                <Text fontSize="sm" color="gray.500">No actions logged</Text>
-              ) : (
-                logs.map((log) => (
-                  <Box key={log.id} p={4} bg="gray.50" borderRadius="md" borderWidth="1px" borderColor="gray.200">
-                    <Text fontSize="sm" fontWeight="medium">Action: {log.action}</Text>
-                    <Text fontSize="sm">File: {truncateName(log.file, 30)}</Text>
-                    <Text fontSize="sm" color="gray.500">Timestamp: {log.timestamp}</Text>
-                  </Box>
-                ))
-              )}
-            </VStack>
-          </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="blue" onClick={onLogsClose}>
               Close
             </Button>
           </ModalFooter>
