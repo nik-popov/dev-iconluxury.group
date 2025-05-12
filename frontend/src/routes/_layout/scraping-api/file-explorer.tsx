@@ -134,7 +134,7 @@ async function listS3Objects(prefix = "", continuationToken?: string): Promise<S
     }
     const folders: S3Object[] = (data.CommonPrefixes || []).map((prefix) => ({
       type: "folder",
-      name: prefix.Prefix?.replace(prefix || "", "").replace("/", "") || "",
+      name: prefix.Prefix?.replace(prefix.Prefix || "", "").replace("/", "") || "",
       path: prefix.Prefix || "",
     }));
     const files: S3Object[] = (data.Contents || [])
@@ -197,33 +197,13 @@ function FileExplorer(): JSX.Element {
     staleTime: 5 * 60 * 1000,
     retry: (failureCount: number, error: Error) =>
       error.message.includes("Unauthorized") ? false : failureCount < 3,
-    onError: (error) => {
-      console.error("Subscription status query error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to load subscription status",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    },
   });
 
-  const { data, isFetching, error: s3Error } = useQuery<S3ListResponse>({
+  const { data, isFetching, error: s3Error } = useQuery<S3ListResponse, Error>({
     queryKey: ["s3Objects", currentPath],
     queryFn: () => listS3Objects(currentPath),
     placeholderData: keepPreviousData,
     enabled: !!subscriptionStatus?.hasSubscription || !!subscriptionStatus?.isTrial,
-    onError: (error) => {
-      console.error("S3 objects query error:", error);
-      toast({
-        title: "Failed to Load Files",
-        description: error.message || "An error occurred while fetching files",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    },
   });
 
   useEffect(() => {
@@ -322,7 +302,7 @@ function FileExplorer(): JSX.Element {
   if (s3Error) {
     return (
       <Container maxW="full" bg="white" color="gray.800" py={6}>
-        <Text color="red.500">Error loading files: {(s3Error as Error).message}</Text>
+        <Text color="red.500">Error loading files: {s3Error.message}</Text>
       </Container>
     );
   }
