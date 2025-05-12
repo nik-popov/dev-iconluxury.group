@@ -461,7 +461,7 @@ function FileExplorer() {
             <Button
               size="sm"
               colorScheme="blue"
-              onClick={() => handleDownload(obj.path, obj.name)}
+              onClick={() => handleDownload(obj.path)}
             >
               Download
             </Button>
@@ -486,7 +486,7 @@ function FileExplorer() {
                 size="sm"
                 colorScheme="gray"
                 leftIcon={<FiCopy />}
-                onClick={() => handleCopyUrl(obj.path, obj.name)}
+                onClick={() => handleCopyUrl(obj.path)}
               >
                 Copy URL
               </Button>
