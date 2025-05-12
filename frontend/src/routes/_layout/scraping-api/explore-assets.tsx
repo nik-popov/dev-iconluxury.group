@@ -174,7 +174,7 @@ async function getDownloadUrl(key: string): Promise<string> {
   }
 }
 
-export const Route = createFileRoute("/_layout/scraping-api/explore-files")({
+export const Route = createFileRoute("/_layout/scraping-api/explore-assets")({
   component: FileExplorerWithErrorBoundary,
 });
 

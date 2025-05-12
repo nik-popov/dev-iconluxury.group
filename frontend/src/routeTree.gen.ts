@@ -24,7 +24,7 @@ import { Route as LayoutAdminImport } from './routes/_layout/admin'
 import { Route as LayoutScrapingApiUserAgentsImport } from './routes/_layout/scraping-api/user-agents'
 import { Route as LayoutScrapingApiSearchProxiesImport } from './routes/_layout/scraping-api/search-proxies'
 import { Route as LayoutScrapingApiGoogleSerpImport } from './routes/_layout/scraping-api/google-serp'
-import { Route as LayoutScrapingApiFileExplorerImport } from './routes/_layout/scraping-api/file-explorer'
+import { Route as LayoutScrapingApiExploreAssetsImport } from './routes/_layout/scraping-api/explore-assets'
 import { Route as LayoutScrapingApiExploreImport } from './routes/_layout/scraping-api/explore'
 import { Route as LayoutAiIcongptImport } from './routes/_layout/ai/icongpt'
 import { Route as LayoutScrapingApiScrapingJobsIndexImport } from './routes/_layout/scraping-api/scraping-jobs/index'
@@ -116,10 +116,10 @@ const LayoutScrapingApiGoogleSerpRoute =
     getParentRoute: () => LayoutRoute,
   } as any)
 
-const LayoutScrapingApiFileExplorerRoute =
-  LayoutScrapingApiFileExplorerImport.update({
-    id: '/scraping-api/file-explorer',
-    path: '/scraping-api/file-explorer',
+const LayoutScrapingApiExploreAssetsRoute =
+  LayoutScrapingApiExploreAssetsImport.update({
+    id: '/scraping-api/explore-assets',
+    path: '/scraping-api/explore-assets',
     getParentRoute: () => LayoutRoute,
   } as any)
 
@@ -265,11 +265,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutScrapingApiExploreImport
       parentRoute: typeof LayoutImport
     }
-    '/_layout/scraping-api/file-explorer': {
-      id: '/_layout/scraping-api/file-explorer'
-      path: '/scraping-api/file-explorer'
-      fullPath: '/scraping-api/file-explorer'
-      preLoaderRoute: typeof LayoutScrapingApiFileExplorerImport
+    '/_layout/scraping-api/explore-assets': {
+      id: '/_layout/scraping-api/explore-assets'
+      path: '/scraping-api/explore-assets'
+      fullPath: '/scraping-api/explore-assets'
+      preLoaderRoute: typeof LayoutScrapingApiExploreAssetsImport
       parentRoute: typeof LayoutImport
     }
     '/_layout/scraping-api/google-serp': {
@@ -347,7 +347,7 @@ interface LayoutRouteChildren {
   LayoutIndexRoute: typeof LayoutIndexRoute
   LayoutAiIcongptRoute: typeof LayoutAiIcongptRoute
   LayoutScrapingApiExploreRoute: typeof LayoutScrapingApiExploreRoute
-  LayoutScrapingApiFileExplorerRoute: typeof LayoutScrapingApiFileExplorerRoute
+  LayoutScrapingApiExploreAssetsRoute: typeof LayoutScrapingApiExploreAssetsRoute
   LayoutScrapingApiGoogleSerpRoute: typeof LayoutScrapingApiGoogleSerpRoute
   LayoutScrapingApiSearchProxiesRoute: typeof LayoutScrapingApiSearchProxiesRoute
   LayoutScrapingApiUserAgentsRoute: typeof LayoutScrapingApiUserAgentsRoute
@@ -366,7 +366,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutIndexRoute: LayoutIndexRoute,
   LayoutAiIcongptRoute: LayoutAiIcongptRoute,
   LayoutScrapingApiExploreRoute: LayoutScrapingApiExploreRoute,
-  LayoutScrapingApiFileExplorerRoute: LayoutScrapingApiFileExplorerRoute,
+  LayoutScrapingApiExploreAssetsRoute: LayoutScrapingApiExploreAssetsRoute,
   LayoutScrapingApiGoogleSerpRoute: LayoutScrapingApiGoogleSerpRoute,
   LayoutScrapingApiSearchProxiesRoute: LayoutScrapingApiSearchProxiesRoute,
   LayoutScrapingApiUserAgentsRoute: LayoutScrapingApiUserAgentsRoute,
@@ -399,7 +399,7 @@ export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
   '/ai/icongpt': typeof LayoutAiIcongptRoute
   '/scraping-api/explore': typeof LayoutScrapingApiExploreRoute
-  '/scraping-api/file-explorer': typeof LayoutScrapingApiFileExplorerRoute
+  '/scraping-api/explore-assets': typeof LayoutScrapingApiExploreAssetsRoute
   '/scraping-api/google-serp': typeof LayoutScrapingApiGoogleSerpRoute
   '/scraping-api/search-proxies': typeof LayoutScrapingApiSearchProxiesRoute
   '/scraping-api/user-agents': typeof LayoutScrapingApiUserAgentsRoute
@@ -423,7 +423,7 @@ export interface FileRoutesByTo {
   '/': typeof LayoutIndexRoute
   '/ai/icongpt': typeof LayoutAiIcongptRoute
   '/scraping-api/explore': typeof LayoutScrapingApiExploreRoute
-  '/scraping-api/file-explorer': typeof LayoutScrapingApiFileExplorerRoute
+  '/scraping-api/explore-assets': typeof LayoutScrapingApiExploreAssetsRoute
   '/scraping-api/google-serp': typeof LayoutScrapingApiGoogleSerpRoute
   '/scraping-api/search-proxies': typeof LayoutScrapingApiSearchProxiesRoute
   '/scraping-api/user-agents': typeof LayoutScrapingApiUserAgentsRoute
@@ -449,7 +449,7 @@ export interface FileRoutesById {
   '/_layout/': typeof LayoutIndexRoute
   '/_layout/ai/icongpt': typeof LayoutAiIcongptRoute
   '/_layout/scraping-api/explore': typeof LayoutScrapingApiExploreRoute
-  '/_layout/scraping-api/file-explorer': typeof LayoutScrapingApiFileExplorerRoute
+  '/_layout/scraping-api/explore-assets': typeof LayoutScrapingApiExploreAssetsRoute
   '/_layout/scraping-api/google-serp': typeof LayoutScrapingApiGoogleSerpRoute
   '/_layout/scraping-api/search-proxies': typeof LayoutScrapingApiSearchProxiesRoute
   '/_layout/scraping-api/user-agents': typeof LayoutScrapingApiUserAgentsRoute
@@ -476,7 +476,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ai/icongpt'
     | '/scraping-api/explore'
-    | '/scraping-api/file-explorer'
+    | '/scraping-api/explore-assets'
     | '/scraping-api/google-serp'
     | '/scraping-api/search-proxies'
     | '/scraping-api/user-agents'
@@ -499,7 +499,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ai/icongpt'
     | '/scraping-api/explore'
-    | '/scraping-api/file-explorer'
+    | '/scraping-api/explore-assets'
     | '/scraping-api/google-serp'
     | '/scraping-api/search-proxies'
     | '/scraping-api/user-agents'
@@ -523,7 +523,7 @@ export interface FileRouteTypes {
     | '/_layout/'
     | '/_layout/ai/icongpt'
     | '/_layout/scraping-api/explore'
-    | '/_layout/scraping-api/file-explorer'
+    | '/_layout/scraping-api/explore-assets'
     | '/_layout/scraping-api/google-serp'
     | '/_layout/scraping-api/search-proxies'
     | '/_layout/scraping-api/user-agents'
@@ -581,7 +581,7 @@ export const routeTree = rootRoute
         "/_layout/",
         "/_layout/ai/icongpt",
         "/_layout/scraping-api/explore",
-        "/_layout/scraping-api/file-explorer",
+        "/_layout/scraping-api/explore-assets",
         "/_layout/scraping-api/google-serp",
         "/_layout/scraping-api/search-proxies",
         "/_layout/scraping-api/user-agents",
@@ -632,8 +632,8 @@ export const routeTree = rootRoute
       "filePath": "_layout/scraping-api/explore.tsx",
       "parent": "/_layout"
     },
-    "/_layout/scraping-api/file-explorer": {
-      "filePath": "_layout/scraping-api/file-explorer.tsx",
+    "/_layout/scraping-api/explore-assets": {
+      "filePath": "_layout/scraping-api/explore-assets.tsx",
       "parent": "/_layout"
     },
     "/_layout/scraping-api/google-serp": {
