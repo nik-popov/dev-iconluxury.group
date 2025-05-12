@@ -41,38 +41,25 @@ interface S3Object {
 
 async function listS3Objects(prefix: string, page: number, pageSize = 10): Promise<S3Object[]> {
   try {
-    const command = new ListObjectsV2Command({
-      Bucket: S3_BUCKET,
-      Prefix: prefix,
-      Delimiter: "/",
-      MaxKeys: pageSize,
-      StartAfter: page > 1 ? `${prefix}${(page - 1) * pageSize}` : undefined,
-    });
-    const data = await s3Client.send(command);
-    const folders: S3Object[] = (data.CommonPrefixes || []).map((prefix) => ({
-      type: "folder",
-      name: prefix.Prefix?.replace(prefix.Prefix || "", "").replace("/", "") || "",
-      path: prefix.Prefix || "",
+    const response = await fetch(
+      `https://api.iconluxury.group/api/v1/s3/list?prefix=${encodeURIComponent(prefix)}&page=${page}&pageSize=${pageSize}`
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to list objects: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.map(item => ({
+      ...item,
+      lastModified: item.lastModified ? new Date(item.lastModified) : undefined,
     }));
-    const files: S3Object[] = (data.Contents || [])
-      .filter((obj) => obj.Key && obj.Key !== prefix && !obj.Key.endsWith("/"))
-      .map((obj) => ({
-        type: "file",
-        name: obj.Key?.replace(prefix || "", "") || "",
-        path: obj.Key || "",
-        size: obj.Size,
-        lastModified: obj.LastModified,
-      }));
-    return [...folders, ...files];
   } catch (error) {
-    console.error("Error listing S3 objects:", error);
+    console.error("Error fetching S3 objects:", error);
     const message = error.message?.includes("CORS")
-      ? "CORS error: The Cloudflare R2 bucket is not configured to allow requests from https://dashboard.iconluxury.group. Ensure the bucket's CORS policy includes 'OPTIONS' in AllowedMethods and allows 'https://dashboard.iconluxury.group'."
+      ? "CORS error: Ensure the FastAPI server is configured to allow requests from https://dashboard.iconluxury.group."
       : `Failed to list objects: ${error.message || "Unknown error"}`;
     throw new Error(message);
   }
 }
-
 async function getDownloadUrl(key: string): Promise<string> {
   const command = new GetObjectCommand({ Bucket: S3_BUCKET, Key: key });
   return getSignedUrl(s3Client, command, { expiresIn: 3600 });
