@@ -503,7 +503,7 @@ function FileExplorer() {
           <Tooltip label={isLogsPanelOpen ? "Hide Logs" : "Show Logs"}>
             <IconButton
               aria-label={isLogsPanelOpen ? "Hide Logs" : "Show Logs"}
-              icon={isLogsPanelOpen ? <FiEyeOff /> : <FiEye />}
+              icon={isLogsPanelOpen ? <FiFileText /> : <FiFileText />}
               size="sm"
               colorScheme={isLogsPanelOpen ? "green" : "gray"}
               onClick={() => setIsLogsPanelOpen(!isLogsPanelOpen)}
@@ -512,7 +512,7 @@ function FileExplorer() {
           <Tooltip label={isPreviewOpen ? "Hide Preview" : "Show Preview"}>
             <IconButton
               aria-label={isPreviewOpen ? "Hide Preview" : "Show Preview"}
-              icon={isPreviewOpen ? <FiFileText /> : <FiFileText />}
+              icon={isPreviewOpen ? <FiEyeOff /> : <FiEyeOff />}
               size="sm"
               colorScheme={isPreviewOpen ? "green" : "gray"}
               onClick={() => setIsPreviewOpen(!isPreviewOpen)}
