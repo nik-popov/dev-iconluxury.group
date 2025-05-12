@@ -2,16 +2,13 @@ import React from "react";
 import {
   Container,
   Flex,
-  Tab,
-  TabList,
-  TabPanel,
-  TabPanels,
-  Tabs,
-  Text,
   Box,
+  Text,
   Divider,
+  VStack,
+  Button,
+  useColorModeValue,
 } from "@chakra-ui/react";
-
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -22,12 +19,11 @@ import DeleteAccount from "../../components/UserSettings/DeleteAccount";
 import UserInformation from "../../components/UserSettings/UserInformation";
 import ApiStatusManagement from "../../components/UserSettings/ApiStatusManagement";
 
-const tabsConfig = [
-  { title: "My profile", component: UserInformation },
+const sectionsConfig = [
+  { title: "Profile", component: UserInformation },
   { title: "Password", component: ChangePassword },
   { title: "Appearance", component: Appearance },
-  { title: "API Status", component: () => <ApiStatusManagement /> },
-  { title: "Close Account", component: DeleteAccount },
+  { title: "API Status", component: ApiStatusManagement },
 ];
 
 export const Route = createFileRoute("/_layout/settings")({
@@ -37,55 +33,71 @@ export const Route = createFileRoute("/_layout/settings")({
 function UserSettings() {
   const queryClient = useQueryClient();
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
+  const [activeSection, setActiveSection] = React.useState(sectionsConfig[0].title);
+
+  const bgColor = useColorModeValue("gray.50", "gray.800");
+  const textColor = useColorModeValue("gray.800", "gray.200");
+  const sidebarBg = useColorModeValue("white", "gray.700");
+  const activeButtonBg = useColorModeValue("green.100", "green.900");
+  const activeButtonColor = useColorModeValue("green.700", "green.200");
 
   if (!currentUser) {
     return (
-      <Container maxW="full" bg="gray.50" py={6}>
-        <Text color="gray.600">Loading user data...</Text>
+      <Container maxW="full" bg={bgColor} py={6}>
+        <Text color={textColor}>Loading...</Text>
       </Container>
     );
   }
 
-  const finalTabs = currentUser?.is_superuser
-    ? tabsConfig // All tabs for superusers
-    : tabsConfig; // All tabs for non-superusers (or adjust as needed)
+  const ActiveComponent = sectionsConfig.find(
+    (section) => section.title === activeSection
+  )?.component;
 
   return (
-    <Container maxW="full" bg="gray.50" color="gray.800">
-      <Flex align="center" justify="space-between" py={6} flexWrap="wrap" gap={4}>
-        <Box textAlign="left" flex="1">
-          <Text fontSize="xl" fontWeight="bold" color="black">
+    <Container maxW="7xl" bg={bgColor} color={textColor} py={6}>
+      <Flex direction="column" gap={4}>
+        <Box>
+          <Text fontSize="2xl" fontWeight="bold">
             Settings
           </Text>
-          <Text fontSize="sm" color="gray.600">
-            Manage system & user settings
+          <Text fontSize="sm" color={useColorModeValue("gray.600", "gray.400")}>
+            Customize your account
           </Text>
         </Box>
+
+        <Divider borderColor={useColorModeValue("gray.200", "gray.600")} />
+
+        <Flex gap={6} direction={{ base: "column", md: "row" }}>
+          <VStack
+            align="start"
+            spacing={2}
+            w={{ base: "full", md: "200px" }}
+            p={4}
+            bg={sidebarBg}
+            borderRadius="md"
+            boxShadow="sm"
+          >
+            {sectionsConfig.map((section) => (
+              <Button
+                key={section.title}
+                variant="ghost"
+                w="full"
+                justifyContent="start"
+                bg={activeSection === section.title ? activeButtonBg : "transparent"}
+                color={activeSection === section.title ? activeButtonColor : textColor}
+                _hover={{ bg: useColorModeValue("gray.100", "gray.600") }}
+                onClick={() => setActiveSection(section.title)}
+              >
+                {section.title}
+              </Button>
+            ))}
+          </VStack>
+
+          <Box flex="1" p={4} bg={sidebarBg} borderRadius="md" boxShadow="sm">
+            {ActiveComponent && <ActiveComponent />}
+          </Box>
+        </Flex>
       </Flex>
-
-      <Divider my={4} borderColor="gray.200" />
-
-      <Tabs variant="enclosed" colorScheme="green">
-        <TabList borderBottom="2px solid" borderColor="green.200">
-          {finalTabs.map((tab, index) => (
-            <Tab
-              key={index}
-              _selected={{ bg: "green.100", color: "green.700", borderColor: "green.500" }}
-              color="gray.600"
-              _hover={{ bg: "gray.100" }}
-            >
-              {tab.title}
-            </Tab>
-          ))}
-        </TabList>
-        <TabPanels>
-          {finalTabs.map((tab, index) => (
-            <TabPanel key={index} bg="gray.50" p={4}>
-              {React.createElement(tab.component)}
-            </TabPanel>
-          ))}
-        </TabPanels>
-      </Tabs>
     </Container>
   );
 }
