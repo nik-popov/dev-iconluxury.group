@@ -63,23 +63,32 @@ interface LogEntry {
   file: string;
   timestamp: string;
 }
-
-async function listS3Objects(prefix: string, page: number, pageSize = 10): Promise<{ objects: S3Object[], hasMore: boolean }> {
+async function listS3Objects(prefix: string, page: number, pageSize = 10, continuationToken: string | null = null): Promise<{ objects: S3Object[], hasMore: boolean, nextContinuationToken: string | null }> {
+  const API_BASE_URL =  "https://api.iconluxury.group";
   try {
-    const response = await fetch(
-      `https://api.iconluxury.group/api/v1/s3/list?prefix=${encodeURIComponent(prefix)}&page=${page}&pageSize=${pageSize}`
-    );
+    const url = new URL(`${API_BASE_URL}/s3/list`);
+    url.searchParams.append("prefix", prefix);
+    url.searchParams.append("page", page.toString());
+    url.searchParams.append("pageSize", pageSize.toString());
+    if (continuationToken) {
+      url.searchParams.append("continuation_token", continuationToken);
+    }
+
+    const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to list objects: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Failed to list objects: ${errorText || response.statusText}`);
     }
     const data = await response.json();
-    const objects = data.map((item: any) => ({
+    const objects = data.objects.map((item: any) => ({
       ...item,
       lastModified: item.lastModified ? new Date(item.lastModified) : undefined,
     }));
-    // Assume hasMore is true if the response returns pageSize items
-    const hasMore = data.length === pageSize;
-    return { objects, hasMore };
+    return {
+      objects,
+      hasMore: data.hasMore,
+      nextContinuationToken: data.nextContinuationToken || null
+    };
   } catch (error: any) {
     console.error("Error fetching S3 objects:", error);
     const message = error.message?.includes("CORS")
@@ -89,6 +98,14 @@ async function listS3Objects(prefix: string, page: number, pageSize = 10): Promi
   }
 }
 
+// In FileExplorer component
+const { data, isFetching, error: s3Error } = useQuery<{ objects: S3Object[], hasMore: boolean, nextContinuationToken: string | null }, Error>({
+  queryKey: ["s3Objects", currentPath, page, continuationToken],
+  queryFn: () => listS3Objects(currentPath, page, 10, continuationToken),
+  placeholderData: keepPreviousData,
+  retry: 2,
+  retryDelay: 1000,
+});
 async function getDownloadUrl(key: string): Promise<string> {
   const command = new GetObjectCommand({ Bucket: S3_BUCKET, Key: key });
   return getSignedUrl(s3Client, command, { expiresIn: 3600 });
