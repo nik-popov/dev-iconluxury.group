@@ -14,22 +14,21 @@ import {
   Select,
 } from "@chakra-ui/react";
 import { FiFolder, FiFile, FiDownload } from "react-icons/fi";
-import AWS from "aws-sdk";
+import AWS, { S3 } from "aws-sdk";
 
 // Configuration for Cloudflare R2 (S3-compatible)
 const S3_BUCKET = "iconluxurygroup";
 const REGION = "auto";
 const ENDPOINT = "https://aa2f6aae69e7fb4bd8e2cd4311c411cb.r2.cloudflarestorage.com";
 
-// Configure AWS SDK
+// Configure AWS SDK for R2
 AWS.config.update({
   accessKeyId: "AKIA2CUNLEV6V627SWI7",
   secretAccessKey: "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",
   region: REGION,
-  endpoint: ENDPOINT,
   s3ForcePathStyle: true,
 });
-const s3 = new AWS.S3();
+const s3 = new AWS.S3({ endpoint: ENDPOINT });
 
 interface SubscriptionStatus {
   hasSubscription: boolean;
@@ -48,7 +47,7 @@ interface S3Object {
 interface S3ListResponse {
   folders: S3Object[];
   files: S3Object[];
-  nextToken: string | null;
+  nextToken: string | undefined;
 }
 
 const getAuthToken = (): string | null => localStorage.getItem("access_token");
@@ -71,8 +70,8 @@ async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
   return response.json();
 }
 
-async function listS3Objects(prefix = "", continuationToken: string | null = null): Promise<S3ListResponse> {
-  const params = {
+async function listS3Objects(prefix = "", continuationToken?: string): Promise<S3ListResponse> {
+  const params: S3.ListObjectsV2Request = {
     Bucket: S3_BUCKET,
     Prefix: prefix,
     Delimiter: "/",
@@ -95,18 +94,17 @@ async function listS3Objects(prefix = "", continuationToken: string | null = nul
       lastModified: obj.LastModified,
     }));
 
-  return { folders, files, nextToken: data.NextContinuationToken || null };
+  return { folders, files, nextToken: data.NextContinuationToken };
 }
 
 async function getDownloadUrl(key: string): Promise<string> {
-  const params = {
+  const params: S3.GetObjectRequest = {
     Bucket: S3_BUCKET,
     Key: key,
     Expires: 3600,
   };
   return s3.getSignedUrlPromise("getObject", params);
 }
-
 
 export const Route = createFileRoute("/_layout/scraping-api/file-explorer")({
   component: FileExplorer,
@@ -118,28 +116,26 @@ function FileExplorer() {
   const [objects, setObjects] = useState<S3Object[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<"all" | "folder" | "file">("all");
-  const [continuationToken, setContinuationToken] = useState<string | null>(null);
+  const [continuationToken, setContinuationToken] = useState<string | undefined>(undefined);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
   const { data: subscriptionStatus, isLoading: isSubLoading, error: subError } = useQuery({
     queryKey: ["subscriptionStatus", "s3"],
     queryFn: fetchSubscriptionStatus,
     staleTime: 5 * 60 * 1000,
-    retry: (failureCount: number, error: Error) => error.message.includes("Unauthorized") ? false : failureCount < 3,
+    retry: (failureCount: number, error: Error) => (error.message.includes("Unauthorized") ? false : failureCount < 3),
   });
 
   const { data, isFetching } = useQuery({
     queryKey: ["s3Objects", currentPath],
-    queryFn: () => listS3Objects(currentPath, null),
+    queryFn: () => listS3Objects(currentPath),
     placeholderData: keepPreviousData,
     enabled: !!subscriptionStatus?.hasSubscription || !!subscriptionStatus?.isTrial,
   });
 
   useEffect(() => {
     if (data) {
-      setObjects((prev) =>
-        continuationToken ? [...prev, ...[...data.folders, ...data.files]] : [...data.folders, ...data.files]
-      );
+      setObjects((prev) => (continuationToken ? [...prev, ...[...data.folders, ...data.files]] : [...data.folders, ...data.files]));
       setContinuationToken(data.nextToken);
     }
   }, [data, continuationToken]);
@@ -147,28 +143,37 @@ function FileExplorer() {
   const handleFolderClick = (path: string) => {
     setCurrentPath(path);
     setObjects([]);
-    setContinuationToken(null);
+    setContinuationToken(undefined);
   };
 
   const handleGoBack = () => {
     const parentPath = currentPath.split("/").slice(0, -2).join("/") + "/";
     setCurrentPath(parentPath);
     setObjects([]);
-    setContinuationToken(null);
+    setContinuationToken(undefined);
   };
 
   const handleDownload = async (key: string) => {
-    const url = await getDownloadUrl(key);
-    window.open(url, "_blank");
+    try {
+      const url = await getDownloadUrl(key);
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Error generating download URL:", error);
+    }
   };
 
   const handleLoadMore = async () => {
     if (continuationToken && !loadingMore) {
       setLoadingMore(true);
-      const moreData = await listS3Objects(currentPath, continuationToken);
-      setObjects((prev) => [...prev, ...[...moreData.folders, ...moreData.files]]);
-      setContinuationToken(moreData.nextToken);
-      setLoadingMore(false);
+      try {
+        const moreData = await listS3Objects(currentPath, continuationToken);
+        setObjects((prev) => [...prev, ...[...moreData.folders, ...moreData.files]]);
+        setContinuationToken(moreData.nextToken);
+      } catch (error) {
+        console.error("Error loading more objects:", error);
+      } finally {
+        setLoadingMore(false);
+      }
     }
   };
 
