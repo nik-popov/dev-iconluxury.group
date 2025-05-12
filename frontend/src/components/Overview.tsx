@@ -62,7 +62,7 @@ interface EndpointData {
   requestsToday: number;
   totalQueries: number;
   successRate: number;
-  queries?: Query[]; // Optional to handle undefined
+  queries?: Query[];
   gigsUsedToday: number;
   costToday: number;
   timeSeries: TimeSeries[];
@@ -70,6 +70,34 @@ interface EndpointData {
 
 interface OverviewProps {
   endpointId: string;
+}
+
+// Define interfaces for chart data
+interface ChartItem {
+  name: string;
+  value: number;
+  compareValue?: number;
+}
+
+interface QueryDistributionItem {
+  name: string;
+  value: number;
+}
+
+interface CostItem {
+  name: string;
+  value: number;
+  compareValue: number;
+}
+
+// Index signature for chartData
+interface ChartData {
+  requests: ChartItem[];
+  successRate: ChartItem[];
+  latency: ChartItem[];
+  queryDistribution: QueryDistributionItem[];
+  cost: CostItem[];
+  [key: string]: ChartItem[] | QueryDistributionItem[] | CostItem[];
 }
 
 const chartOptions = [
@@ -170,7 +198,7 @@ const Overview: React.FC<OverviewProps> = ({ endpointId }) => {
   const primaryMetrics = calculateMetrics(endpointData);
   const compareMetrics = compareEndpointData ? calculateMetrics(compareEndpointData) : null;
 
-  const chartData = {
+  const chartData: ChartData = {
     requests: [
       { name: "Total Requests", value: endpointData.requestsToday || 0, compareValue: compareEndpointData?.requestsToday || 0 },
       { name: "Processed", value: primaryMetrics.processedRequests || 0, compareValue: compareMetrics?.processedRequests || 0 },
@@ -183,7 +211,7 @@ const Overview: React.FC<OverviewProps> = ({ endpointId }) => {
     latency: [
       { name: "Avg Latency", value: primaryMetrics.avgLatency || 0, compareValue: compareMetrics?.avgLatency || 0 },
     ],
-    queryDistribution: (endpointData.queries || []).reduce((acc, q) => {
+    queryDistribution: (endpointData.queries || []).reduce((acc: QueryDistributionItem[], q) => {
       const existing = acc.find(item => item.name === (q.category || "Uncategorized"));
       if (existing) {
         existing.value += q.count || 0;
@@ -191,7 +219,7 @@ const Overview: React.FC<OverviewProps> = ({ endpointId }) => {
         acc.push({ name: q.category || "Uncategorized", value: q.count || 0 });
       }
       return acc;
-    }, [] as { name: string; value: number }[])
+    }, [])
       .filter(item => item.value > 0),
     cost: (endpointData.timeSeries || []).map((ts) => ({
       name: ts.date,
@@ -204,59 +232,63 @@ const Overview: React.FC<OverviewProps> = ({ endpointId }) => {
     .filter(q => (q.count || 0) > 0)
     .sort((a, b) => (b.count || 0) - (a.count || 0))
     .slice(0, 10);
+
   const renderSummary = () => {
-  const stats = getSummaryStats(selectedChart);
-  return (
-    <CardBody>
-      {stats.map((stat, index) => (
-        <Stat key={index}>
-          <StatLabel>{stat.label}</StatLabel>
-          <StatNumber>{stat.value}</StatNumber>
-        </Stat>
-      ))}
-    </CardBody>
-  );
-};
-    const getSummaryStats = (selectedChart: string) => {
-      const data = chartData[selectedChart] || [];
-      if (selectedChart === "cost") {
-        if (data.length === 0) return [];
-        const latestPrimary = data[data.length - 1]?.value || 0;
-        const latestCompare = compareEndpointData ? (data[data.length - 1]?.compareValue || 0) : null;
-        const totalPrimary = data.reduce((sum, item) => sum + (item.value || 0), 0);
-        const totalCompare = compareEndpointData ? data.reduce((sum, item) => sum + (item.compareValue || 0), 0) : null;
-        const avgPrimary = totalPrimary / data.length;
-        const avgCompare = compareEndpointData ? (totalCompare || 0) / data.length : null;
-        let trendPrimary = "Stable";
-        let trendCompare = "Stable";
-        if (data.length > 1) {
-          const prevPrimary = data.slice(0, -1).reduce((sum, item) => sum + (item.value || 0), 0) / (data.length - 1);
-          trendPrimary = latestPrimary > prevPrimary ? "Increasing" : "Decreasing";
-          if (compareEndpointData) {
-            const prevCompare = data.slice(0, -1).reduce((sum, item) => sum + (item.compareValue || 0), 0) / (data.length - 1);
-            trendCompare = (latestCompare || 0) > prevCompare ? "Increasing" : "Decreasing";
-          }
+    const stats = getSummaryStats(selectedChart);
+    return (
+      <CardBody>
+        {stats.map((stat, index) => (
+          <Stat key={index}>
+            <StatLabel>{stat.label}</StatLabel>
+            <StatNumber>{stat.value}</StatNumber>
+          </Stat>
+        ))}
+      </CardBody>
+    );
+  };
+
+  const getSummaryStats = (selectedChart: string) => {
+    const data = chartData[selectedChart] || [];
+    if (selectedChart === "cost") {
+      if (data.length === 0) return [];
+      const latestPrimary = (data as CostItem[])[data.length - 1]?.value || 0;
+      const latestCompare = compareEndpointData ? ((data as CostItem[])[data.length - 1]?.compareValue || 0) : null;
+      const totalPrimary = (data as CostItem[]).reduce((sum: number, item: CostItem) => sum + (item.value || 0), 0);
+      const totalCompare = compareEndpointData ? (data as CostItem[]).reduce((sum: number, item: CostItem) => sum + (item.compareValue || 0), 0) : null;
+      const avgPrimary = totalPrimary / data.length;
+      const avgCompare = compareEndpointData ? (totalCompare || 0) / data.length : null;
+      let trendPrimary = "Stable";
+      let trendCompare = compareEndpointData ? "Stable" : null; // Ensure trendCompare is null if no comparison
+      if (data.length > 1) {
+        const prevPrimary = (data as CostItem[]).slice(0, -1).reduce((sum: number, item: CostItem) => sum + (item.value || 0), 0) / (data.length - 1);
+        trendPrimary = latestPrimary > prevPrimary ? "Increasing" : "Decreasing";
+        if (compareEndpointData) {
+          const prevCompare = (data as CostItem[]).slice(0, -1).reduce((sum: number, item: CostItem) => sum + (item.compareValue || 0), 0) / (data.length - 1);
+          trendCompare = (latestCompare || 0) > prevCompare ? "Increasing" : "Decreasing";
         }
-        const formatValue = (primary, compare) => 
-          compare !== null && compare !== undefined ? `${primary} / ${compare}` : primary;
-        return [
-          { label: "Latest Cost", value: formatValue(latestPrimary.toLocaleString(), latestCompare?.toLocaleString()) },
-          { label: "Total Cost", value: formatValue(totalPrimary.toLocaleString(), totalCompare?.toLocaleString()) },
-          { label: "Avg Daily Cost", value: formatValue(avgPrimary.toFixed(2), avgCompare?.toFixed(2)) },
-          { label: "Trend", value: formatValue(trendPrimary, trendCompare) },
-        ];
       }
-    
+      // Updated formatValue to accept undefined
+      const formatValue = (primary: number | string, compare: number | string | null | undefined) =>
+        compare != null ? `${primary} / ${compare}` : primary;
+      return [
+        { label: "Latest Cost", value: formatValue(latestPrimary.toLocaleString(), latestCompare?.toLocaleString()) },
+        { label: "Total Cost", value: formatValue(totalPrimary.toLocaleString(), totalCompare?.toLocaleString()) },
+        { label: "Avg Daily Cost", value: formatValue(avgPrimary.toFixed(2), avgCompare?.toFixed(2)) },
+        { label: "Trend", value: formatValue(trendPrimary, trendCompare) },
+      ];
+    }
+
     if (selectedChart === "queryDistribution") {
-      const total = data.reduce((sum, item) => sum + item.value, 0);
-      return data.map((item: any) => ({
+      const total = (data as QueryDistributionItem[]).reduce((sum: number, item: QueryDistributionItem) => sum + item.value, 0);
+      return (data as QueryDistributionItem[]).map((item: QueryDistributionItem) => ({
         label: item.name,
         value: `${item.value.toLocaleString()} (${((item.value / total) * 100).toFixed(1)}%)`,
       }));
     }
-    return data.map((item: any) => ({
+
+    return (data as ChartItem[]).map((item: ChartItem) => ({
       label: item.name,
-      value: compareEndpointData 
+      value: compareEndpointData
         ? `${(item.value || 0).toLocaleString()} / ${(item.compareValue || 0).toLocaleString()}`
         : (item.value || 0).toLocaleString(),
     }));
@@ -267,7 +299,7 @@ const Overview: React.FC<OverviewProps> = ({ endpointId }) => {
   const renderChart = () => {
     const data = chartData[selectedChart] || [];
     if (!data.length) return <Text>No data available for this chart</Text>;
-  
+
     const chartProps = {
       margin: { top: 20, right: 20, bottom: showLabels ? 60 : 20, left: showLabels ? 40 : 20 },
       children: [
@@ -301,7 +333,7 @@ const Overview: React.FC<OverviewProps> = ({ endpointId }) => {
         <Legend key="legend" verticalAlign="top" height={36} />,
       ],
     };
-  
+
     switch (selectedChart) {
       case "requests":
       case "successRate":
@@ -328,7 +360,7 @@ const Overview: React.FC<OverviewProps> = ({ endpointId }) => {
               label={showLabels ? ({ name, value }) => `${name}: ${value}` : false}
               labelLine={true}
             >
-              {data.map((_: any, index: number) => (
+              {(data as QueryDistributionItem[]).map((_, index: number) => (
                 <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
               ))}
             </Pie>
@@ -347,9 +379,10 @@ const Overview: React.FC<OverviewProps> = ({ endpointId }) => {
           </LineChart>
         );
       default:
-        return <Text>Unknown chart type</Text>; // Fallback for invalid chart types
+        return <Text>Unknown chart type</Text>;
     }
   };
+
   return (
     <Box p={4} width="100%">
       <Flex justify="space-between" align="center" mb={4} wrap="wrap" gap={2}>

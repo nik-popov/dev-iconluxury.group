@@ -14,52 +14,23 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { FiFolder, FiFile, FiDownload } from "react-icons/fi";
-
-// Explicit AWS SDK v3 imports
-import { S3Client } from "@aws-sdk/client-s3";
-import { ListObjectsV2Command } from "@aws-sdk/client-s3";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-// Log imports to debug module resolution
-console.log("AWS SDK imports:", { S3Client, ListObjectsV2Command, GetObjectCommand, getSignedUrl });
-
-// Configuration for Cloudflare R2
 const S3_BUCKET = process.env.REACT_APP_R2_BUCKET || "iconluxurygroup";
 const REGION = "auto";
 const ENDPOINT = process.env.REACT_APP_R2_ENDPOINT || "https://aa2f6aae69e7fb4bd8e2cd4311c411cb.r2.cloudflarestorage.com";
 const API_URL = process.env.REACT_APP_API_URL || "https://api.iconluxury.group";
 
-// Validate environment variables
-const missingEnvVars = [
-  !process.env.REACT_APP_R2_BUCKET && "REACT_APP_R2_BUCKET",
-  !process.env.REACT_APP_R2_ENDPOINT && "REACT_APP_R2_ENDPOINT",
-  !process.env.REACT_APP_R2_ACCESS_KEY_ID && "REACT_APP_R2_ACCESS_KEY_ID",
-  !process.env.REACT_APP_R2_SECRET_ACCESS_KEY && "REACT_APP_R2_SECRET_ACCESS_KEY",
-  !process.env.REACT_APP_API_URL && "REACT_APP_API_URL",
-].filter(Boolean);
-if (missingEnvVars.length > 0) {
-  console.error("Missing environment variables:", missingEnvVars.join(", "));
-  throw new Error(`Missing environment variables: ${missingEnvVars.join(", ")}`);
-}
-
-// Initialize S3 client
-let s3Client: S3Client;
-try {
-  s3Client = new S3Client({
-    region: REGION,
-    endpoint: ENDPOINT,
-    credentials: {
-      accessKeyId: process.env.REACT_APP_R2_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.REACT_APP_R2_SECRET_ACCESS_KEY!,
-    },
-    forcePathStyle: true,
-  });
-  console.log("S3Client initialized successfully");
-} catch (error) {
-  console.error("Failed to initialize S3Client:", error);
-  throw new Error("Failed to initialize S3 client");
-}
+const s3Client = new S3Client({
+  region: REGION,
+  endpoint: ENDPOINT,
+  credentials: {
+    accessKeyId: process.env.REACT_APP_R2_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.REACT_APP_R2_SECRET_ACCESS_KEY || "",
+  },
+  forcePathStyle: true,
+});
 
 interface SubscriptionStatus {
   hasSubscription: boolean;
@@ -75,118 +46,69 @@ interface S3Object {
   lastModified?: Date;
 }
 
-interface S3ListResponse {
-  folders: S3Object[];
-  files: S3Object[];
-  nextToken: string | undefined;
-}
-
-// Utility functions
-const getAuthToken = (): string | null => {
-  try {
-    return localStorage.getItem("access_token");
-  } catch (error) {
-    console.error("Error accessing localStorage:", error);
-    return null;
-  }
-};
+const getAuthToken = (): string | null => localStorage.getItem("access_token");
 
 async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
   const token = getAuthToken();
-  try {
-    const response = await fetch(`${API_URL}/api/v1/subscription-status/s3`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-    });
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        throw new Error("Unauthorized: Please log in again.");
-      }
-      throw new Error(`Failed to fetch subscription status: ${response.status}`);
+  const response = await fetch(`${API_URL}/api/v1/subscription-status/s3`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("Unauthorized: Please log in again.");
     }
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching subscription status:", error);
-    throw error;
+    throw new Error(`Failed to fetch subscription status: ${response.status}`);
   }
+  return response.json();
 }
 
-async function listS3Objects(prefix = "", continuationToken?: string): Promise<S3ListResponse> {
-  if (!s3Client) {
-    console.error("S3Client is not initialized");
-    throw new Error("S3 client not initialized");
-  }
-  try {
-    console.log("Listing S3 objects with prefix:", prefix, "token:", continuationToken);
-    const command = new ListObjectsV2Command({
-      Bucket: S3_BUCKET,
-      Prefix: prefix,
-      Delimiter: "/",
-      ContinuationToken: continuationToken,
-    });
-    const data = await s3Client.send(command);
-    if (!data) {
-      console.error("No data returned from S3");
-      throw new Error("No data returned from S3");
-    }
-    const folders: S3Object[] = (data.CommonPrefixes || []).map((prefix) => ({
-      type: "folder",
-      name: prefix.Prefix?.replace(prefix.Prefix || "", "").replace("/", "") || "",
-      path: prefix.Prefix || "",
+async function listS3Objects(prefix: string, page: number, pageSize = 10): Promise<S3Object[]> {
+  const command = new ListObjectsV2Command({
+    Bucket: S3_BUCKET,
+    Prefix: prefix,
+    Delimiter: "/",
+    MaxKeys: pageSize,
+    StartAfter: page > 1 ? `${prefix}${(page - 1) * pageSize}` : undefined,
+  });
+  const data = await s3Client.send(command);
+  const folders: S3Object[] = (data.CommonPrefixes || []).map((prefix) => ({
+    type: "folder",
+    name: prefix.Prefix?.replace(prefix.Prefix || "", "").replace("/", "") || "",
+    path: prefix.Prefix || "",
+  }));
+  const files: S3Object[] = (data.Contents || [])
+    .filter((obj) => obj.Key && obj.Key !== prefix && !obj.Key.endsWith("/"))
+    .map((obj) => ({
+      type: "file",
+      name: obj.Key?.replace(prefix || "", "") || "",
+      path: obj.Key || "",
+      size: obj.Size,
+      lastModified: obj.LastModified,
     }));
-    const files: S3Object[] = (data.Contents || [])
-      .filter((obj) => obj.Key && obj.Key !== prefix && !obj.Key.endsWith("/"))
-      .map((obj) => ({
-        type: "file",
-        name: obj.Key?.replace(prefix || "", "") || "",
-        path: obj.Key || "",
-        size: obj.Size,
-        lastModified: obj.LastModified,
-      }));
-    console.log("S3 objects listed:", { folders, files });
-    return { folders, files, nextToken: data.NextContinuationToken };
-  } catch (error) {
-    console.error("Error listing S3 objects:", error);
-    throw new Error("Failed to list S3 objects");
-  }
+  return [...folders, ...files];
 }
 
 async function getDownloadUrl(key: string): Promise<string> {
-  if (!s3Client) {
-    console.error("S3Client is not initialized");
-    throw new Error("S3 client not initialized");
-  }
-  try {
-    console.log("Generating download URL for key:", key);
-    const command = new GetObjectCommand({
-      Bucket: S3_BUCKET,
-      Key: key,
-    });
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-    console.log("Download URL generated:", url);
-    return url;
-  } catch (error) {
-    console.error("Error generating download URL:", error);
-    throw new Error("Failed to generate download URL");
-  }
+  const command = new GetObjectCommand({ Bucket: S3_BUCKET, Key: key });
+  return getSignedUrl(s3Client, command, { expiresIn: 3600 });
 }
 
 export const Route = createFileRoute("/_layout/scraping-api/explore-assets")({
-  component: FileExplorerWithErrorBoundary,
+  component: FileExplorer,
 });
 
-function FileExplorer(): JSX.Element {
+function FileExplorer() {
   const navigate = useNavigate();
   const toast = useToast();
-  const [currentPath, setCurrentPath] = useState<string>("");
+  const [currentPath, setCurrentPath] = useState("");
   const [objects, setObjects] = useState<S3Object[]>([]);
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "folder" | "file">("all");
-  const [continuationToken, setContinuationToken] = useState<string | undefined>(undefined);
-  const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [page, setPage] = useState(1);
 
   const { data: subscriptionStatus, isLoading: isSubLoading, error: subError } = useQuery<
     SubscriptionStatus,
@@ -195,51 +117,44 @@ function FileExplorer(): JSX.Element {
     queryKey: ["subscriptionStatus", "s3"],
     queryFn: fetchSubscriptionStatus,
     staleTime: 5 * 60 * 1000,
-    retry: (failureCount: number, error: Error) =>
-      error.message.includes("Unauthorized") ? false : failureCount < 3,
+    retry: (failureCount, error) => error.message.includes("Unauthorized") ? false : failureCount < 3,
   });
 
-  const { data, isFetching, error: s3Error } = useQuery<S3ListResponse, Error>({
-    queryKey: ["s3Objects", currentPath],
-    queryFn: () => listS3Objects(currentPath),
+  const { data: s3Objects, isFetching, error: s3Error } = useQuery<S3Object[], Error>({
+    queryKey: ["s3Objects", currentPath, page],
+    queryFn: () => listS3Objects(currentPath, page),
     placeholderData: keepPreviousData,
     enabled: !!subscriptionStatus?.hasSubscription || !!subscriptionStatus?.isTrial,
   });
 
   useEffect(() => {
-    if (data) {
-      const typedData = data as S3ListResponse;
-      setObjects((prev) =>
-        continuationToken
-          ? [...prev, ...[...typedData.folders, ...typedData.files]]
-          : [...typedData.folders, ...typedData.files]
-      );
-      setContinuationToken(typedData.nextToken);
+    if (s3Objects) {
+      setObjects((prev) => (page === 1 ? s3Objects : [...prev, ...s3Objects]));
     }
-  }, [data, continuationToken]);
+  }, [s3Objects, page]);
 
-  const handleFolderClick = (path: string): void => {
+  const handleFolderClick = (path: string) => {
     setCurrentPath(path);
     setObjects([]);
-    setContinuationToken(undefined);
+    setPage(1);
   };
 
-  const handleGoBack = (): void => {
+  const handleGoBack = () => {
     const parentPath = currentPath.split("/").slice(0, -2).join("/") + "/";
     setCurrentPath(parentPath);
     setObjects([]);
-    setContinuationToken(undefined);
+    setPage(1);
   };
 
-  const handleDownload = async (key: string): Promise<void> => {
+  const handleDownload = async (key: string) => {
     try {
       const url = await getDownloadUrl(key);
       window.open(url, "_blank");
-    } catch (error) {
-      console.error("Download error:", error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unable to generate download URL";
       toast({
         title: "Download Failed",
-        description: (error as Error).message || "Unable to generate download URL",
+        description: message,
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -247,29 +162,9 @@ function FileExplorer(): JSX.Element {
     }
   };
 
-  const handleLoadMore = async (): Promise<void> => {
-    if (continuationToken && !loadingMore) {
-      setLoadingMore(true);
-      try {
-        const moreData = await listS3Objects(currentPath, continuationToken);
-        setObjects((prev) => [...prev, ...[...moreData.folders, ...moreData.files]]);
-        setContinuationToken(moreData.nextToken);
-      } catch (error) {
-        console.error("Load more error:", error);
-        toast({
-          title: "Load More Failed",
-          description: (error as Error).message || "Unable to load more items",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      } finally {
-        setLoadingMore(false);
-      }
-    }
-  };
+  const handleLoadMore = () => setPage((prev) => prev + 1);
 
-  const filteredObjects: S3Object[] = objects.filter((obj) => {
+  const filteredObjects = objects.filter((obj) => {
     const matchesSearch = obj.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === "all" || obj.type === typeFilter;
     return matchesSearch && matchesType;
@@ -308,9 +203,8 @@ function FileExplorer(): JSX.Element {
     );
   }
 
-  const { hasSubscription = false, isTrial = false, isDeactivated = false } = (subscriptionStatus ||
-    {}) as SubscriptionStatus;
-  const isLocked: boolean = !hasSubscription && !isTrial;
+  const { hasSubscription = false, isTrial = false, isDeactivated = false } = subscriptionStatus || {};
+  const isLocked = !hasSubscription && !isTrial;
 
   return (
     <Container maxW="full" bg="white" color="gray.800" py={6}>
@@ -419,17 +313,16 @@ function FileExplorer(): JSX.Element {
                   No items match your criteria
                 </Text>
               )}
-              {isFetching || loadingMore ? (
+              {isFetching ? (
                 <Text fontSize="sm" color="gray.500">Loading...</Text>
               ) : (
-                continuationToken && (
+                filteredObjects.length > 0 && (
                   <Button
                     colorScheme="green"
                     size="sm"
                     onClick={handleLoadMore}
                     mt={4}
                     alignSelf="center"
-                    isLoading={loadingMore}
                   >
                     Load More
                   </Button>
@@ -456,34 +349,4 @@ function FileExplorer(): JSX.Element {
   );
 }
 
-// Error boundary to catch runtime errors
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
-  state = { hasError: false, error: null };
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <Container maxW="full" bg="white" color="gray.800" py={6}>
-          <Text color="red.500">
-            Error: {this.state.error?.message || "Something went wrong"}
-          </Text>
-        </Container>
-      );
-    }
-    return this.props.children;
-  }
-}
-export default function FileExplorerWithErrorBoundary() {
-  return (
-    <ErrorBoundary>
-      <FileExplorer />
-    </ErrorBoundary>
-  );
-}
+export default FileExplorer;
