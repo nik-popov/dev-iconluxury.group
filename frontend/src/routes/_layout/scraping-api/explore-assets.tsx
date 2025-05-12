@@ -500,15 +500,6 @@ function FileExplorer() {
           </Text>
         </Box>
         <HStack>
-          <Tooltip label={isPreviewOpen ? "Hide Preview" : "Show Preview"}>
-            <IconButton
-              aria-label={isPreviewOpen ? "Hide Preview" : "Show Preview"}
-              icon={isPreviewOpen ? <FiFileText /> : <FiFileText />}
-              size="sm"
-              colorScheme={isPreviewOpen ? "green" : "gray"}
-              onClick={() => setIsPreviewOpen(!isPreviewOpen)}
-            />
-          </Tooltip>
           <Tooltip label={isLogsPanelOpen ? "Hide Logs" : "Show Logs"}>
             <IconButton
               aria-label={isLogsPanelOpen ? "Hide Logs" : "Show Logs"}
@@ -518,6 +509,16 @@ function FileExplorer() {
               onClick={() => setIsLogsPanelOpen(!isLogsPanelOpen)}
             />
           </Tooltip>
+          <Tooltip label={isPreviewOpen ? "Hide Preview" : "Show Preview"}>
+            <IconButton
+              aria-label={isPreviewOpen ? "Hide Preview" : "Show Preview"}
+              icon={isPreviewOpen ? <FiFileText /> : <FiFileText />}
+              size="sm"
+              colorScheme={isPreviewOpen ? "green" : "gray"}
+              onClick={() => setIsPreviewOpen(!isPreviewOpen)}
+            />
+          </Tooltip>
+          
           <IconButton
             aria-label="List View"
             icon={<FiList />}
