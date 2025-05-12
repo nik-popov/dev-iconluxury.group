@@ -153,10 +153,10 @@ function FileExplorer() {
       <Flex align="center" justify="space-between" flexWrap="wrap" gap={4}>
         <Box textAlign="left" flex="1">
           <Text fontSize="xl" fontWeight="bold" color="black">
-            S3 File Explorer
+           File Explorer
           </Text>
           <Text fontSize="sm" color="gray.600">
-            Browse and download files from R2 storage
+            Browse and download files from S3 storage
           </Text>
         </Box>
         {currentPath && (
