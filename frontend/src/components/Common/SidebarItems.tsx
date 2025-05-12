@@ -70,7 +70,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   }
 
   const isEnabled = (title: string) =>
-    ["Dashboard", "Scraping", "Admin"].includes(title) ||
+    ["Dashboard", "Scraping","Storage", "Admin"].includes(title) ||
     (title === "Jobs" && 
       finalSidebarStructure.some(item => 
         item.title === "Scraping" && 
@@ -80,11 +80,6 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
       finalSidebarStructure.some(item => 
         item.title === "Scraping" && 
         item.subItems?.some(sub => sub.title === "Proxies")
-      )) ||
-    (title === "Storage" && 
-      finalSidebarStructure.some(item => 
-        item.title === "Scraping" && 
-        item.subItems?.some(sub => sub.title === "Storage")
       ));
 
   const renderItems = (items: SidebarItem[]) =>
