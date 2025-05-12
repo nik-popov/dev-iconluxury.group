@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
@@ -164,7 +165,7 @@ const ResizeHandle = ({ onResize }: { onResize: (newWidth: number) => void }) =>
     const startWidth = handleRef.current?.parentElement?.offsetWidth || 0;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      const newWidth = startWidth + (moveEvent.clientX - startX);
+      const newWidth = startWidth - (moveEvent.clientX - startX); // Reversed drag direction
       const minWidth = 200;
       const maxWidth = window.innerWidth * 0.8;
       const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
@@ -861,16 +862,7 @@ function FileExplorer() {
             </Box>
           </Box>
         ) : (
-          <IconButton
-            aria-label="Show Preview"
-            icon={<FiEye />}
-            size="sm"
-            colorScheme="gray"
-            onClick={() => setIsPreviewOpen(true)}
-            position="sticky"
-            top="0"
-            alignSelf="flex-start"
-          />
+          <></>
         )}
       </Flex>
 
