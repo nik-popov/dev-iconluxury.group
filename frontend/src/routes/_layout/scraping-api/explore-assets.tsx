@@ -839,18 +839,6 @@ function FileExplorer() {
             maxH="70vh"
             overflowY="auto"
           >
-            <Flex justify="flex-end" align="center" mb={2}>
-              <Tooltip label="View Logs">
-                <IconButton
-                  aria-label="View Logs"
-                  icon={<FiFileText />}
-                  size="sm"
-                  colorScheme="blue"
-                  onClick={onLogsOpen}
-                  isDisabled={logs.length === 0}
-                />
-              </Tooltip>
-            </Flex>
             <VStack spacing={2} align="stretch">
               {logs.length === 0 ? (
                 <Text fontSize="sm" color="gray.500">No actions logged</Text>
@@ -876,7 +864,7 @@ function FileExplorer() {
           >
             <IconButton
               aria-label="Show Logs"
-              icon={<FiEye />}
+              icon={<FiList />}
               size="sm"
               colorScheme="gray"
               onClick={() => setIsLogsPanelOpen(true)}
