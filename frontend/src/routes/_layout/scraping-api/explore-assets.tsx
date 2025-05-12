@@ -98,14 +98,6 @@ async function listS3Objects(prefix: string, page: number, pageSize = 10, contin
   }
 }
 
-// In FileExplorer component
-const { data, isFetching, error: s3Error } = useQuery<{ objects: S3Object[], hasMore: boolean, nextContinuationToken: string | null }, Error>({
-  queryKey: ["s3Objects", currentPath, page, continuationToken],
-  queryFn: () => listS3Objects(currentPath, page, 10, continuationToken),
-  placeholderData: keepPreviousData,
-  retry: 2,
-  retryDelay: 1000,
-});
 async function getDownloadUrl(key: string): Promise<string> {
   const command = new GetObjectCommand({ Bucket: S3_BUCKET, Key: key });
   return getSignedUrl(s3Client, command, { expiresIn: 3600 });
