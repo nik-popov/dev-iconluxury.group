@@ -31,22 +31,8 @@ import {
 } from "@chakra-ui/react";
 import { FiFolder, FiFile, FiDownload, FiChevronRight, FiChevronDown, FiArrowUp, FiArrowDown, FiCopy, FiEye, FiInfo } from "react-icons/fi";
 import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel, FaFile } from "react-icons/fa";
-import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const S3_BUCKET = process.env.REACT_APP_R2_BUCKET || "iconluxurygroup";
-const REGION = "auto";
-const ENDPOINT = process.env.REACT_APP_R2_ENDPOINT || "https://iconluxury.group";
-
-const s3Client = new S3Client({
-  region: REGION,
-  endpoint: ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.REACT_APP_R2_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.REACT_APP_R2_SECRET_ACCESS_KEY || "",
-  },
-  forcePathStyle: true,
-});
+const API_BASE_URL = "https://api.iconluxury.group/api/v1";
 
 interface S3Object {
   type: "folder" | "file";
@@ -54,7 +40,7 @@ interface S3Object {
   path: string;
   size?: number;
   lastModified?: Date;
-  count?: number; // New field for folder item count (requires backend support)
+  count?: number;
 }
 
 interface LogEntry {
@@ -63,8 +49,8 @@ interface LogEntry {
   file: string;
   timestamp: string;
 }
+
 async function listS3Objects(prefix: string, page: number, pageSize = 10, continuationToken: string | null = null): Promise<{ objects: S3Object[], hasMore: boolean, nextContinuationToken: string | null }> {
-  const API_BASE_URL =  "https://api.iconluxury.group";
   try {
     const url = new URL(`${API_BASE_URL}/s3/list`);
     url.searchParams.append("prefix", prefix);
@@ -77,7 +63,13 @@ async function listS3Objects(prefix: string, page: number, pageSize = 10, contin
     const response = await fetch(url);
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to list objects: ${errorText || response.statusText}`);
+      let errorMessage = errorText || response.statusText;
+      if (response.status === 404) {
+        errorMessage = "S3 list endpoint not found. Check API URL and server configuration.";
+      } else if (response.status === 403) {
+        errorMessage = "Access denied to S3 bucket. Verify credentials and permissions.";
+      }
+      throw new Error(`Failed to list objects: ${errorMessage}`);
     }
     const data = await response.json();
     const objects = data.objects.map((item: any) => ({
@@ -93,25 +85,41 @@ async function listS3Objects(prefix: string, page: number, pageSize = 10, contin
     console.error("Error fetching S3 objects:", error);
     const message = error.message?.includes("CORS")
       ? "CORS error: Ensure the FastAPI server is configured to allow requests from https://dashboard.iconluxury.group."
-      : `Failed to list objects: ${error.message || "Unknown error"}`;
+      : error.message || "Unknown error fetching S3 objects";
     throw new Error(message);
   }
 }
 
-async function getDownloadUrl(key: string): Promise<string> {
-  const command = new GetObjectCommand({ Bucket: S3_BUCKET, Key: key });
-  return getSignedUrl(s3Client, command, { expiresIn: 3600 });
+async function getSignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/s3/sign?key=${encodeURIComponent(key)}&expires_in=${expiresIn}`
+    );
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = errorText || response.statusText;
+      if (response.status === 404) {
+        errorMessage = "S3 sign endpoint not found. Check API URL and server configuration.";
+      } else if (response.status === 403) {
+        errorMessage = "Access denied to generate signed URL. Verify credentials and permissions.";
+      }
+      throw new Error(`Failed to get signed URL: ${errorMessage}`);
+    }
+    const data = await response.json();
+    return data.signedUrl;
+  } catch (error: any) {
+    console.error("Error fetching signed URL:", error);
+    throw new Error(`Failed to get signed URL: ${error.message || "Unknown error"}`);
+  }
 }
 
 async function getFileContent(key: string): Promise<string> {
-  const command = new GetObjectCommand({ Bucket: S3_BUCKET, Key: key });
-  const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+  const url = await getSignedUrl(key);
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to fetch file content");
   return response.text();
 }
 
-// File type icon mapping based on extension
 const getFileIcon = (name: string) => {
   const extension = (name.split(".").pop()?.toLowerCase() || "");
   switch (extension) {
@@ -133,7 +141,6 @@ const getFileIcon = (name: string) => {
   }
 };
 
-// Determine file type for preview
 const getFileType = (name: string) => {
   const extension = (name.split(".").pop()?.toLowerCase() || "");
   if (["jpg", "jpeg", "png", "gif"].includes(extension)) return "image";
@@ -155,7 +162,8 @@ function FileExplorer() {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "folder" | "file">("all");
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true); // Track if more pages are available
+  const [hasMore, setHasMore] = useState(true);
+  const [continuationToken, setContinuationToken] = useState<string | null>(null);
   const [sortField, setSortField] = useState<"name" | "size" | "lastModified" | "count">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
@@ -164,16 +172,17 @@ function FileExplorer() {
   const [fileUrl, setFileUrl] = useState<string>("");
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
-  const { data, isFetching, error: s3Error } = useQuery<{ objects: S3Object[], hasMore: boolean }, Error>({
-    queryKey: ["s3Objects", currentPath, page],
-    queryFn: () => listS3Objects(currentPath, page),
+  const { data, isFetching, error: s3Error } = useQuery<{ objects: S3Object[], hasMore: boolean, nextContinuationToken: string | null }, Error>({
+    queryKey: ["s3Objects", currentPath, page, continuationToken],
+    queryFn: () => listS3Objects(currentPath, page, 10, continuationToken),
     placeholderData: keepPreviousData,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   useEffect(() => {
     if (data?.objects) {
       setObjects((prev) => {
-        // Deduplicate objects by path
         const newObjects = page === 1 ? data.objects : [...prev, ...data.objects];
         const uniqueObjects = Array.from(
           new Map(newObjects.map((obj) => [obj.path, obj])).values()
@@ -181,10 +190,10 @@ function FileExplorer() {
         return uniqueObjects;
       });
       setHasMore(data.hasMore);
+      setContinuationToken(data.nextContinuationToken);
     }
   }, [data, page]);
 
-  // Add log entry
   const addLog = (action: string, file: string) => {
     setLogs((prev) => [
       {
@@ -193,11 +202,10 @@ function FileExplorer() {
         file,
         timestamp: new Date().toLocaleString(),
       },
-      ...prev.slice(0, 9), // Keep last 10 logs
+      ...prev.slice(0, 9),
     ]);
   };
 
-  // Handle folder click (navigate or toggle expansion)
   const handleFolderClick = (path: string) => {
     if (expandedFolders.includes(path)) {
       setExpandedFolders(expandedFolders.filter((p) => p !== path));
@@ -205,15 +213,15 @@ function FileExplorer() {
       setExpandedFolders([...expandedFolders, path]);
       setCurrentPath(path);
       setPage(1);
-      setObjects([]); // Reset objects when navigating
+      setObjects([]);
+      setContinuationToken(null);
     }
   };
 
-  // Handle file click (open preview)
   const handleFileClick = async (obj: S3Object, action: "preview" | "details") => {
     setSelectedFile(obj);
     try {
-      const url = await getDownloadUrl(obj.path);
+      const url = await getSignedUrl(obj.path);
       setFileUrl(url);
       addLog(action === "preview" ? "Previewed" : "Viewed Details", obj.name);
 
@@ -240,27 +248,26 @@ function FileExplorer() {
     }
   };
 
-  // Handle breadcrumb navigation
   const handleBreadcrumbClick = (path: string) => {
     setCurrentPath(path);
     setObjects([]);
     setPage(1);
+    setContinuationToken(null);
     setExpandedFolders(expandedFolders.filter((p) => !p.startsWith(path) || p === path));
   };
 
-  // Handle going back to parent directory
   const handleGoBack = () => {
     const parentPath = currentPath.split("/").slice(0, -2).join("/") + "/";
     setCurrentPath(parentPath);
     setObjects([]);
     setPage(1);
+    setContinuationToken(null);
     setExpandedFolders(expandedFolders.filter((p) => !p.startsWith(parentPath) || p === parentPath));
   };
 
-  // Handle file download
   const handleDownload = async (key: string, name: string) => {
     try {
-      const url = await getDownloadUrl(key);
+      const url = await getSignedUrl(key);
       window.open(url, "_blank");
       addLog("Downloaded", name);
     } catch (error: any) {
@@ -274,10 +281,9 @@ function FileExplorer() {
     }
   };
 
-  // Handle copy public URL
   const handleCopyUrl = async (key: string, name: string) => {
     try {
-      const url = await getDownloadUrl(key);
+      const url = await getSignedUrl(key);
       await navigator.clipboard.writeText(url);
       toast({
         title: "URL Copied",
@@ -298,14 +304,12 @@ function FileExplorer() {
     }
   };
 
-  // Handle load more for pagination
   const handleLoadMore = () => {
     if (hasMore) {
       setPage((prev) => prev + 1);
     }
   };
 
-  // Handle sorting
   const handleSort = (field: "name" | "size" | "lastModified" | "count") => {
     if (sortField === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -315,7 +319,6 @@ function FileExplorer() {
     }
   };
 
-  // Generate breadcrumbs
   const breadcrumbs = () => {
     const parts = currentPath.split("/").filter((p) => p);
     const crumbs = [
@@ -328,7 +331,6 @@ function FileExplorer() {
     return crumbs;
   };
 
-  // Filter and sort objects
   const filteredObjects = objects
     .filter((obj) => {
       const matchesSearch = obj.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -351,63 +353,6 @@ function FileExplorer() {
       return sortOrder === "asc" ? comparison : -comparison;
     });
 
-  // Render file preview
-  const renderPreview = () => {
-    if (!selectedFile) return null;
-    const fileType = getFileType(selectedFile.name);
-
-    switch (fileType) {
-      case "image":
-        return <Image src={fileUrl} alt={selectedFile.name} maxH="70vh" objectFit="contain" />;
-      case "text":
-        return (
-          <Textarea value={fileContent} isReadOnly resize="none" h="50vh" fontFamily="mono" />
-        );
-      case "pdf":
-        return (
-          <iframe
-            src={fileUrl}
-            title={selectedFile.name}
-            style={{ width: "100%", height: "70vh" }}
-          />
-        );
-      default:
-        return (
-          <Text>
-            Preview not available for this file type.{" "}
-            <Button
-              size="sm"
-              colorScheme="blue"
-              onClick={() => handleDownload(selectedFile.path, selectedFile.name)}
-            >
-              Download
-            </Button>
-          </Text>
-        );
-    }
-  };
-
-  // Render file details
-  const renderDetails = () => {
-    if (!selectedFile) return null;
-    return (
-      <VStack align="start" spacing={2}>
-        <Text><strong>Name:</strong> {selectedFile.name}</Text>
-        <Text><strong>Path:</strong> {selectedFile.path}</Text>
-        <Text><strong>Type:</strong> {selectedFile.type}</Text>
-        {selectedFile.type === "file" && (
-          <>
-            <Text><strong>Size:</strong> {selectedFile.size ? (selectedFile.size / 1024).toFixed(2) : "0"} KB</Text>
-            <Text><strong>Modified:</strong> {selectedFile.lastModified ? new Date(selectedFile.lastModified).toLocaleString() : "-"}</Text>
-          </>
-        )}
-        {selectedFile.type === "folder" && (
-          <Text><strong>Item Count:</strong> {selectedFile.count ?? "Unknown"}</Text>
-        )}
-      </VStack>
-    );
-  };
-
   if (s3Error) {
     return (
       <Container maxW="full" bg="white" color="gray.800" py={6}>
@@ -418,7 +363,6 @@ function FileExplorer() {
 
   return (
     <Container maxW="full" bg="white" color="gray.800" py={6}>
-      {/* Header */}
       <Flex align="center" justify="space-between" flexWrap="wrap" gap={4}>
         <Box textAlign="left" flex="1">
           <Text fontSize="xl" fontWeight="bold" color="black">
@@ -435,7 +379,6 @@ function FileExplorer() {
         )}
       </Flex>
 
-      {/* Breadcrumbs */}
       <Box my={4}>
         <Breadcrumb separator={<FiChevronRight color="gray.500" />}>
           {breadcrumbs().map((crumb, index) => (
@@ -456,7 +399,6 @@ function FileExplorer() {
 
       <Divider my="4" borderColor="gray.200" />
 
-      {/* Filters, Search, and Logs */}
       <Flex gap={6} justify="space-between" align="stretch" wrap="wrap">
         <Box flex="1" minW={{ base: "100%", md: "65%" }}>
           <Flex direction={{ base: "column", md: "row" }} gap={4} mb={4}>
@@ -485,7 +427,6 @@ function FileExplorer() {
             </Select>
           </Flex>
 
-          {/* Sorting Headers */}
           <Flex bg="gray.100" p={2} borderRadius="md" mb={2}>
             <Box flex="2" cursor="pointer" onClick={() => handleSort("name")}>
               <HStack>
@@ -516,7 +457,6 @@ function FileExplorer() {
             </Box>
           </Flex>
 
-          {/* File/Folder List */}
           <VStack spacing={4} align="stretch">
             {filteredObjects.map((obj, index) => (
               <Box
@@ -666,7 +606,6 @@ function FileExplorer() {
         </Box>
       </Flex>
 
-      {/* Preview Modal */}
       <Modal isOpen={isPreviewOpen} onClose={onPreviewClose} size="xl">
         <ModalOverlay />
         <ModalContent>
@@ -690,13 +629,27 @@ function FileExplorer() {
         </ModalContent>
       </Modal>
 
-      {/* Details Modal */}
       <Modal isOpen={isDetailsOpen} onClose={onDetailsClose} size="md">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>File/Folder Details</ModalHeader>
           <ModalCloseButton />
-          <ModalBody>{renderDetails()}</ModalBody>
+          <ModalBody>
+            <VStack align="start" spacing={2}>
+              <Text><strong>Name:</strong> {selectedFile?.name}</Text>
+              <Text><strong>Path:</strong> {selectedFile?.path}</Text>
+              <Text><strong>Type:</strong> {selectedFile?.type}</Text>
+              {selectedFile?.type === "file" && (
+                <>
+                  <Text><strong>Size:</strong> {selectedFile.size ? (selectedFile.size / 1024).toFixed(2) : "0"} KB</Text>
+                  <Text><strong>Modified:</strong> {selectedFile.lastModified ? new Date(selectedFile.lastModified).toLocaleString() : "-"}</Text>
+                </>
+              )}
+              {selectedFile?.type === "folder" && (
+                <Text><strong>Item Count:</strong> {selectedFile.count ?? "Unknown"}</Text>
+              )}
+            </VStack>
+          </ModalBody>
           <ModalFooter>
             <Button colorScheme="blue" onClick={onDetailsClose}>
               Close
@@ -706,6 +659,41 @@ function FileExplorer() {
       </Modal>
     </Container>
   );
+
+  function renderPreview() {
+    if (!selectedFile) return null;
+    const fileType = getFileType(selectedFile.name);
+
+    switch (fileType) {
+      case "image":
+        return <Image src={fileUrl} alt={selectedFile.name} maxH="70vh" objectFit="contain" />;
+      case "text":
+        return (
+          <Textarea value={fileContent} isReadOnly resize="none" h="50vh" fontFamily="mono" />
+        );
+      case "pdf":
+        return (
+          <iframe
+            src={fileUrl}
+            title={selectedFile.name}
+            style={{ width: "100%", height: "70vh" }}
+          />
+        );
+      default:
+        return (
+          <Text>
+            Preview not available for this file type.{" "}
+            <Button
+              size="sm"
+              colorScheme="blue"
+              onClick={() => handleDownload(selectedFile.path, selectedFile.name)}
+            >
+              Download
+            </Button>
+          </Text>
+        );
+    }
+  }
 }
 
 export default FileExplorer;
