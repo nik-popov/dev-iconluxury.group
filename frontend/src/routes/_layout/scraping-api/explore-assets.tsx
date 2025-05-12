@@ -135,6 +135,7 @@ const getFileIcon = (name: string) => {
       return <FaFileWord />;
     case "xls":
     case "xlsx":
+    case "xlsm":
       return <FaFileExcel />;
     default:
       return <FiFile />;
@@ -144,7 +145,7 @@ const getFileIcon = (name: string) => {
 const getFileType = (name: string) => {
   const extension = (name.split(".").pop()?.toLowerCase() || "");
   if (["jpg", "jpeg", "png", "gif"].includes(extension)) return "image";
-  if (["txt", "json", "md"].includes(extension)) return "text";
+  if (["txt", "json", "md", "xlsx", "xlsm"].includes(extension)) return "text";
   if (extension === "pdf") return "pdf";
   return "unsupported";
 };
@@ -157,6 +158,7 @@ function FileExplorer() {
   const toast = useToast();
   const { isOpen: isPreviewOpen, onOpen: onPreviewOpen, onClose: onPreviewClose } = useDisclosure();
   const { isOpen: isDetailsOpen, onOpen: onDetailsOpen, onClose: onDetailsClose } = useDisclosure();
+  const { isOpen: isLogsOpen, onOpen: onLogsOpen, onClose: onLogsClose } = useDisclosure();
   const [currentPath, setCurrentPath] = useState("");
   const [objects, setObjects] = useState<S3Object[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -590,7 +592,12 @@ function FileExplorer() {
           </VStack>
         </Box>
         <Box w={{ base: "100%", md: "250px" }} p={4} borderLeft={{ md: "1px solid" }} borderColor="gray.200">
-          <Text fontWeight="bold" mb={2}>Action Logs</Text>
+          <Flex justify="space-between" align="center" mb={2}>
+            <Text fontWeight="bold">Action Logs</Text>
+            <Button size="sm" colorScheme="blue" onClick={onLogsOpen} isDisabled={logs.length === 0}>
+              View Logs
+            </Button>
+          </Flex>
           <VStack spacing={2} align="stretch" maxH="70vh" overflowY="auto">
             {logs.length === 0 ? (
               <Text fontSize="sm" color="gray.500">No actions logged</Text>
@@ -629,7 +636,7 @@ function FileExplorer() {
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={isDetailsOpen} onClose={onDetailsClose} size="md">
+      <Modal isOpen={isDetailsOpen} onClose={onDetailsClose} size="lg">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>File/Folder Details</ModalHeader>
@@ -652,6 +659,34 @@ function FileExplorer() {
           </ModalBody>
           <ModalFooter>
             <Button colorScheme="blue" onClick={onDetailsClose}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isLogsOpen} onClose={onLogsClose} size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Action Logs</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={4} align="stretch" maxH="70vh" overflowY="auto">
+              {logs.length === 0 ? (
+                <Text fontSize="sm" color="gray.500">No actions logged</Text>
+              ) : (
+                logs.map((log) => (
+                  <Box key={log.id} p={4} bg="gray.50" borderRadius="md" borderWidth="1px" borderColor="gray.200">
+                    <Text fontSize="sm" fontWeight="medium">Action: {log.action}</Text>
+                    <Text fontSize="sm">File: {log.file}</Text>
+                    <Text fontSize="sm" color="gray.500">Timestamp: {log.timestamp}</Text>
+                  </Box>
+                ))
+              )}
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" onClick={onLogsClose}>
               Close
             </Button>
           </ModalFooter>
