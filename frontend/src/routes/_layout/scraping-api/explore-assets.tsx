@@ -134,7 +134,7 @@ async function listS3Objects(prefix = "", continuationToken?: string): Promise<S
     }
     const folders: S3Object[] = (data.CommonPrefixes || []).map((prefix) => ({
       type: "folder",
-      name: prefix.Prefix?.replace(prefix || "", "").replace("/", "") || "",
+      name: prefix.Prefix?.replace(prefix.Prefix || "", "").replace("/", "") || "",
       path: prefix.Prefix || "",
     }));
     const files: S3Object[] = (data.Contents || [])
@@ -471,7 +471,9 @@ class ErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         <Container maxW="full" bg="white" color="gray.800" py={6}>
-          <Text color="red.500">Error: {this.state.error?.message || "Something went wrong"}</Text>
+          <Text color="red.500">
+            Error: {this.state.error?.message || "Something went wrong"}
+          </Text>
         </Container>
       );
     }
