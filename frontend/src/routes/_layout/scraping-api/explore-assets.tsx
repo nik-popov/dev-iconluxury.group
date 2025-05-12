@@ -341,6 +341,28 @@ function FileExplorer() {
     }
   };
 
+  const handleCopyContent = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast({
+        title: "Content Copied",
+        description: "Preview content copied to clipboard",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      addLog("Copied Content", selectedFile?.name || "Unknown");
+    } catch (error: any) {
+      toast({
+        title: "Copy Failed",
+        description: error.message || "Unable to copy content",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
   const handleLoadMore = () => {
     if (hasMore) {
       setPage((prev) => prev + 1);
@@ -394,23 +416,22 @@ function FileExplorer() {
     if (!obj) return <Text fontSize="sm" color="gray.500">Select a file to preview</Text>;
     const fileType = getFileType(obj.name);
 
-    switch (fileType) {
-      case "image":
-        return <Image src={url} alt={obj.name} maxH="50vh" maxW="100%" objectFit="contain" />;
-      case "text":
-        return (
+    return (
+      <VStack align="stretch" spacing={2}>
+        {fileType === "image" && (
+          <Image src={url} alt={obj.name} maxH="50vh" maxW="100%" objectFit="contain" />
+        )}
+        {fileType === "text" && (
           <Textarea value={content} isReadOnly resize="none" h="50vh" fontFamily="mono" fontSize="sm" />
-        );
-      case "pdf":
-        return (
+        )}
+        {fileType === "pdf" && (
           <iframe
             src={url}
             title={obj.name}
             style={{ width: "100%", height: "50vh" }}
           />
-        );
-      default:
-        return (
+        )}
+        {fileType === "unsupported" && (
           <Text>
             Preview not available for this file type.{" "}
             <Button
@@ -421,8 +442,35 @@ function FileExplorer() {
               Download
             </Button>
           </Text>
-        );
-    }
+        )}
+        <HStack justify="flex-end">
+          {fileType === "text" && content && (
+            <Tooltip label="Copy Preview Content">
+              <Button
+                size="sm"
+                colorScheme="gray"
+                leftIcon={<FiCopy />}
+                onClick={() => handleCopyContent(content)}
+              >
+                Copy
+              </Button>
+            </Tooltip>
+          )}
+          {url && (
+            <Tooltip label="Copy Source URL">
+              <Button
+                size="sm"
+                colorScheme="gray"
+                leftIcon={<FiCopy />}
+                onClick={() => handleCopyUrl(obj.path, obj.name)}
+              >
+                Copy URL
+              </Button>
+            </Tooltip>
+          )}
+        </HStack>
+      </VStack>
+    );
   };
 
   if (s3Error) {
@@ -445,6 +493,24 @@ function FileExplorer() {
           </Text>
         </Box>
         <HStack>
+          <Tooltip label={isPreviewOpen ? "Close Preview" : "Open Preview"}>
+            <IconButton
+              aria-label={isPreviewOpen ? "Close Preview" : "Open Preview"}
+              icon={isPreviewOpen ? <FiEyeOff /> : <FiEye />}
+              size="sm"
+              colorScheme={isPreviewOpen ? "green" : "gray"}
+              onClick={() => setIsPreviewOpen(!isPreviewOpen)}
+            />
+          </Tooltip>
+          <Tooltip label={isLogsPanelOpen ? "Close Logs" : "Open Logs"}>
+            <IconButton
+              aria-label={isLogsPanelOpen ? "Close Logs" : "Open Logs"}
+              icon={isLogsPanelOpen ? <FiEyeOff /> : <FiEye />}
+              size="sm"
+              colorScheme={isLogsPanelOpen ? "green" : "gray"}
+              onClick={() => setIsLogsPanelOpen(!isLogsPanelOpen)}
+            />
+          </Tooltip>
           <IconButton
             aria-label="List View"
             icon={<FiList />}
@@ -768,18 +834,9 @@ function FileExplorer() {
           >
             <Flex justify="space-between" align="center" mb={2}>
               <Text fontWeight="bold">Action Logs</Text>
-              <HStack>
-                <Button size="sm" colorScheme="blue" onClick={onLogsOpen} isDisabled={logs.length === 0}>
-                  View Logs
-                </Button>
-                <IconButton
-                  aria-label={isLogsPanelOpen ? "Close Logs" : "Open Logs"}
-                  icon={isLogsPanelOpen ? <FiEyeOff /> : <FiEye />}
-                  size="sm"
-                  colorScheme="gray"
-                  onClick={() => setIsLogsPanelOpen(!isLogsPanelOpen)}
-                />
-              </HStack>
+              <Button size="sm" colorScheme="blue" onClick={onLogsOpen} isDisabled={logs.length === 0}>
+                View Logs
+              </Button>
             </Flex>
             <VStack spacing={2} align="stretch">
               {logs.length === 0 ? (
@@ -828,16 +885,7 @@ function FileExplorer() {
             maxH="70vh"
             overflowY="auto"
           >
-            <Flex justify="space-between" align="center" mb={2}>
-              <Text fontWeight="bold">Preview</Text>
-              <IconButton
-                aria-label={isPreviewOpen ? "Close Preview" : "Open Preview"}
-                icon={isPreviewOpen ? <FiEyeOff /> : <FiEye />}
-                size="sm"
-                colorScheme="gray"
-                onClick={() => setIsPreviewOpen(!isPreviewOpen)}
-              />
-            </Flex>
+            <Text fontWeight="bold" mb={2}>Preview</Text>
             <Box>
               {renderPreview(selectedFile, previewUrl, previewContent)}
             </Box>
