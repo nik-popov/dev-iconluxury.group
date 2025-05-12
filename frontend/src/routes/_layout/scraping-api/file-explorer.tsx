@@ -79,16 +79,25 @@ async function listS3Objects(prefix: string = "", continuationToken?: string): P
   };
 
   const data = await s3.listObjectsV2(params).promise();
+ async function listS3Objects(prefix: string = "", continuationToken?: string): Promise<S3ListResponse> {
+  const params: S3.ListObjectsV2Request = {
+    Bucket: S3_BUCKET,
+    Prefix: prefix,
+    Delimiter: "/",
+    ContinuationToken: continuationToken,
+  };
+
+  const data = await s3.listObjectsV2(params).promise();
   const folders: S3Object[] = (data.CommonPrefixes || []).map((prefix) => ({
     type: "folder" as const,
-    name: prefix.Prefix ? prefix.Prefix.replace(params.Prefix, "").replace("/", "") : "",
+    name: prefix.Prefix ? prefix.Prefix!.replace(params.Prefix!, "").replace("/", "") : "",
     path: prefix.Prefix || "",
   }));
   const files: S3Object[] = (data.Contents || [])
     .filter((obj) => obj.Key && obj.Key !== prefix && !obj.Key.endsWith("/"))
     .map((obj) => ({
       type: "file" as const,
-      name: obj.Key ? obj.Key.replace(params.Prefix, "") : "",
+      name: obj.Key ? obj.Key!.replace(params.Prefix!, "") : "",
       path: obj.Key || "",
       size: obj.Size,
       lastModified: obj.LastModified,
