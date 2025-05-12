@@ -17,14 +17,14 @@ import { FiFolder, FiFile, FiDownload } from "react-icons/fi";
 import AWS, { S3 } from "aws-sdk";
 
 // Configuration for Cloudflare R2 (S3-compatible)
-const S3_BUCKET = "iconluxurygroup";
+const S3_BUCKET = process.env.REACT_APP_R2_BUCKET || "iconluxurygroup";
 const REGION = "auto";
-const ENDPOINT = "https://aa2f6aae69e7fb4bd8e2cd4311c411cb.r2.cloudflarestorage.com";
+const ENDPOINT = process.env.REACT_APP_R2_ENDPOINT || "https://aa2f6aae69e7fb4bd8e2cd4311c411cb.r2.cloudflarestorage.com";
 
 // Configure AWS SDK for R2
 AWS.config.update({
-  accessKeyId: "AKIA2CUNLEV6V627SWI7",
-  secretAccessKey: "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",
+  accessKeyId: process.env.REACT_APP_R2_ACCESS_KEY_ID || "AKIA2CUNLEV6V627SWI7",
+  secretAccessKey: process.env.REACT_APP_R2_SECRET_ACCESS_KEY || "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",
   region: REGION,
   s3ForcePathStyle: true,
 });
@@ -81,15 +81,15 @@ async function listS3Objects(prefix = "", continuationToken?: string): Promise<S
   const data = await s3.listObjectsV2(params).promise();
   const folders = (data.CommonPrefixes || []).map((prefix) => ({
     type: "folder" as const,
-    name: prefix.Prefix!.replace(params.Prefix, "").replace("/", ""),
-    path: prefix.Prefix!,
+    name: prefix.Prefix ? prefix.Prefix.replace(params.Prefix, "").replace("/", "") : "",
+    path: prefix.Prefix || "",
   }));
   const files = (data.Contents || [])
-    .filter((obj) => obj.Key !== prefix && !obj.Key!.endsWith("/"))
+    .filter((obj) => obj.Key && obj.Key !== prefix && !obj.Key.endsWith("/"))
     .map((obj) => ({
       type: "file" as const,
-      name: obj.Key!.replace(params.Prefix, ""),
-      path: obj.Key!,
+      name: obj.Key ? obj.Key.replace(params.Prefix, "") : "",
+      path: obj.Key || "",
       size: obj.Size,
       lastModified: obj.LastModified,
     }));
@@ -98,12 +98,11 @@ async function listS3Objects(prefix = "", continuationToken?: string): Promise<S
 }
 
 async function getDownloadUrl(key: string): Promise<string> {
-  const params: S3.GetObjectRequest = {
+  return s3.getSignedUrlPromise("getObject", {
     Bucket: S3_BUCKET,
     Key: key,
     Expires: 3600,
-  };
-  return s3.getSignedUrlPromise("getObject", params);
+  });
 }
 
 export const Route = createFileRoute("/_layout/scraping-api/file-explorer")({
@@ -167,7 +166,7 @@ function FileExplorer() {
       setLoadingMore(true);
       try {
         const moreData = await listS3Objects(currentPath, continuationToken);
-        setObjects((prev) => [...prev, ...[...moreData.folders, ...moreData.files]]);
+        setObjects((prev) => [...prev, ...[...moreData.folders, ...moreData.files]));
         setContinuationToken(moreData.nextToken);
       } catch (error) {
         console.error("Error loading more objects:", error);
