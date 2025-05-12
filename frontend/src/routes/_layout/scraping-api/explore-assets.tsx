@@ -28,8 +28,10 @@ import {
   useDisclosure,
   Textarea,
   Icon,
+  SimpleGrid,
+  Tooltip,
 } from "@chakra-ui/react";
-import { FiFolder, FiFile, FiDownload, FiChevronRight, FiChevronDown, FiArrowUp, FiArrowDown, FiCopy, FiEye, FiInfo } from "react-icons/fi";
+import { FiFolder, FiFile, FiDownload, FiChevronRight, FiChevronDown, FiArrowUp, FiArrowDown, FiCopy, FiEye, FiInfo, FiGrid, FiList } from "react-icons/fi";
 import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel, FaFile } from "react-icons/fa";
 
 const API_BASE_URL = "https://api.iconluxury.group/api/v1";
@@ -137,6 +139,8 @@ const getFileIcon = (name: string) => {
     case "xlsx":
     case "xlsm":
       return <FaFileExcel />;
+    case "log":
+      return <FiFile />;
     default:
       return <FiFile />;
   }
@@ -145,7 +149,7 @@ const getFileIcon = (name: string) => {
 const getFileType = (name: string) => {
   const extension = (name.split(".").pop()?.toLowerCase() || "");
   if (["jpg", "jpeg", "png", "gif"].includes(extension)) return "image";
-  if (["txt", "json", "md", "xlsx", "xlsm"].includes(extension)) return "text";
+  if (["txt", "json", "md", "log", "xlsx", "xlsm"].includes(extension)) return "text";
   if (extension === "pdf") return "pdf";
   return "unsupported";
 };
@@ -173,6 +177,10 @@ function FileExplorer() {
   const [fileContent, setFileContent] = useState<string>("");
   const [fileUrl, setFileUrl] = useState<string>("");
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [previewFile, setPreviewFile] = useState<S3Object | null>(null);
+  const [previewContent, setPreviewContent] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
 
   const { data, isFetching, error: s3Error } = useQuery<{ objects: S3Object[], hasMore: boolean, nextContinuationToken: string | null }, Error>({
     queryKey: ["s3Objects", currentPath, page, continuationToken],
@@ -220,28 +228,40 @@ function FileExplorer() {
     }
   };
 
-  const handleFileClick = async (obj: S3Object, action: "preview" | "details") => {
+  const handleFileClick = async (obj: S3Object, action: "preview" | "details" | "inline") => {
     setSelectedFile(obj);
     try {
       const url = await getSignedUrl(obj.path);
-      setFileUrl(url);
-      addLog(action === "preview" ? "Previewed" : "Viewed Details", obj.name);
-
-      if (action === "preview") {
+      if (action === "inline") {
+        setPreviewFile(obj);
+        setPreviewUrl(url);
+        addLog("Previewed Inline", obj.name);
         const fileType = getFileType(obj.name);
         if (fileType === "text") {
           const content = await getFileContent(obj.path);
-          setFileContent(content);
+          setPreviewContent(content);
         } else {
-          setFileContent("");
+          setPreviewContent("");
         }
-        onPreviewOpen();
       } else {
-        onDetailsOpen();
+        setFileUrl(url);
+        addLog(action === "preview" ? "Previewed" : "Viewed Details", obj.name);
+        if (action === "preview") {
+          const fileType = getFileType(obj.name);
+          if (fileType === "text") {
+            const content = await getFileContent(obj.path);
+            setFileContent(content);
+          } else {
+            setFileContent("");
+          }
+          onPreviewOpen();
+        } else {
+          onDetailsOpen();
+        }
       }
     } catch (error: any) {
       toast({
-        title: `${action === "preview" ? "Preview" : "Details"} Failed`,
+        title: `${action === "preview" ? "Preview" : action === "details" ? "Details" : "Inline Preview"} Failed`,
         description: error.message || `Unable to load file ${action}`,
         status: "error",
         duration: 5000,
@@ -355,6 +375,41 @@ function FileExplorer() {
       return sortOrder === "asc" ? comparison : -comparison;
     });
 
+  const renderPreview = (obj: S3Object | null, url: string, content: string) => {
+    if (!obj) return <Text fontSize="sm" color="gray.500">Select a file to preview</Text>;
+    const fileType = getFileType(obj.name);
+
+    switch (fileType) {
+      case "image":
+        return <Image src={url} alt={obj.name} maxH="50vh" maxW="100%" objectFit="contain" />;
+      case "text":
+        return (
+          <Textarea value={content} isReadOnly resize="none" h="50vh" fontFamily="mono" fontSize="sm" />
+        );
+      case "pdf":
+        return (
+          <iframe
+            src={url}
+            title={obj.name}
+            style={{ width: "100%", height: "50vh" }}
+          />
+        );
+      default:
+        return (
+          <Text>
+            Preview not available for this file type.{" "}
+            <Button
+              size="sm"
+              colorScheme="blue"
+              onClick={() => handleDownload(obj.path, obj.name)}
+            >
+              Download
+            </Button>
+          </Text>
+        );
+    }
+  };
+
   if (s3Error) {
     return (
       <Container maxW="full" bg="white" color="gray.800" py={6}>
@@ -374,11 +429,27 @@ function FileExplorer() {
             Browse and download files from S3 storage
           </Text>
         </Box>
-        {currentPath && (
-          <Button size="sm" variant="outline" colorScheme="green" onClick={handleGoBack}>
-            Back
-          </Button>
-        )}
+        <HStack>
+          <IconButton
+            aria-label="List View"
+            icon={<FiList />}
+            size="sm"
+            colorScheme={viewMode === "list" ? "green" : "gray"}
+            onClick={() => setViewMode("list")}
+          />
+          <IconButton
+            aria-label="Grid View"
+            icon={<FiGrid />}
+            size="sm"
+            colorScheme={viewMode === "grid" ? "green" : "gray"}
+            onClick={() => setViewMode("grid")}
+          />
+          {currentPath && (
+            <Button size="sm" variant="outline" colorScheme="green" onClick={handleGoBack}>
+              Back
+            </Button>
+          )}
+        </HStack>
       </Flex>
 
       <Box my={4}>
@@ -402,7 +473,7 @@ function FileExplorer() {
       <Divider my="4" borderColor="gray.200" />
 
       <Flex gap={6} justify="space-between" align="stretch" wrap="wrap">
-        <Box flex="1" minW={{ base: "100%", md: "65%" }}>
+        <Box flex="1" minW={{ base: "100%", md: "40%" }}>
           <Flex direction={{ base: "column", md: "row" }} gap={4} mb={4}>
             <Input
               placeholder="Search Files/Folders..."
@@ -429,168 +500,290 @@ function FileExplorer() {
             </Select>
           </Flex>
 
-          <Flex bg="gray.100" p={2} borderRadius="md" mb={2}>
-            <Box flex="2" cursor="pointer" onClick={() => handleSort("name")}>
-              <HStack>
-                <Text fontWeight="bold">Name</Text>
-                {sortField === "name" && (sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />)}
-              </HStack>
-            </Box>
-            <Box flex="1" cursor="pointer" onClick={() => handleSort("count")}>
-              <HStack>
-                <Text fontWeight="bold">Count</Text>
-                {sortField === "count" && (sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />)}
-              </HStack>
-            </Box>
-            <Box flex="1" cursor="pointer" onClick={() => handleSort("size")}>
-              <HStack>
-                <Text fontWeight="bold">Size</Text>
-                {sortField === "size" && (sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />)}
-              </HStack>
-            </Box>
-            <Box flex="1" cursor="pointer" onClick={() => handleSort("lastModified")}>
-              <HStack>
-                <Text fontWeight="bold">Modified</Text>
-                {sortField === "lastModified" && (sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />)}
-              </HStack>
-            </Box>
-            <Box flex="1" textAlign="right">
-              <Text fontWeight="bold">Actions</Text>
-            </Box>
-          </Flex>
+          {viewMode === "list" && (
+            <Flex bg="gray.100" p={2} borderRadius="md" mb={2}>
+              <Box flex="2" cursor="pointer" onClick={() => handleSort("name")}>
+                <HStack>
+                  <Text fontWeight="bold">Name</Text>
+                  {sortField === "name" && (sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />)}
+                </HStack>
+              </Box>
+              <Box flex="1" cursor="pointer" onClick={() => handleSort("count")}>
+                <HStack>
+                  <Text fontWeight="bold">Count</Text>
+                  {sortField === "count" && (sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />)}
+                </HStack>
+              </Box>
+              <Box flex="1" cursor="pointer" onClick={() => handleSort("size")}>
+                <HStack>
+                  <Text fontWeight="bold">Size</Text>
+                  {sortField === "size" && (sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />)}
+                </HStack>
+              </Box>
+              <Box flex="1" cursor="pointer" onClick={() => handleSort("lastModified")}>
+                <HStack>
+                  <Text fontWeight="bold">Modified</Text>
+                  {sortField === "lastModified" && (sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />)}
+                </HStack>
+              </Box>
+              <Box flex="1" textAlign="right">
+                <Text fontWeight="bold">Actions</Text>
+              </Box>
+            </Flex>
+          )}
 
-          <VStack spacing={4} align="stretch">
-            {filteredObjects.map((obj, index) => (
-              <Box
-                key={`${obj.path}-${index}`}
-                p={4}
-                borderWidth="1px"
-                borderRadius="lg"
-                borderColor="gray.200"
-                bg="white"
-                cursor={obj.type === "folder" ? "pointer" : "default"}
-                _hover={{ bg: obj.type === "folder" ? "gray.50" : "white" }}
-                onClick={() => obj.type === "folder" && handleFolderClick(obj.path)}
-              >
-                <Flex justify="space-between" align="center">
-                  <Flex align="center" gap={2} flex="2">
-                    {obj.type === "folder" ? (
-                      <IconButton
-                        aria-label={expandedFolders.includes(obj.path) ? "Collapse" : "Expand"}
-                        icon={expandedFolders.includes(obj.path) ? <FiChevronDown /> : <FiChevronRight />}
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleFolderClick(obj.path);
-                        }}
-                      />
-                    ) : null}
-                    {obj.type === "folder" ? <FiFolder /> : getFileIcon(obj.name)}
-                    <Box>
-                      <Text fontWeight="medium" color="gray.800">
-                        {obj.name}
+          {viewMode === "list" ? (
+            <VStack spacing={4} align="stretch">
+              {filteredObjects.map((obj, index) => (
+                <Box
+                  key={`${obj.path}-${index}`}
+                  p={4}
+                  borderWidth="1px"
+                  borderRadius="lg"
+                  borderColor="gray.200"
+                  bg="white"
+                  cursor={obj.type === "folder" ? "pointer" : "default"}
+                  _hover={{ bg: obj.type === "folder" ? "gray.50" : "white" }}
+                  onClick={() => obj.type === "folder" && handleFolderClick(obj.path)}
+                >
+                  <Flex justify="space-between" align="center">
+                    <Flex align="center" gap={2} flex="2">
+                      {obj.type === "folder" ? (
+                        <IconButton
+                          aria-label={expandedFolders.includes(obj.path) ? "Collapse" : "Expand"}
+                          icon={expandedFolders.includes(obj.path) ? <FiChevronDown /> : <FiChevronRight />}
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFolderClick(obj.path);
+                          }}
+                        />
+                      ) : null}
+                      {obj.type === "folder" ? <FiFolder /> : getFileIcon(obj.name)}
+                      <Box>
+                        <Text fontWeight="medium" color="gray.800">
+                          {obj.name}
+                        </Text>
+                        {obj.type === "file" && (
+                          <>
+                            <Text fontSize="sm" color="gray.500">
+                              Size: {obj.size ? (obj.size / 1024).toFixed(2) : "0"} KB
+                            </Text>
+                            <Text fontSize="sm" color="gray.500">
+                              Modified: {obj.lastModified ? new Date(obj.lastModified).toLocaleString() : "-"}
+                            </Text>
+                          </>
+                        )}
+                      </Box>
+                    </Flex>
+                    <Box flex="1">
+                      <Text fontSize="sm" color="gray.500">
+                        {obj.count ?? "-"}
                       </Text>
+                    </Box>
+                    <Box flex="1">
+                      <Text fontSize="sm" color="gray.500">
+                        {obj.size ? (obj.size / 1024).toFixed(2) : "-"} KB
+                      </Text>
+                    </Box>
+                    <Box flex="1">
+                      <Text fontSize="sm" color="gray.500">
+                        {obj.lastModified ? new Date(obj.lastModified).toLocaleString() : "-"}
+                      </Text>
+                    </Box>
+                    <HStack flex="1" justify="flex-end">
                       {obj.type === "file" && (
                         <>
-                          <Text fontSize="sm" color="gray.500">
-                            Size: {obj.size ? (obj.size / 1024).toFixed(2) : "0"} KB
-                          </Text>
-                          <Text fontSize="sm" color="gray.500">
-                            Modified: {obj.lastModified ? new Date(obj.lastModified).toLocaleString() : "-"}
-                          </Text>
+                          <Tooltip label="Preview Inline">
+                            <IconButton
+                              aria-label="Preview Inline"
+                              icon={<FiEye />}
+                              size="sm"
+                              colorScheme="teal"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleFileClick(obj, "inline");
+                              }}
+                              isDisabled={isFetching || getFileType(obj.name) === "unsupported"}
+                            />
+                          </Tooltip>
+                          <Tooltip label="Preview in Modal">
+                            <IconButton
+                              aria-label="Preview"
+                              icon={<FiEye />}
+                              size="sm"
+                              colorScheme="green"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleFileClick(obj, "preview");
+                              }}
+                              isDisabled={isFetching || getFileType(obj.name) === "unsupported"}
+                            />
+                          </Tooltip>
+                          <Tooltip label="Details">
+                            <IconButton
+                              aria-label="Details"
+                              icon={<FiInfo />}
+                              size="sm"
+                              colorScheme="purple"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleFileClick(obj, "details");
+                              }}
+                              isDisabled={isFetching}
+                            />
+                          </Tooltip>
+                          <Tooltip label="Download">
+                            <IconButton
+                              aria-label="Download"
+                              icon={<FiDownload />}
+                              size="sm"
+                              colorScheme="blue"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownload(obj.path, obj.name);
+                              }}
+                              isDisabled={isFetching}
+                            />
+                          </Tooltip>
+                          <Tooltip label="Copy URL">
+                            <IconButton
+                              aria-label="Copy URL"
+                              icon={<FiCopy />}
+                              size="sm"
+                              colorScheme="gray"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyUrl(obj.path, obj.name);
+                              }}
+                              isDisabled={isFetching}
+                            />
+                          </Tooltip>
                         </>
                       )}
-                    </Box>
+                    </HStack>
                   </Flex>
-                  <Box flex="1">
-                    <Text fontSize="sm" color="gray.500">
-                      {obj.count ?? "-"}
-                    </Text>
-                  </Box>
-                  <Box flex="1">
-                    <Text fontSize="sm" color="gray.500">
-                      {obj.size ? (obj.size / 1024).toFixed(2) : "-"} KB
-                    </Text>
-                  </Box>
-                  <Box flex="1">
-                    <Text fontSize="sm" color="gray.500">
-                      {obj.lastModified ? new Date(obj.lastModified).toLocaleString() : "-"}
-                    </Text>
-                  </Box>
-                  <HStack flex="1" justify="flex-end">
+                </Box>
+              ))}
+            </VStack>
+          ) : (
+            <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={4}>
+              {filteredObjects.map((obj, index) => (
+                <Box
+                  key={`${obj.path}-${index}`}
+                  p={4}
+                  borderWidth="1px"
+                  borderRadius="lg"
+                  borderColor="gray.200"
+                  bg="white"
+                  cursor={obj.type === "folder" ? "pointer" : "default"}
+                  _hover={{ bg: obj.type === "folder" ? "gray.50" : "white" }}
+                  onClick={() => obj.type === "folder" && handleFolderClick(obj.path)}
+                >
+                  <VStack align="start" spacing={2}>
+                    <HStack>
+                      {obj.type === "folder" ? <FiFolder /> : getFileIcon(obj.name)}
+                      <Text fontWeight="medium" color="gray.800" isTruncated>
+                        {obj.name}
+                      </Text>
+                    </HStack>
                     {obj.type === "file" && (
                       <>
-                        <IconButton
-                          aria-label="Preview"
-                          icon={<FiEye />}
-                          size="sm"
-                          colorScheme="green"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleFileClick(obj, "preview");
-                          }}
-                          isDisabled={isFetching || getFileType(obj.name) === "unsupported"}
-                        />
-                        <IconButton
-                          aria-label="Details"
-                          icon={<FiInfo />}
-                          size="sm"
-                          colorScheme="purple"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleFileClick(obj, "details");
-                          }}
-                          isDisabled={isFetching}
-                        />
-                        <IconButton
-                          aria-label="Download"
-                          icon={<FiDownload />}
-                          size="sm"
-                          colorScheme="blue"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(obj.path, obj.name);
-                          }}
-                          isDisabled={isFetching}
-                        />
-                        <IconButton
-                          aria-label="Copy URL"
-                          icon={<FiCopy />}
-                          size="sm"
-                          colorScheme="gray"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopyUrl(obj.path, obj.name);
-                          }}
-                          isDisabled={isFetching}
-                        />
+                        <Text fontSize="xs" color="gray.500">
+                          Size: {obj.size ? (obj.size / 1024).toFixed(2) : "0"} KB
+                        </Text>
+                        <Text fontSize="xs" color="gray.500">
+                          Modified: {obj.lastModified ? new Date(obj.lastModified).toLocaleString() : "-"}
+                        </Text>
                       </>
                     )}
-                  </HStack>
-                </Flex>
-              </Box>
-            ))}
-            {filteredObjects.length === 0 && !isFetching && (
-              <Text fontSize="sm" color="gray.500">
-                No items match your criteria
-              </Text>
-            )}
-            {isFetching && <Text fontSize="sm" color="gray.500">Loading...</Text>}
-            {!isFetching && hasMore && filteredObjects.length > 0 && (
-              <Button
-                colorScheme="green"
-                size="sm"
-                onClick={handleLoadMore}
-                mt={4}
-                alignSelf="center"
-                isDisabled={isFetching}
-              >
-                Load More
-              </Button>
-            )}
-          </VStack>
+                    {obj.type === "folder" && (
+                      <Text fontSize="xs" color="gray.500">
+                        Items: {obj.count ?? "-"}
+                      </Text>
+                    )}
+                    {obj.type === "file" && (
+                      <HStack>
+                        <Tooltip label="Preview Inline">
+                          <IconButton
+                            aria-label="Preview Inline"
+                            icon={<FiEye />}
+                            size="sm"
+                            colorScheme="teal"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFileClick(obj, "inline");
+                            }}
+                            isDisabled={isFetching || getFileType(obj.name) === "unsupported"}
+                          />
+                        </Tooltip>
+                        <Tooltip label="Preview in Modal">
+                          <IconButton
+                            aria-label="Preview"
+                            icon={<FiEye />}
+                            size="sm"
+                            colorScheme="green"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFileClick(obj, "preview");
+                            }}
+                            isDisabled={isFetching || getFileType(obj.name) === "unsupported"}
+                          />
+                        </Tooltip>
+                        <Tooltip label="Details">
+                          <IconButton
+                            aria-label="Details"
+                            icon={<FiInfo />}
+                            size="sm"
+                            colorScheme="purple"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFileClick(obj, "details");
+                            }}
+                            isDisabled={isFetching}
+                          />
+                        </Tooltip>
+                        <Tooltip label="Download">
+                          <IconButton
+                            aria-label="Download"
+                            icon={<FiDownload />}
+                            size="sm"
+                            colorScheme="blue"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(obj.path, obj.name);
+                            }}
+                            isDisabled={isFetching}
+                          />
+                        </Tooltip>
+                      </HStack>
+                    )}
+                  </VStack>
+                </Box>
+              ))}
+            </SimpleGrid>
+          )}
+          {filteredObjects.length === 0 && !isFetching && (
+            <Text fontSize="sm" color="gray.500" mt={4}>
+              No items match your criteria
+            </Text>
+          )}
+          {isFetching && <Text fontSize="sm" color="gray.500" mt={4}>Loading...</Text>}
+          {!isFetching && hasMore && filteredObjects.length > 0 && (
+            <Button
+              colorScheme="green"
+              size="sm"
+              onClick={handleLoadMore}
+              mt={4}
+              alignSelf="center"
+              isDisabled={isFetching}
+            >
+              Load More
+            </Button>
+          )}
         </Box>
+
         <Box w={{ base: "100%", md: "250px" }} p={4} borderLeft={{ md: "1px solid" }} borderColor="gray.200">
           <Flex justify="space-between" align="center" mb={2}>
             <Text fontWeight="bold">Action Logs</Text>
@@ -611,6 +804,37 @@ function FileExplorer() {
             )}
           </VStack>
         </Box>
+
+        <Box w={{ base: "100%", md: "300px" }} p={4} borderLeft={{ md: "1px solid" }} borderColor="gray.200">
+          <Text fontWeight="bold" mb={2}>Preview</Text>
+          <Select
+            placeholder="Select a file to preview"
+            value={previewFile?.path || ""}
+            onChange={(e) => {
+              const selected = filteredObjects.find((obj) => obj.path === e.target.value);
+              if (selected && selected.type === "file") {
+                handleFileClick(selected, "inline");
+              } else {
+                setPreviewFile(null);
+                setPreviewUrl("");
+                setPreviewContent("");
+              }
+            }}
+            mb={4}
+            isDisabled={filteredObjects.filter((obj) => obj.type === "file").length === 0}
+          >
+            {filteredObjects
+              .filter((obj) => obj.type === "file")
+              .map((obj) => (
+                <option key={obj.path} value={obj.path}>
+                  {obj.name}
+                </option>
+              ))}
+          </Select>
+          <Box maxH="70vh" overflowY="auto">
+            {renderPreview(previewFile, previewUrl, previewContent)}
+          </Box>
+        </Box>
       </Flex>
 
       <Modal isOpen={isPreviewOpen} onClose={onPreviewClose} size="xl">
@@ -618,7 +842,7 @@ function FileExplorer() {
         <ModalContent>
           <ModalHeader>{selectedFile?.name}</ModalHeader>
           <ModalCloseButton />
-          <ModalBody>{renderPreview()}</ModalBody>
+          <ModalBody>{renderPreview(selectedFile, fileUrl, fileContent)}</ModalBody>
           <ModalFooter>
             <Button colorScheme="blue" mr={3} onClick={onPreviewClose}>
               Close
@@ -694,41 +918,6 @@ function FileExplorer() {
       </Modal>
     </Container>
   );
-
-  function renderPreview() {
-    if (!selectedFile) return null;
-    const fileType = getFileType(selectedFile.name);
-
-    switch (fileType) {
-      case "image":
-        return <Image src={fileUrl} alt={selectedFile.name} maxH="70vh" objectFit="contain" />;
-      case "text":
-        return (
-          <Textarea value={fileContent} isReadOnly resize="none" h="50vh" fontFamily="mono" />
-        );
-      case "pdf":
-        return (
-          <iframe
-            src={fileUrl}
-            title={selectedFile.name}
-            style={{ width: "100%", height: "70vh" }}
-          />
-        );
-      default:
-        return (
-          <Text>
-            Preview not available for this file type.{" "}
-            <Button
-              size="sm"
-              colorScheme="blue"
-              onClick={() => handleDownload(selectedFile.path, selectedFile.name)}
-            >
-              Download
-            </Button>
-          </Text>
-        );
-    }
-  }
 }
 
 export default FileExplorer;
