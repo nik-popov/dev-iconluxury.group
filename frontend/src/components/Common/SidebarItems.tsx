@@ -81,10 +81,10 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
         item.title === "Scraping" && 
         item.subItems?.some(sub => sub.title === "Proxies")
       )) ||
-    (title === "User Agents" && 
+    (title === "Storage" && 
       finalSidebarStructure.some(item => 
         item.title === "Scraping" && 
-        item.subItems?.some(sub => sub.title === "User Agents")
+        item.subItems?.some(sub => sub.title === "Storage")
       ));
 
   const renderItems = (items: SidebarItem[]) =>
