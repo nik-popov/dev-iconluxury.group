@@ -884,7 +884,6 @@ function FileExplorer() {
             maxH="70vh"
             overflowY="auto"
           >
-            <Text fontWeight="bold" mb={2}>Preview</Text>
             <Box>
               {renderPreview(selectedFile, previewUrl, previewContent)}
             </Box>
