@@ -856,7 +856,6 @@ function FileExplorer() {
           <Box
             w="50px"
             p={2}
-            borderColor="gray.200"
             position="sticky"
             top="0"
             alignSelf="flex-start"
@@ -885,8 +884,6 @@ function FileExplorer() {
           <Box
             w="50px"
             p={2}
-            borderLeft={{ md: "1px solid" }}
-            borderColor="gray.200"
             position="sticky"
             top="0"
             alignSelf="flex-start"
