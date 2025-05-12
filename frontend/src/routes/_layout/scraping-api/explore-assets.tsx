@@ -20,7 +20,6 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 const S3_BUCKET = process.env.REACT_APP_R2_BUCKET || "iconluxurygroup";
 const REGION = "auto";
 const ENDPOINT = process.env.REACT_APP_R2_ENDPOINT || "https://aa2f6aae69e7fb4bd8e2cd4311c411cb.r2.cloudflarestorage.com";
-const API_URL = process.env.REACT_APP_API_URL || "https://api.iconluxury.group";
 
 const s3Client = new S3Client({
   region: REGION,
@@ -32,38 +31,12 @@ const s3Client = new S3Client({
   forcePathStyle: true,
 });
 
-interface SubscriptionStatus {
-  hasSubscription: boolean;
-  isTrial: boolean;
-  isDeactivated: boolean;
-}
-
 interface S3Object {
   type: "folder" | "file";
   name: string;
   path: string;
   size?: number;
   lastModified?: Date;
-}
-
-const getAuthToken = (): string | null => localStorage.getItem("access_token");
-
-async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
-  const token = getAuthToken();
-  const response = await fetch(`${API_URL}/api/v1/subscription-status/s3`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new Error("Unauthorized: Please log in again.");
-    }
-    throw new Error(`Failed to fetch subscription status: ${response.status}`);
-  }
-  return response.json();
 }
 
 async function listS3Objects(prefix: string, page: number, pageSize = 10): Promise<S3Object[]> {
@@ -110,21 +83,10 @@ function FileExplorer() {
   const [typeFilter, setTypeFilter] = useState<"all" | "folder" | "file">("all");
   const [page, setPage] = useState(1);
 
-  const { data: subscriptionStatus, isLoading: isSubLoading, error: subError } = useQuery<
-    SubscriptionStatus,
-    Error
-  >({
-    queryKey: ["subscriptionStatus", "s3"],
-    queryFn: fetchSubscriptionStatus,
-    staleTime: 5 * 60 * 1000,
-    retry: (failureCount, error) => error.message.includes("Unauthorized") ? false : failureCount < 3,
-  });
-
   const { data: s3Objects, isFetching, error: s3Error } = useQuery<S3Object[], Error>({
     queryKey: ["s3Objects", currentPath, page],
     queryFn: () => listS3Objects(currentPath, page),
     placeholderData: keepPreviousData,
-    enabled: !!subscriptionStatus?.hasSubscription || !!subscriptionStatus?.isTrial,
   });
 
   useEffect(() => {
@@ -170,31 +132,6 @@ function FileExplorer() {
     return matchesSearch && matchesType;
   });
 
-  if (isSubLoading) {
-    return (
-      <Container maxW="full" bg="white" color="gray.800" py={6}>
-        <Text>Loading...</Text>
-      </Container>
-    );
-  }
-
-  if (subError) {
-    return (
-      <Container maxW="full" bg="white" color="gray.800" py={6}>
-        <Text color="red.500">
-          {subError.message.includes("Unauthorized")
-            ? "Session expired. Please log in again."
-            : "Error loading subscription status"}
-        </Text>
-        {subError.message.includes("Unauthorized") && (
-          <Button mt={4} colorScheme="blue" onClick={() => navigate({ to: "/login" })}>
-            Log In
-          </Button>
-        )}
-      </Container>
-    );
-  }
-
   if (s3Error) {
     return (
       <Container maxW="full" bg="white" color="gray.800" py={6}>
@@ -202,9 +139,6 @@ function FileExplorer() {
       </Container>
     );
   }
-
-  const { hasSubscription = false, isTrial = false, isDeactivated = false } = subscriptionStatus || {};
-  const isLocked = !hasSubscription && !isTrial;
 
   return (
     <Container maxW="full" bg="white" color="gray.800" py={6}>
@@ -223,128 +157,117 @@ function FileExplorer() {
           </Button>
         )}
       </Flex>
-      <Divider my={4} borderColor="gray.200" />
-      {isLocked ? (
-        <Text>Access restricted. Please subscribe or start a trial.</Text>
-      ) : isDeactivated ? (
-        <Flex justify="space-between" align="center" w="full" p={4} bg="red.50" borderRadius="md">
-          <Text color="gray.800">Your access has been deactivated.</Text>
-          <Button colorScheme="red" onClick={() => navigate({ to: "/pricing" })}>
-            Reactivate Now
-          </Button>
-        </Flex>
-      ) : (
-        <Flex gap={6} justify="space-between" align="stretch" wrap="wrap">
-          <Box flex="1" minW={{ base: "100%", md: "65%" }}>
-            <Flex direction={{ base: "column", md: "row" }} gap={4} mb={4}>
-              <Input
-                placeholder="Search Files/Folders..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                w={{ base: "100%", md: "250px" }}
-                borderColor="green.300"
-                _focus={{ borderColor: "green.500", boxShadow: "0 0 0 1px green.500" }}
+      <Divider my="4" borderColor="gray.200" />
+      <Flex gap={6} justify="space-between" align="stretch" wrap="wrap">
+        <Box flex="1" minW={{ base: "100%", md: "65%" }}>
+          <Flex direction={{ base: "column", md: "row" }} gap={4} mb={4}>
+            <Input
+              placeholder="Search Files/Folders..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              w={{ base: "100%", md: "250px" }}
+              borderColor="green.300"
+              _focus={{ borderColor: "green.500", boxShadow: "0 0 0 1px green.500" }}
+              bg="white"
+              color="gray.800"
+            />
+            <Select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as "all" | "folder" | "file")}
+              w={{ base: "100%", md: "200px" }}
+              borderColor="green.300"
+              _focus={{ borderColor: "green.500", boxShadow: "0 0 0 1px green.500" }}
+              bg="white"
+              color="gray.700"
+            >
+              <option value="all">All</option>
+              <option value="folder">Folders</option>
+              <option value="file">Files</option>
+            </Select>
+          </Flex>
+          <VStack spacing={4} align="stretch">
+            {filteredObjects.map((obj, index) => (
+              <Box
+                key={`${obj.path}-${index}`}
+                p={4}
+                borderWidth="1px"
+                borderRadius="lg"
+                borderColor="gray.200"
                 bg="white"
-                color="gray.800"
-              />
-              <Select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as "all" | "folder" | "file")}
-                w={{ base: "100%", md: "200px" }}
-                borderColor="green.300"
-                _focus={{ borderColor: "green.500", boxShadow: "0 0 0 1px green.500" }}
-                bg="white"
-                color="gray.700"
               >
-                <option value="all">All</option>
-                <option value="folder">Folders</option>
-                <option value="file">Files</option>
-              </Select>
-            </Flex>
-            <VStack spacing={4} align="stretch">
-              {filteredObjects.map((obj, index) => (
-                <Box
-                  key={`${obj.path}-${index}`}
-                  p={4}
-                  borderWidth="1px"
-                  borderRadius="lg"
-                  borderColor="gray.200"
-                  bg="white"
-                >
-                  <Flex justify="space-between" align="center">
-                    <Flex align="center" gap={2}>
-                      {obj.type === "folder" ? <FiFolder /> : <FiFile />}
-                      <Box>
-                        <Text fontWeight="medium" color="gray.800">
-                          {obj.name}
-                        </Text>
-                        {obj.type === "file" && (
-                          <>
-                            <Text fontSize="sm" color="gray.500">
-                              Size: {obj.size ? (obj.size / 1024).toFixed(2) : "0"} KB
-                            </Text>
-                            <Text fontSize="sm" color="gray.500">
-                              Modified: {obj.lastModified ? new Date(obj.lastModified).toLocaleString() : "-"}
-                            </Text>
-                          </>
-                        )}
-                      </Box>
-                    </Flex>
-                    {obj.type === "folder" ? (
-                      <Button size="sm" colorScheme="green" onClick={() => handleFolderClick(obj.path)}>
-                        Open
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        colorScheme="blue"
-                        leftIcon={<FiDownload />}
-                        onClick={() => handleDownload(obj.path)}
-                        isDisabled={isFetching}
-                      >
-                        Download
-                      </Button>
-                    )}
+                <Flex justify="space-between" align="center">
+                  <Flex align="center" gap={2}>
+                    {obj.type === "folder" ? <FiFolder /> : <FiFile />}
+                    <Box>
+                      <Text fontWeight="medium" color="gray.800">
+                        {obj.name}
+                      </Text>
+                      {obj.type === "file" && (
+                        <>
+                          <Text fontSize="sm" color="gray.500">
+                            Size: {obj.size ? (obj.size / 1024).toFixed(2) : "0"} KB
+                          </Text>
+                          <Text fontSize="sm" color="gray.500">
+                            Modified: {obj.lastModified ? new Date(obj.lastModified).toLocaleString() : "-"}
+                          </Text>
+                        </>
+                      )}
+                    </Box>
                   </Flex>
-                </Box>
-              ))}
-              {filteredObjects.length === 0 && !isFetching && (
-                <Text fontSize="sm" color="gray.500">
-                  No items match your criteria
-                </Text>
-              )}
-              {isFetching ? (
-                <Text fontSize="sm" color="gray.500">Loading...</Text>
-              ) : (
-                filteredObjects.length > 0 && (
-                  <Button
-                    colorScheme="green"
-                    size="sm"
-                    onClick={handleLoadMore}
-                    mt={4}
-                    alignSelf="center"
-                  >
-                    Load More
-                  </Button>
-                )
-              )}
-            </VStack>
-          </Box>
-          <Box w={{ base: "100%", md: "250px" }} p={4} borderLeft={{ md: "1px solid" }} borderColor="gray.200">
-            <VStack spacing={4} align="stretch">
-              <Text fontWeight="bold" color="black">
-                Quick Actions
+                  {obj.type === "folder" ? (
+                    <Button size="sm" colorScheme="green" onClick={() => handleFolderClick(obj.path)}>
+                      Open
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      colorScheme="blue"
+                      leftIcon={<FiDownload />}
+                      onClick={() => handleDownload(obj.path)}
+                      isDisabled={isFetching}
+                    >
+                      Download
+                    </Button>
+                  )}
+                </Flex>
+              </Box>
+            ))}
+            {filteredObjects.length === 0 && !isFetching && (
+              <Text fontSize="sm" color="gray.500">
+                No items match your criteria
               </Text>
-              <Button as="a" href="/s3-explorer/upload" variant="outline" size="sm" colorScheme="green">
-                Upload File
-              </Button>
-              <Button as="a" href="/s3-explorer/create-folder" variant="outline" size="sm" colorScheme="green">
-                Create Folder
-              </Button>
-            </VStack>
-          </Box>
-        </Flex>
-      )}
+            )}
+            {isFetching ? (
+              <Text fontSize="sm" color="gray.500">Loading...</Text>
+            ) : (
+              filteredObjects.length > 0 && (
+                <Button
+                  colorScheme="green"
+                  size="sm"
+                  onClick={handleLoadMore}
+                  mt={4}
+                  alignSelf="center"
+                >
+                  Load More
+                </Button>
+              )
+            )}
+          </VStack>
+        </Box>
+        <Box w={{ base: "100%", md: "250px" }} p={4} borderLeft={{ md: "1px solid" }} borderColor="gray.200">
+          <VStack spacing={4} align="stretch">
+            <Text fontWeight="bold" color="black">
+              Quick Actions
+            </Text>
+            <Button as="a" href="/s3-explorer/upload" variant="outline" size="sm" colorScheme="green">
+              Upload File
+            </Button>
+            <Button as="a" href="/s3-explorer/create-folder" variant="outline" size="sm" colorScheme="green">
+              Create Folder
+            </Button>
+          </VStack>
+        </Box>
+      </Flex>
     </Container>
   );
 }
