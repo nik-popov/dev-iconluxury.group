@@ -40,29 +40,37 @@ interface S3Object {
 }
 
 async function listS3Objects(prefix: string, page: number, pageSize = 10): Promise<S3Object[]> {
-  const command = new ListObjectsV2Command({
-    Bucket: S3_BUCKET,
-    Prefix: prefix,
-    Delimiter: "/",
-    MaxKeys: pageSize,
-    StartAfter: page > 1 ? `${prefix}${(page - 1) * pageSize}` : undefined,
-  });
-  const data = await s3Client.send(command);
-  const folders: S3Object[] = (data.CommonPrefixes || []).map((prefix) => ({
-    type: "folder",
-    name: prefix.Prefix?.replace(prefix.Prefix || "", "").replace("/", "") || "",
-    path: prefix.Prefix || "",
-  }));
-  const files: S3Object[] = (data.Contents || [])
-    .filter((obj) => obj.Key && obj.Key !== prefix && !obj.Key.endsWith("/"))
-    .map((obj) => ({
-      type: "file",
-      name: obj.Key?.replace(prefix || "", "") || "",
-      path: obj.Key || "",
-      size: obj.Size,
-      lastModified: obj.LastModified,
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: S3_BUCKET,
+      Prefix: prefix,
+      Delimiter: "/",
+      MaxKeys: pageSize,
+      StartAfter: page > 1 ? `${prefix}${(page - 1) * pageSize}` : undefined,
+    });
+    const data = await s3Client.send(command);
+    const folders: S3Object[] = (data.CommonPrefixes || []).map((prefix) => ({
+      type: "folder",
+      name: prefix.Prefix?.replace(prefix.Prefix || "", "").replace("/", "") || "",
+      path: prefix.Prefix || "",
     }));
-  return [...folders, ...files];
+    const files: S3Object[] = (data.Contents || [])
+      .filter((obj) => obj.Key && obj.Key !== prefix && !obj.Key.endsWith("/"))
+      .map((obj) => ({
+        type: "file",
+        name: obj.Key?.replace(prefix || "", "") || "",
+        path: obj.Key || "",
+        size: obj.Size,
+        lastModified: obj.LastModified,
+      }));
+    return [...folders, ...files];
+  } catch (error) {
+    console.error("Error listing S3 objects:", error);
+    const message = error.message?.includes("CORS")
+      ? "CORS error: The Cloudflare R2 bucket is not configured to allow requests from https://dashboard.iconluxury.group. Ensure the bucket's CORS policy includes 'OPTIONS' in AllowedMethods and allows 'https://dashboard.iconluxury.group'."
+      : `Failed to list objects: ${error.message || "Unknown error"}`;
+    throw new Error(message);
+  }
 }
 
 async function getDownloadUrl(key: string): Promise<string> {
@@ -135,7 +143,7 @@ function FileExplorer() {
   if (s3Error) {
     return (
       <Container maxW="full" bg="white" color="gray.800" py={6}>
-        <Text color="red.500">Error loading files: {s3Error.message}</Text>
+        <Text color="red.500">{s3Error.message}</Text>
       </Container>
     );
   }
