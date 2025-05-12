@@ -322,7 +322,7 @@ function FileExplorer() {
     setPreviewContent("");
   };
 
-  const handleDownload = async (key: string, name: string) => {
+  const handleDownload = async (key: string) => {
     try {
       const url = await getSignedUrl(key);
       window.open(url, "_blank");
@@ -337,7 +337,7 @@ function FileExplorer() {
     }
   };
 
-  const handleCopyUrl = async (key: string, name: string) => {
+  const handleCopyUrl = async (key: string) => {
     try {
       const url = await getSignedUrl(key);
       await navigator.clipboard.writeText(url);
