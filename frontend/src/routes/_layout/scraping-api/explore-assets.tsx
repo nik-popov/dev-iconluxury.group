@@ -31,7 +31,7 @@ import {
   SimpleGrid,
   Tooltip,
 } from "@chakra-ui/react";
-import { FiFolder, FiFile, FiDownload, FiChevronRight, FiChevronDown, FiArrowUp, FiArrowDown, FiCopy, FiInfo, FiGrid, FiList, FiFileText } from "react-icons/fi";
+import { FiFolder, FiFile, FiDownload, FiChevronRight, FiChevronDown, FiArrowUp, FiArrowDown, FiCopy, FiInfo, FiGrid, FiList, FiFileText, FiEye, FiEyeOff } from "react-icons/fi";
 import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel, FaFile } from "react-icons/fa";
 
 const API_BASE_URL = "https://api.iconluxury.group/api/v1";
@@ -185,6 +185,8 @@ function FileExplorer() {
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(true);
+  const [isLogsPanelOpen, setIsLogsPanelOpen] = useState(true);
 
   const { data, isFetching, error: s3Error } = useQuery<{ objects: S3Object[], hasMore: boolean, nextContinuationToken: string | null }, Error>({
     queryKey: ["s3Objects", currentPath, page, continuationToken],
@@ -417,7 +419,14 @@ function FileExplorer() {
     return (
       <VStack align="stretch" spacing={2}>
         {fileType === "image" && (
-          <Image src={url} alt={obj.name} maxH="50vh" maxW="100%" objectFit="contain" />
+          <Image
+            src={url}
+            alt={obj.name}
+            maxW="100%"
+            maxH="50vh"
+            objectFit="contain"
+            objectPosition="center"
+          />
         )}
         {fileType === "text" && (
           <Textarea value={content} isReadOnly resize="none" h="50vh" fontFamily="mono" fontSize="sm" />
@@ -491,6 +500,24 @@ function FileExplorer() {
           </Text>
         </Box>
         <HStack>
+          <Tooltip label={isPreviewOpen ? "Hide Preview" : "Show Preview"}>
+            <IconButton
+              aria-label={isPreviewOpen ? "Hide Preview" : "Show Preview"}
+              icon={isPreviewOpen ? <FiEyeOff /> : <FiEye />}
+              size="sm"
+              colorScheme={isPreviewOpen ? "green" : "gray"}
+              onClick={() => setIsPreviewOpen(!isPreviewOpen)}
+            />
+          </Tooltip>
+          <Tooltip label={isLogsPanelOpen ? "Hide Logs" : "Show Logs"}>
+            <IconButton
+              aria-label={isLogsPanelOpen ? "Hide Logs" : "Show Logs"}
+              icon={isLogsPanelOpen ? <FiEyeOff /> : <FiEye />}
+              size="sm"
+              colorScheme={isLogsPanelOpen ? "green" : "gray"}
+              onClick={() => setIsLogsPanelOpen(!isLogsPanelOpen)}
+            />
+          </Tooltip>
           <IconButton
             aria-label="List View"
             icon={<FiList />}
@@ -540,7 +567,7 @@ function FileExplorer() {
           maxH="70vh"
           overflowY="auto"
           overflowX="auto"
-          pr={4}
+          pr={isPreviewOpen || isLogsPanelOpen ? 0 : 4}
         >
           <Flex direction={{ base: "column", md: "row" }} gap={4} mb={4}>
             <Input
@@ -800,59 +827,99 @@ function FileExplorer() {
           )}
         </Box>
 
-        <Box
-          w={{ base: "100%", md: "250px" }}
-          p={4}
-          borderLeft={{ md: "1px solid" }}
-          borderColor="gray.200"
-          position="sticky"
-          top="0"
-          alignSelf="flex-start"
-          maxH="70vh"
-          overflowY="auto"
-        >
-          <Flex justify="flex-end" align="center" mb={2}>
-            <Tooltip label="View Logs">
-              <IconButton
-                aria-label="View Logs"
-                icon={<FiFileText />}
-                size="sm"
-                colorScheme="blue"
-                onClick={onLogsOpen}
-                isDisabled={logs.length === 0}
-              />
-            </Tooltip>
-          </Flex>
-          <VStack spacing={2} align="stretch">
-            {logs.length === 0 ? (
-              <Text fontSize="sm" color="gray.500">No actions logged</Text>
-            ) : (
-              logs.map((log) => (
-                <Box key={log.id} p={2} bg="gray.50" borderRadius="md">
-                  <Text fontSize="sm" fontWeight="medium">{log.action}: {truncateName(log.file, 20)}</Text>
-                  <Text fontSize="xs" color="gray.500">{log.timestamp}</Text>
-                </Box>
-              ))
-            )}
-          </VStack>
-        </Box>
-
-        <Box
-          w={{ base: "100%", md: "300px" }}
-          p={4}
-          borderLeft={{ md: "1px solid" }}
-          borderColor="gray.200"
-          position="sticky"
-          top="0"
-          alignSelf="flex-start"
-          maxH="70vh"
-          overflowY="auto"
-        >
-          <Text fontWeight="bold" mb={2}>Preview</Text>
-          <Box>
-            {renderPreview(selectedFile, previewUrl, previewContent)}
+        {isLogsPanelOpen ? (
+          <Box
+            w={{ base: "100%", md: "250px" }}
+            p={4}
+            borderLeft={{ md: "1px solid" }}
+            borderColor="gray.200"
+            position="sticky"
+            top="0"
+            alignSelf="flex-start"
+            maxH="70vh"
+            overflowY="auto"
+          >
+            <Flex justify="flex-end" align="center" mb={2}>
+              <Tooltip label="View Logs">
+                <IconButton
+                  aria-label="View Logs"
+                  icon={<FiFileText />}
+                  size="sm"
+                  colorScheme="blue"
+                  onClick={onLogsOpen}
+                  isDisabled={logs.length === 0}
+                />
+              </Tooltip>
+            </Flex>
+            <VStack spacing={2} align="stretch">
+              {logs.length === 0 ? (
+                <Text fontSize="sm" color="gray.500">No actions logged</Text>
+              ) : (
+                logs.map((log) => (
+                  <Box key={log.id} p={2} bg="gray.50" borderRadius="md">
+                    <Text fontSize="sm" fontWeight="medium">{log.action}: {truncateName(log.file, 20)}</Text>
+                    <Text fontSize="xs" color="gray.500">{log.timestamp}</Text>
+                  </Box>
+                ))
+              )}
+            </VStack>
           </Box>
-        </Box>
+        ) : (
+          <Box
+            w="50px"
+            p={2}
+            borderLeft={{ md: "1px solid" }}
+            borderColor="gray.200"
+            position="sticky"
+            top="0"
+            alignSelf="flex-start"
+          >
+            <IconButton
+              aria-label="Show Logs"
+              icon={<FiEye />}
+              size="sm"
+              colorScheme="gray"
+              onClick={() => setIsLogsPanelOpen(true)}
+            />
+          </Box>
+        )}
+
+        {isPreviewOpen ? (
+          <Box
+            w={{ base: "100%", md: "300px" }}
+            p={4}
+            borderLeft={{ md: "1px solid" }}
+            borderColor="gray.200"
+            position="sticky"
+            top="0"
+            alignSelf="flex-start"
+            maxH="70vh"
+            overflowY="auto"
+          >
+            <Text fontWeight="bold" mb={2}>Preview</Text>
+            <Box>
+              {renderPreview(selectedFile, previewUrl, previewContent)}
+            </Box>
+          </Box>
+        ) : (
+          <Box
+            w="50px"
+            p={2}
+            borderLeft={{ md: "1px solid" }}
+            borderColor="gray.200"
+            position="sticky"
+            top="0"
+            alignSelf="flex-start"
+          >
+            <IconButton
+              aria-label="Show Preview"
+              icon={<FiEye />}
+              size="sm"
+              colorScheme="gray"
+              onClick={() => setIsPreviewOpen(true)}
+            />
+          </Box>
+        )}
       </Flex>
 
       <Modal isOpen={isDetailsOpen} onClose={onDetailsClose} size="lg">
