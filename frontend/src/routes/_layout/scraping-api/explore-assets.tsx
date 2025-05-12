@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
@@ -220,7 +219,7 @@ function FileExplorer() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [isPreviewOpen, setIsPreviewOpen] = useState(true);
   const [detailsWidth, setDetailsWidth] = useState(600); // Initial width for details modal
-  const [previewWidth, setPreviewWidth] = useState(300); // Initial width for preview panel
+  const [previewWidth, setPreviewWidth] = useState(500); // Increased width for preview panel in grid mode
 
   const { data, isFetching, error: s3Error } = useQuery<{ objects: S3Object[], hasMore: boolean, nextContinuationToken: string | null }, Error>({
     queryKey: ["s3Objects", currentPath, page, continuationToken],
@@ -568,10 +567,16 @@ function FileExplorer() {
 
       <Divider my="4" borderColor="gray.200" />
 
-      <Flex gap={6} justify="space-between" align="stretch" wrap="wrap">
+      <Flex
+        gap={6}
+        justify={viewMode === "grid" ? "flex-start" : "space-between"}
+        align="stretch"
+        wrap="wrap"
+      >
         <Box
-          flex="1"
-          minW={{ base: "100%", md: "40%" }}
+          flex={viewMode === "grid" ? "0 0 40%" : "1"}
+          minW={{ base: "100%", md: viewMode === "grid" ? "40%" : "40%" }}
+          maxW={viewMode === "grid" ? { base: "100%", md: "50%" } : "none"}
           maxH="70vh"
           overflowY="auto"
           overflowX="auto"
@@ -847,6 +852,7 @@ function FileExplorer() {
             maxH="70vh"
             overflowY="auto"
             pos="relative"
+            flex={viewMode === "grid" ? "1" : "0 0 auto"}
           >
             <ResizeHandle onResize={setPreviewWidth} />
             <Text fontWeight="bold" mb={2}>Preview</Text>
