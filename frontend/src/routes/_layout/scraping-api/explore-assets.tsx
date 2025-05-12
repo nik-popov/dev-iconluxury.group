@@ -31,7 +31,7 @@ import {
   SimpleGrid,
   Tooltip,
 } from "@chakra-ui/react";
-import { FiFolder, FiFile, FiDownload, FiChevronRight, FiChevronDown, FiArrowUp, FiArrowDown, FiCopy, FiEye, FiInfo, FiGrid, FiList } from "react-icons/fi";
+import { FiFolder, FiFile, FiDownload, FiChevronRight, FiChevronDown, FiArrowUp, FiArrowDown, FiCopy, FiInfo, FiGrid, FiList, FiEyeOff, FiEye } from "react-icons/fi";
 import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel, FaFile } from "react-icons/fa";
 
 const API_BASE_URL = "https://api.iconluxury.group/api/v1";
@@ -154,13 +154,20 @@ const getFileType = (name: string) => {
   return "unsupported";
 };
 
+// Custom truncation to show start and end of name
+const truncateName = (name: string, maxLength: number = 20) => {
+  if (name.length <= maxLength) return name;
+  const start = name.slice(0, Math.floor(maxLength / 2));
+  const end = name.slice(-Math.floor(maxLength / 2));
+  return `${start}...${end}`;
+};
+
 export const Route = createFileRoute("/_layout/scraping-api/explore-assets")({
   component: FileExplorer,
 });
 
 function FileExplorer() {
   const toast = useToast();
-  const { isOpen: isPreviewOpen, onOpen: onPreviewOpen, onClose: onPreviewClose } = useDisclosure();
   const { isOpen: isDetailsOpen, onOpen: onDetailsOpen, onClose: onDetailsClose } = useDisclosure();
   const { isOpen: isLogsOpen, onOpen: onLogsOpen, onClose: onLogsClose } = useDisclosure();
   const [currentPath, setCurrentPath] = useState("");
@@ -174,13 +181,12 @@ function FileExplorer() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<S3Object | null>(null);
-  const [fileContent, setFileContent] = useState<string>("");
-  const [fileUrl, setFileUrl] = useState<string>("");
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
-  const [previewFile, setPreviewFile] = useState<S3Object | null>(null);
   const [previewContent, setPreviewContent] = useState<string>("");
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(true);
+  const [isLogsPanelOpen, setIsLogsPanelOpen] = useState(true);
 
   const { data, isFetching, error: s3Error } = useQuery<{ objects: S3Object[], hasMore: boolean, nextContinuationToken: string | null }, Error>({
     queryKey: ["s3Objects", currentPath, page, continuationToken],
@@ -225,17 +231,19 @@ function FileExplorer() {
       setPage(1);
       setObjects([]);
       setContinuationToken(null);
+      setSelectedFile(null);
+      setPreviewUrl("");
+      setPreviewContent("");
     }
   };
 
-  const handleFileClick = async (obj: S3Object, action: "preview" | "details" | "inline") => {
-    setSelectedFile(obj);
-    try {
-      const url = await getSignedUrl(obj.path);
-      if (action === "inline") {
-        setPreviewFile(obj);
+  const handleFileClick = async (obj: S3Object, action: "details" | "select") => {
+    if (action === "select") {
+      setSelectedFile(obj);
+      try {
+        const url = await getSignedUrl(obj.path);
         setPreviewUrl(url);
-        addLog("Previewed Inline", obj.name);
+        addLog("Previewed", obj.name);
         const fileType = getFileType(obj.name);
         if (fileType === "text") {
           const content = await getFileContent(obj.path);
@@ -243,30 +251,31 @@ function FileExplorer() {
         } else {
           setPreviewContent("");
         }
-      } else {
-        setFileUrl(url);
-        addLog(action === "preview" ? "Previewed" : "Viewed Details", obj.name);
-        if (action === "preview") {
-          const fileType = getFileType(obj.name);
-          if (fileType === "text") {
-            const content = await getFileContent(obj.path);
-            setFileContent(content);
-          } else {
-            setFileContent("");
-          }
-          onPreviewOpen();
-        } else {
-          onDetailsOpen();
-        }
+      } catch (error: any) {
+        toast({
+          title: "Preview Failed",
+          description: error.message || "Unable to load file preview",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
       }
-    } catch (error: any) {
-      toast({
-        title: `${action === "preview" ? "Preview" : action === "details" ? "Details" : "Inline Preview"} Failed`,
-        description: error.message || `Unable to load file ${action}`,
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
+    } else {
+      setSelectedFile(obj);
+      try {
+        const url = await getSignedUrl(obj.path);
+        setPreviewUrl(url);
+        addLog("Viewed Details", obj.name);
+        onDetailsOpen();
+      } catch (error: any) {
+        toast({
+          title: "Details Failed",
+          description: error.message || "Unable to load file details",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
     }
   };
 
@@ -276,6 +285,9 @@ function FileExplorer() {
     setPage(1);
     setContinuationToken(null);
     setExpandedFolders(expandedFolders.filter((p) => !p.startsWith(path) || p === path));
+    setSelectedFile(null);
+    setPreviewUrl("");
+    setPreviewContent("");
   };
 
   const handleGoBack = () => {
@@ -285,6 +297,9 @@ function FileExplorer() {
     setPage(1);
     setContinuationToken(null);
     setExpandedFolders(expandedFolders.filter((p) => !p.startsWith(parentPath) || p === parentPath));
+    setSelectedFile(null);
+    setPreviewUrl("");
+    setPreviewContent("");
   };
 
   const handleDownload = async (key: string, name: string) => {
@@ -473,7 +488,14 @@ function FileExplorer() {
       <Divider my="4" borderColor="gray.200" />
 
       <Flex gap={6} justify="space-between" align="stretch" wrap="wrap">
-        <Box flex="1" minW={{ base: "100%", md: "40%" }}>
+        <Box
+          flex="1"
+          minW={{ base: "100%", md: "40%" }}
+          maxH="70vh"
+          overflowY="auto"
+          overflowX="auto"
+          pr={isPreviewOpen || isLogsPanelOpen ? 0 : 4}
+        >
           <Flex direction={{ base: "column", md: "row" }} gap={4} mb={4}>
             <Input
               placeholder="Search Files/Folders..."
@@ -540,11 +562,11 @@ function FileExplorer() {
                   p={4}
                   borderWidth="1px"
                   borderRadius="lg"
-                  borderColor="gray.200"
-                  bg="white"
-                  cursor={obj.type === "folder" ? "pointer" : "default"}
-                  _hover={{ bg: obj.type === "folder" ? "gray.50" : "white" }}
-                  onClick={() => obj.type === "folder" && handleFolderClick(obj.path)}
+                  borderColor={selectedFile?.path === obj.path ? "green.500" : "gray.200"}
+                  bg={selectedFile?.path === obj.path ? "green.50" : "white"}
+                  cursor={obj.type === "folder" ? "pointer" : "pointer"}
+                  _hover={{ bg: obj.type === "folder" ? "gray.50" : selectedFile?.path === obj.path ? "green.50" : "gray.50" }}
+                  onClick={() => obj.type === "folder" ? handleFolderClick(obj.path) : handleFileClick(obj, "select")}
                 >
                   <Flex justify="space-between" align="center">
                     <Flex align="center" gap={2} flex="2">
@@ -563,7 +585,7 @@ function FileExplorer() {
                       {obj.type === "folder" ? <FiFolder /> : getFileIcon(obj.name)}
                       <Box>
                         <Text fontWeight="medium" color="gray.800">
-                          {obj.name}
+                          {truncateName(obj.name, 30)}
                         </Text>
                         {obj.type === "file" && (
                           <>
@@ -595,32 +617,6 @@ function FileExplorer() {
                     <HStack flex="1" justify="flex-end">
                       {obj.type === "file" && (
                         <>
-                          <Tooltip label="Preview Inline">
-                            <IconButton
-                              aria-label="Preview Inline"
-                              icon={<FiEye />}
-                              size="sm"
-                              colorScheme="teal"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleFileClick(obj, "inline");
-                              }}
-                              isDisabled={isFetching || getFileType(obj.name) === "unsupported"}
-                            />
-                          </Tooltip>
-                          <Tooltip label="Preview in Modal">
-                            <IconButton
-                              aria-label="Preview"
-                              icon={<FiEye />}
-                              size="sm"
-                              colorScheme="green"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleFileClick(obj, "preview");
-                              }}
-                              isDisabled={isFetching || getFileType(obj.name) === "unsupported"}
-                            />
-                          </Tooltip>
                           <Tooltip label="Details">
                             <IconButton
                               aria-label="Details"
@@ -675,17 +671,17 @@ function FileExplorer() {
                   p={4}
                   borderWidth="1px"
                   borderRadius="lg"
-                  borderColor="gray.200"
-                  bg="white"
-                  cursor={obj.type === "folder" ? "pointer" : "default"}
-                  _hover={{ bg: obj.type === "folder" ? "gray.50" : "white" }}
-                  onClick={() => obj.type === "folder" && handleFolderClick(obj.path)}
+                  borderColor={selectedFile?.path === obj.path ? "green.500" : "gray.200"}
+                  bg={selectedFile?.path === obj.path ? "green.50" : "white"}
+                  cursor={obj.type === "folder" ? "pointer" : "pointer"}
+                  _hover={{ bg: obj.type === "folder" ? "gray.50" : selectedFile?.path === obj.path ? "green.50" : "gray.50" }}
+                  onClick={() => obj.type === "folder" ? handleFolderClick(obj.path) : handleFileClick(obj, "select")}
                 >
                   <VStack align="start" spacing={2}>
                     <HStack>
                       {obj.type === "folder" ? <FiFolder /> : getFileIcon(obj.name)}
-                      <Text fontWeight="medium" color="gray.800" isTruncated>
-                        {obj.name}
+                      <Text fontWeight="medium" color="gray.800" maxW="150px">
+                        {truncateName(obj.name, 20)}
                       </Text>
                     </HStack>
                     {obj.type === "file" && (
@@ -705,32 +701,6 @@ function FileExplorer() {
                     )}
                     {obj.type === "file" && (
                       <HStack>
-                        <Tooltip label="Preview Inline">
-                          <IconButton
-                            aria-label="Preview Inline"
-                            icon={<FiEye />}
-                            size="sm"
-                            colorScheme="teal"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleFileClick(obj, "inline");
-                            }}
-                            isDisabled={isFetching || getFileType(obj.name) === "unsupported"}
-                          />
-                        </Tooltip>
-                        <Tooltip label="Preview in Modal">
-                          <IconButton
-                            aria-label="Preview"
-                            icon={<FiEye />}
-                            size="sm"
-                            colorScheme="green"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleFileClick(obj, "preview");
-                            }}
-                            isDisabled={isFetching || getFileType(obj.name) === "unsupported"}
-                          />
-                        </Tooltip>
                         <Tooltip label="Details">
                           <IconButton
                             aria-label="Details"
@@ -784,81 +754,116 @@ function FileExplorer() {
           )}
         </Box>
 
-        <Box w={{ base: "100%", md: "250px" }} p={4} borderLeft={{ md: "1px solid" }} borderColor="gray.200">
-          <Flex justify="space-between" align="center" mb={2}>
-            <Text fontWeight="bold">Action Logs</Text>
-            <Button size="sm" colorScheme="blue" onClick={onLogsOpen} isDisabled={logs.length === 0}>
-              View Logs
-            </Button>
-          </Flex>
-          <VStack spacing={2} align="stretch" maxH="70vh" overflowY="auto">
-            {logs.length === 0 ? (
-              <Text fontSize="sm" color="gray.500">No actions logged</Text>
-            ) : (
-              logs.map((log) => (
-                <Box key={log.id} p={2} bg="gray.50" borderRadius="md">
-                  <Text fontSize="sm" fontWeight="medium">{log.action}: {log.file}</Text>
-                  <Text fontSize="xs" color="gray.500">{log.timestamp}</Text>
-                </Box>
-              ))
-            )}
-          </VStack>
-        </Box>
-
-        <Box w={{ base: "100%", md: "300px" }} p={4} borderLeft={{ md: "1px solid" }} borderColor="gray.200">
-          <Text fontWeight="bold" mb={2}>Preview</Text>
-          <Select
-            placeholder="Select a file to preview"
-            value={previewFile?.path || ""}
-            onChange={(e) => {
-              const selected = filteredObjects.find((obj) => obj.path === e.target.value);
-              if (selected && selected.type === "file") {
-                handleFileClick(selected, "inline");
-              } else {
-                setPreviewFile(null);
-                setPreviewUrl("");
-                setPreviewContent("");
-              }
-            }}
-            mb={4}
-            isDisabled={filteredObjects.filter((obj) => obj.type === "file").length === 0}
+        {isLogsPanelOpen && (
+          <Box
+            w={{ base: "100%", md: "250px" }}
+            p={4}
+            borderLeft={{ md: "1px solid" }}
+            borderColor="gray.200"
+            position="sticky"
+            top="0"
+            alignSelf="flex-start"
+            maxH="70vh"
+            overflowY="auto"
           >
-            {filteredObjects
-              .filter((obj) => obj.type === "file")
-              .map((obj) => (
-                <option key={obj.path} value={obj.path}>
-                  {obj.name}
-                </option>
-              ))}
-          </Select>
-          <Box maxH="70vh" overflowY="auto">
-            {renderPreview(previewFile, previewUrl, previewContent)}
+            <Flex justify="space-between" align="center" mb={2}>
+              <Text fontWeight="bold">Action Logs</Text>
+              <HStack>
+                <Button size="sm" colorScheme="blue" onClick={onLogsOpen} isDisabled={logs.length === 0}>
+                  View Logs
+                </Button>
+                <IconButton
+                  aria-label={isLogsPanelOpen ? "Close Logs" : "Open Logs"}
+                  icon={isLogsPanelOpen ? <FiEyeOff /> : <FiEye />}
+                  size="sm"
+                  colorScheme="gray"
+                  onClick={() => setIsLogsPanelOpen(!isLogsPanelOpen)}
+                />
+              </HStack>
+            </Flex>
+            <VStack spacing={2} align="stretch">
+              {logs.length === 0 ? (
+                <Text fontSize="sm" color="gray.500">No actions logged</Text>
+              ) : (
+                logs.map((log) => (
+                  <Box key={log.id} p={2} bg="gray.50" borderRadius="md">
+                    <Text fontSize="sm" fontWeight="medium">{log.action}: {truncateName(log.file, 20)}</Text>
+                    <Text fontSize="xs" color="gray.500">{log.timestamp}</Text>
+                  </Box>
+                ))
+              )}
+            </VStack>
           </Box>
-        </Box>
-      </Flex>
+        )}
 
-      <Modal isOpen={isPreviewOpen} onClose={onPreviewClose} size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>{selectedFile?.name}</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>{renderPreview(selectedFile, fileUrl, fileContent)}</ModalBody>
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={onPreviewClose}>
-              Close
-            </Button>
-            {selectedFile && (
-              <Button
-                colorScheme="green"
-                leftIcon={<FiDownload />}
-                onClick={() => handleDownload(selectedFile.path, selectedFile.name)}
-              >
-                Download
-              </Button>
-            )}
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+        {!isLogsPanelOpen && (
+          <Box
+            w="50px"
+            p={2}
+            borderLeft={{ md: "1px solid" }}
+            borderColor="gray.200"
+            position="sticky"
+            top="0"
+            alignSelf="flex-start"
+          >
+            <IconButton
+              aria-label="Open Logs"
+              icon={<FiEye />}
+              size="sm"
+              colorScheme="gray"
+              onClick={() => setIsLogsPanelOpen(true)}
+            />
+          </Box>
+        )}
+
+        {isPreviewOpen && (
+          <Box
+            w={{ base: "100%", md: "300px" }}
+            p={4}
+            borderLeft={{ md: "1px solid" }}
+            borderColor="gray.200"
+            position="sticky"
+            top="0"
+            alignSelf="flex-start"
+            maxH="70vh"
+            overflowY="auto"
+          >
+            <Flex justify="space-between" align="center" mb={2}>
+              <Text fontWeight="bold">Preview</Text>
+              <IconButton
+                aria-label={isPreviewOpen ? "Close Preview" : "Open Preview"}
+                icon={isPreviewOpen ? <FiEyeOff /> : <FiEye />}
+                size="sm"
+                colorScheme="gray"
+                onClick={() => setIsPreviewOpen(!isPreviewOpen)}
+              />
+            </Flex>
+            <Box>
+              {renderPreview(selectedFile, previewUrl, previewContent)}
+            </Box>
+          </Box>
+        )}
+
+        {!isPreviewOpen && (
+          <Box
+            w="50px"
+            p={2}
+            borderLeft={{ md: "1px solid" }}
+            borderColor="gray.200"
+            position="sticky"
+            top="0"
+            alignSelf="flex-start"
+          >
+            <IconButton
+              aria-label="Open Preview"
+              icon={<FiEye />}
+              size="sm"
+              colorScheme="gray"
+              onClick={() => setIsPreviewOpen(true)}
+            />
+          </Box>
+        )}
+      </Flex>
 
       <Modal isOpen={isDetailsOpen} onClose={onDetailsClose} size="lg">
         <ModalOverlay />
@@ -902,7 +907,7 @@ function FileExplorer() {
                 logs.map((log) => (
                   <Box key={log.id} p={4} bg="gray.50" borderRadius="md" borderWidth="1px" borderColor="gray.200">
                     <Text fontSize="sm" fontWeight="medium">Action: {log.action}</Text>
-                    <Text fontSize="sm">File: {log.file}</Text>
+                    <Text fontSize="sm">File: {truncateName(log.file, 30)}</Text>
                     <Text fontSize="sm" color="gray.500">Timestamp: {log.timestamp}</Text>
                   </Box>
                 ))
