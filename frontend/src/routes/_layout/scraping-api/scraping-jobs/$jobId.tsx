@@ -1186,19 +1186,7 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
             {sortConfig.key === "excelRowId" &&
               (sortConfig.direction === "ascending" ? "↑" : "↓")}
           </Th>
-          {showFileDetails && (
-            <Th
-              w="120px"
-              bg="gray.200"
-              color="gray.800"
-              onClick={() => handleSort("productCategory")}
-              cursor="pointer"
-            >
-              Category{" "}
-              {sortConfig.key === "productCategory" &&
-                (sortConfig.direction === "ascending" ? "↑" : "↓")}
-            </Th>
-          )}
+         
           {showFileDetails && (
             <Th
               w="120px"
@@ -1209,6 +1197,19 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
             >
               Color Name{" "}
               {sortConfig.key === "productColor" &&
+                (sortConfig.direction === "ascending" ? "↑" : "↓")}
+            </Th>
+          )}
+           {showFileDetails && (
+            <Th
+              w="120px"
+              bg="gray.200"
+              color="gray.800"
+              onClick={() => handleSort("productCategory")}
+              cursor="pointer"
+            >
+              Category{" "}
+              {sortConfig.key === "productCategory" &&
                 (sortConfig.direction === "ascending" ? "↑" : "↓")}
             </Th>
           )}
