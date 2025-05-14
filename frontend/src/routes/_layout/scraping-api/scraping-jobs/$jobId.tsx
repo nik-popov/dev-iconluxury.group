@@ -1213,13 +1213,13 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
             </Th>
           )}
           {showFileDetails && hasThumbnails && (
-            <Th w="80px" bg="gray.200" color="gray.800">
+            <Th w="100px" bg="gray.200" color="gray.800">
               Excel Picture
             </Th>
           )}
           {Array.from({ length: numImages }).map((_, index) => (
             <React.Fragment key={`header-${index}`}>
-              <Th w="80px" color="gray.800">
+              <Th w="100px" color="gray.800">
                 Picture {index + 1}
               </Th>
               {showResultDetails && (
@@ -1494,7 +1494,7 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
       </Tbody>
     </Table>
   );
-  
+
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4} position="sticky" top="0" bg="white" zIndex="10" py={5} borderBottom="1px solid" borderColor="gray.200">
