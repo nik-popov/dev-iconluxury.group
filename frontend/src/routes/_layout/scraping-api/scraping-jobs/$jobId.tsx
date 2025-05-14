@@ -1191,6 +1191,19 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
               w="120px"
               bg="gray.200"
               color="gray.800"
+              onClick={() => handleSort("productCategory")}
+              cursor="pointer"
+            >
+              Category{" "}
+              {sortConfig.key === "productCategory" &&
+                (sortConfig.direction === "ascending" ? "↑" : "↓")}
+            </Th>
+          )}
+          {showFileDetails && (
+            <Th
+              w="120px"
+              bg="gray.200"
+              color="gray.800"
               onClick={() => handleSort("productColor")}
               cursor="pointer"
             >
@@ -1236,19 +1249,6 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
             {sortConfig.key === "productBrand" &&
               (sortConfig.direction === "ascending" ? "↑" : "↓")}
           </Th>
-          {showFileDetails && (
-            <Th
-              w="120px"
-              bg="gray.200"
-              color="gray.800"
-              onClick={() => handleSort("productCategory")}
-              cursor="pointer"
-            >
-              Category{" "}
-              {sortConfig.key === "productCategory" &&
-                (sortConfig.direction === "ascending" ? "↑" : "↓")}
-            </Th>
-          )}
           <Th
             w="100px"
             onClick={() => handleSort("totalImageCount")}
@@ -1292,6 +1292,15 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
                   {record.excelRowId}
                 </Text>
               </Td>
+              {showFileDetails && (
+                <Td w="120px" bg="gray.50">
+                  {record.productCategory || (
+                    <Text fontSize="xs" color="gray.600">
+                      No category
+                    </Text>
+                  )}
+                </Td>
+              )}
               {showFileDetails && (
                 <Td w="120px" bg="gray.50">
                   {record.productColor || (
@@ -1461,15 +1470,6 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
                   </Text>
                 )}
               </Td>
-              {showFileDetails && (
-                <Td w="120px" bg="gray.50">
-                  {record.productCategory || (
-                    <Text fontSize="xs" color="gray.600">
-                      No category
-                    </Text>
-                  )}
-                </Td>
-              )}
               <Td w="100px">
                 {totalImageCount === 0 ? (
                   <Text fontSize="xs" color="gray.600">
@@ -1494,6 +1494,7 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
       </Tbody>
     </Table>
   );
+  
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4} position="sticky" top="0" bg="white" zIndex="10" py={5} borderBottom="1px solid" borderColor="gray.200">
