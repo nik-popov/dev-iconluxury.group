@@ -30,7 +30,8 @@ interface SidebarItem {
 }
 
 const sidebarStructure: SidebarItem[] = [
-  { title: "Dashboard", icon: FiHome, path: "/" },
+  { title: "Home", icon: FiHome, path: "/" },
+  { title:  "S3", icon: FiCloud, path: "/scraping-api/explore-assets" },
   {
     title: "Scraping",
     subItems: [
@@ -42,13 +43,12 @@ const sidebarStructure: SidebarItem[] = [
     ],
     icon: FiGlobe,
   },
-  { title:  "Storage", icon: FiCloud, path: "/scraping-api/explore-assets" },
   { title: "Remote Desktop", icon: FiTool, path: "/support/remote-desktop" },
   { title: "VPN", icon: FiShield, path: "/support/vpn" },
   // { title: "Sonos", icon: FiMusic, path: "/sonos" },
   { title: "Network Logs", icon: FiFileText, path: "/support/network-logs" },
   { title: "NAS", icon: FiDatabase, path: "/support/backup-recovery" },
-  { title: "Email", icon: FiMessageSquare, path: "/support/email" },
+  { title: "Email Logs", icon: FiMessageSquare, path: "/support/email" },
 ];
 
 interface SidebarItemsProps {
