@@ -494,7 +494,7 @@ function FileExplorer() {
         )}
         {fileType === 'excel' && content && (
           <Box maxH="50vh" overflowY="auto">
-            <ExcelDataTable data={JSON.parse(content)} />
+            <ExcelDataTable excelData={JSON.parse(content)} />
           </Box>
         )}
         {fileType === 'pdf' && (
