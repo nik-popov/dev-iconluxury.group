@@ -70,7 +70,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   }
 
   const isEnabled = (title: string) =>
-    ["Dashboard", "Scraping","S3", "Admin"].includes(title) ||
+    ["Home", "Scraping","S3", "Admin"].includes(title) ||
     (title === "Jobs" && 
       finalSidebarStructure.some(item => 
         item.title === "Scraping" && 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
@@ -33,9 +32,24 @@ import {
 } from "@chakra-ui/react";
 import { FiFolder, FiFile, FiDownload, FiChevronRight, FiChevronDown, FiArrowUp, FiArrowDown, FiCopy, FiInfo, FiGrid, FiList, FiEye, FiEyeOff } from "react-icons/fi";
 import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel, FaFile } from "react-icons/fa";
+import * as XLSX from 'xlsx';
+import ExcelDataTable from '../components/ExcelDataTable';
 
 const API_BASE_URL = "https://api.iconluxury.group/api/v1";
 
+interface S3Object {
+  type: "folder" | "file";
+  name: string;
+  path: string;
+  size?: number;
+  lastModified?: Date;
+  count?: number;
+}
+
+interface ExcelData {
+  headers: string[];
+  rows: { row: ExcelJS.CellValue[] }[];
+}
 interface S3Object {
   type: "folder" | "file";
   name: string;
@@ -108,11 +122,14 @@ async function getSignedUrl(key: string, expiresIn: number = 3600): Promise<stri
   }
 }
 
-async function getFileContent(key: string): Promise<string> {
+async function getFileContent(key: string, fileType: string): Promise<string | ArrayBuffer> {
   const url = await getSignedUrl(key);
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to fetch file content");
-  return response.text();
+  if (fileType === "excel") {
+    return await response.arrayBuffer();
+  }
+  return await response.text();
 }
 
 const getFileIcon = (name: string) => {
@@ -142,7 +159,8 @@ const getFileIcon = (name: string) => {
 const getFileType = (name: string) => {
   const extension = (name.split(".").pop()?.toLowerCase() || "");
   if (["jpg", "jpeg", "png", "gif"].includes(extension)) return "image";
-  if (["txt", "json", "md", "log", "xlsx", "xlsm"].includes(extension)) return "text";
+  if (["txt", "json", "md", "log"].includes(extension)) return "text";
+  if (["xlsx", "xlsm"].includes(extension)) return "excel";
   if (extension === "pdf") return "pdf";
   return "unsupported";
 };
@@ -267,8 +285,18 @@ function FileExplorer() {
         setPreviewUrl(url);
         const fileType = getFileType(obj.name);
         if (fileType === "text") {
-          const content = await getFileContent(obj.path);
-          setPreviewContent(content);
+          const content = await getFileContent(obj.path, fileType);
+          setPreviewContent(content as string);
+        } else if (fileType === "excel") {
+          const content = await getFileContent(obj.path, fileType);
+          // Parse Excel data
+          const workbook = XLSX.read(new Uint8Array(content as ArrayBuffer), { type: "array" });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          const headers = jsonData[0] as string[];
+          const rows = jsonData.slice(1).map((row: any) => ({ row }));
+          setPreviewContent(JSON.stringify({ headers, rows })); // Store as JSON string
         } else {
           setPreviewContent("");
         }
@@ -298,7 +326,6 @@ function FileExplorer() {
       }
     }
   };
-
   const handleBreadcrumbClick = (path: string) => {
     setCurrentPath(path);
     setObjects([]);
@@ -430,72 +457,77 @@ function FileExplorer() {
     });
 
   const renderPreview = (obj: S3Object | null, url: string, content: string) => {
-    if (!obj) return <Text fontSize="sm" color="gray.500">Select a file to preview</Text>;
-    const fileType = getFileType(obj.name);
+  if (!obj) return <Text fontSize="sm" color="gray.500">Select a file to preview</Text>;
+  const fileType = getFileType(obj.name);
 
-    return (
-      <VStack align="stretch" spacing={2}>
-        {fileType === "image" && (
-          <Image
-            src={url}
-            alt={obj.name}
-            maxW="100%"
-            maxH="50vh"
-            objectFit="contain"
-            objectPosition="center"
-          />
-        )}
-        {fileType === "text" && (
-          <Textarea value={content} isReadOnly resize="none" h="50vh" fontFamily="mono" fontSize="sm" />
-        )}
-        {fileType === "pdf" && (
-          <iframe
-            src={url}
-            title={obj.name}
-            style={{ width: "100%", height: "50vh" }}
-          />
-        )}
-        {fileType === "unsupported" && (
-          <Text>
-            Preview not available for this file type.{" "}
+  return (
+    <VStack align="stretch" spacing={2}>
+      {fileType === "image" && (
+        <Image
+          src={url}
+          alt={obj.name}
+          maxW="100%"
+          maxH="50vh"
+          objectFit="contain"
+          objectPosition="center"
+        />
+      )}
+      {fileType === "text" && (
+        <Textarea value={content} isReadOnly resize="none" h="50vh" fontFamily="mono" fontSize="sm" />
+      )}
+      {fileType === "excel" && content && (
+        <Box maxH="50vh" overflowY="auto">
+          <ExcelDataTable data={JSON.parse(content)} />
+        </Box>
+      )}
+      {fileType === "pdf" && (
+        <iframe
+          src={url}
+          title={obj.name}
+          style={{ width: "100%", height: "50vh" }}
+        />
+      )}
+      {fileType === "unsupported" && (
+        <Text>
+          Preview not available for this file type.{" "}
+          <Button
+            size="sm"
+            colorScheme="blue"
+            onClick={() => handleDownload(obj.path)}
+          >
+            Download
+          </Button>
+        </Text>
+      )}
+      <HStack justify="flex-end">
+        {fileType === "text" && content && (
+          <Tooltip label="Copy Preview Content">
             <Button
               size="sm"
-              colorScheme="blue"
-              onClick={() => handleDownload(obj.path)}
+              colorScheme="gray"
+              leftIcon={<FiCopy />}
+              onClick={() => handleCopyContent(content)}
             >
-              Download
+              Copy
             </Button>
-          </Text>
+          </Tooltip>
         )}
-        <HStack justify="flex-end">
-          {fileType === "text" && content && (
-            <Tooltip label="Copy Preview Content">
-              <Button
-                size="sm"
-                colorScheme="gray"
-                leftIcon={<FiCopy />}
-                onClick={() => handleCopyContent(content)}
-              >
-                Copy
-              </Button>
-            </Tooltip>
-          )}
-          {url && (
-            <Tooltip label="Copy Source URL">
-              <Button
-                size="sm"
-                colorScheme="gray"
-                leftIcon={<FiCopy />}
-                onClick={() => handleCopyUrl(obj.path)}
-              >
-                Copy URL
-              </Button>
-            </Tooltip>
-          )}
-        </HStack>
-      </VStack>
-    );
-  };
+        {url && (
+          <Tooltip label="Copy Source URL">
+            <Button
+              size="sm"
+              colorScheme="gray"
+              leftIcon={<FiCopy />}
+              onClick={() => handleCopyUrl(obj.path)}
+            >
+              Copy URL
+            </Button>
+          </Tooltip>
+        )}
+      </HStack>
+    </VStack>
+  );
+};
 
   if (s3Error) {
     return (
