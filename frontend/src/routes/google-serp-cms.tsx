@@ -24,22 +24,8 @@ import {
 import { createFileRoute } from '@tanstack/react-router';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
-import ExcelDataTable from '../components/ExcelDataTable';
+import ExcelDataTable, { ExcelData, ColumnMapping } from '../components/ExcelDataTable.tsx';
 import useCustomToast from '../hooks/useCustomToast';
-// Interfaces
-interface ColumnMapping {
-  style: number | null;
-  brand: number | null;
-  imageAdd: number | null;
-  readImage: number | null;
-  category: number | null;
-  colorName: number | null;
-}
-
-interface ExcelData {
-  headers: string[];
-  rows: { row: ExcelJS.CellValue[] }[];
-}
 
 // Constants
 const REQUIRED_COLUMNS = ['style', 'brand'] as const;
@@ -152,7 +138,7 @@ const CMSGoogleSerpForm: React.FC = () => {
 
   const detectHeaderRow = (rows: any[]): number | null => {
     for (let i = 0; i < Math.min(10, rows.length); i++) {
-      const rowValues = (rows[i] as any[]).map(cell => String(cell || "").toUpperCase().trim());
+      const rowValues = (rows[i] as any[]).map(cell => String(cell || '').toUpperCase().trim());
       const matchedHeaders = rowValues.filter(value => TARGET_HEADERS.includes(value as 'BRAND' | 'STYLE'));
       if (matchedHeaders.length >= 2) return i;
     }
@@ -161,7 +147,7 @@ const CMSGoogleSerpForm: React.FC = () => {
 
   const processHeaderSelection = (index: number, rows: any[]) => {
     const headers = rows[index] as string[];
-    const newRows = rows.slice(index + 1).map(row => ({ row: row as ExcelJS.CellValue[] }));
+    const newRows = rows.slice(index + 1).map(row => ({ row: row as any[] }));
     const newMapping = autoMapColumns(headers);
     setExcelData({ headers, rows: newRows });
     setColumnMapping(newMapping);
@@ -349,13 +335,13 @@ const CMSGoogleSerpForm: React.FC = () => {
           onApply={applyManualBrand}
           isLoading={isLoadingFile}
         />
-        <DataTableSection
-          isLoading={isLoadingFile}
-          excelData={excelData}
-          columnMapping={columnMapping}
-          onColumnClick={openMappingModal}
-          isManualBrand={columnMapping.brand !== null && excelData.headers[columnMapping.brand] === 'BRAND (Manual)'}
-        />
+      <DataTableSection
+            isLoading={isLoadingFile}
+            excelData={excelData} // Change 'data' to 'excelData'
+            columnMapping={columnMapping}
+            onColumnClick={openMappingModal}
+            isManualBrand={columnMapping.brand !== null && excelData.headers[columnMapping.brand] === 'BRAND (Manual)'}
+          />
         <MappingModal
           isOpen={isMappingModalOpen}
           onClose={() => handleMappingConfirm(false)}
@@ -497,9 +483,9 @@ const ManualBrandSection: React.FC<ManualBrandSectionProps> = ({
 
 interface DataTableSectionProps {
   isLoading: boolean;
-  excelData: ExcelData;
+  excelData: ExcelData; // Change 'data' to 'excelData'
   columnMapping: ColumnMapping;
-  onColumnClick: (columnIndex: number) => void;
+  onColumnClick: (index: number) => void;
   isManualBrand: boolean;
 }
 
@@ -515,12 +501,12 @@ const DataTableSection: React.FC<DataTableSectionProps> = ({
       <Box flex="1" overflowY="auto" maxH="60vh" borderWidth="1px" borderRadius="md" p={4} borderColor="gray.200" bg="white">
         {isLoading ? (
           <VStack justify="center" h="full">
-            <Spinner size="lg" color="blue.500" />
+            <Spinner size="lg" color="green.500" />
             <Text color="gray.600">Loading table data...</Text>
           </VStack>
         ) : (
           <ExcelDataTableMemo
-            excelData={excelData}
+            excelData={excelData} // Ensure 'excelData' is passed
             columnMapping={columnMapping}
             onColumnClick={onColumnClick}
             isManualBrand={isManualBrand}
@@ -668,3 +654,5 @@ const ConfirmHeaderModal: React.FC<ConfirmHeaderModalProps> = ({
 export const Route = createFileRoute('/google-serp-cms')({
   component: CMSGoogleSerpForm,
 });
+
+export default CMSGoogleSerpForm;

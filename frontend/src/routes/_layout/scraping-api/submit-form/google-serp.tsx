@@ -21,28 +21,13 @@ import {
   Select,
   Spinner,
 } from '@chakra-ui/react';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { FiSend } from 'react-icons/fi';
+import { createFileRoute } from '@tanstack/react-router';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
-import ExcelDataTable from '../../../../components/ExcelDataTable';
+import ExcelDataTable, { ExcelData, ColumnMapping } from '../../../../components/ExcelDataTable';
 import useCustomToast from '../../../../hooks/useCustomToast';
 
-// Interfaces
-interface ColumnMapping {
-  style: number | null;
-  brand: number | null;
-  imageAdd: number | null;
-  readImage: number | null;
-  category: number | null;
-  colorName: number | null;
-}
-
-interface ExcelData {
-  headers: string[];
-  rows: { row: ExcelJS.CellValue[] }[];
-}
-
+import { FiSend } from 'react-icons/fi';
 // Constants
 const REQUIRED_COLUMNS = ['style', 'brand'] as const;
 const OPTIONAL_COLUMNS = ['category', 'colorName', 'readImage', 'imageAdd'] as const;
@@ -104,7 +89,6 @@ const GoogleSerpForm: React.FC = () => {
   const [manualBrand, setManualBrand] = useState<string>('');
 
   const showToast = useCustomToast();
-  const navigate = useNavigate();
 
   // File Handling
   const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,7 +139,7 @@ const GoogleSerpForm: React.FC = () => {
 
   const detectHeaderRow = (rows: any[]): number | null => {
     for (let i = 0; i < Math.min(10, rows.length); i++) {
-      const rowValues = (rows[i] as any[]).map(cell => String(cell || "").toUpperCase().trim() as 'BRAND' | 'STYLE' | string);
+      const rowValues = (rows[i] as any[]).map(cell => String(cell || '').toUpperCase().trim());
       const matchedHeaders = rowValues.filter(value => TARGET_HEADERS.includes(value as 'BRAND' | 'STYLE'));
       if (matchedHeaders.length >= 2) return i;
     }
@@ -164,12 +148,11 @@ const GoogleSerpForm: React.FC = () => {
 
   const processHeaderSelection = (index: number, rows: any[]) => {
     const headers = rows[index] as string[];
-    const newRows = rows.slice(index + 1).map(row => ({ row: row as ExcelJS.CellValue[] }));
+    const newRows = rows.slice(index + 1).map(row => ({ row: row as any[] }));
     const newMapping = autoMapColumns(headers);
     setExcelData({ headers, rows: newRows });
     setColumnMapping(newMapping);
     setHeaderRowIndex(index);
-    showToast('Header Auto-Detected', `Row ${index + 1} selected`, 'info');
   };
 
   const autoMapColumns = (headers: string[]): ColumnMapping => {
@@ -202,32 +185,31 @@ const GoogleSerpForm: React.FC = () => {
     const newRows = excelData.rows.map(row => ({ row: [...row.row, manualBrand] }));
     setExcelData({ headers: newHeaders, rows: newRows });
     setColumnMapping(prev => ({ ...prev, brand: newHeaders.length - 1 }));
-    showToast('Manual Brand Applied', `Brand "${manualBrand}" added`, 'success');
-  }, [manualBrand, columnMapping.brand, excelData, showToast]);
+  }, [manualBrand, columnMapping.brand, excelData]);
 
   // Form Submission
   const handleSubmit = useCallback(async () => {
     if (!validateForm()) return;
-    
+
     setIsLoadingFile(true);
     try {
       const formData = prepareFormData();
-      const response = await fetch(`${SERVER_URL}/submitImage`, { 
-        method: 'POST', 
-        body: formData 
+      const response = await fetch(`${SERVER_URL}/submitImage`, {
+        method: 'POST',
+        body: formData,
       });
-      
+
       if (!response.ok) throw new Error(`Server error: ${response.status} - ${await response.text()}`);
       await response.json();
-      
-      showToast('Success', 'Data submitted successfully', 'success');
-      navigate({ to: '/scraping-api/submit-form/success' });
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       showToast('Submission Error', error instanceof Error ? error.message : 'Unknown error', 'error');
     } finally {
       setIsLoadingFile(false);
     }
-  }, [file, headerRowIndex, columnMapping, navigate, showToast]);
+  }, [file, headerRowIndex, columnMapping, showToast]);
 
   const validateForm = (): boolean => {
     const missingRequired = REQUIRED_COLUMNS.filter(col => columnMapping[col] === null);
@@ -246,68 +228,62 @@ const GoogleSerpForm: React.FC = () => {
     return true;
   };
 
-// In handleMappingConfirm, ensure mappings are saved
-const handleMappingConfirm = useCallback((confirm: boolean) => {
-  if (!confirm || selectedColumn === null) {
-    resetMappingModal();
-    return;
-  }
-  const newMapping = { ...columnMapping };
-  Object.keys(newMapping).forEach(key => {
-    if (newMapping[key as keyof ColumnMapping] === selectedColumn) {
-      newMapping[key as keyof ColumnMapping] = null;
-    }
-  });
-  if (selectedField) {
-    newMapping[selectedField as keyof ColumnMapping] = selectedColumn;
-  }
-  setColumnMapping(newMapping);
-  console.log('New mapping:', newMapping); // Debug
-  resetMappingModal();
-}, [selectedColumn, selectedField, columnMapping]);
+  const prepareFormData = (): FormData => {
+    const formData = new FormData();
+    formData.append('fileUploadImage', file!);
 
-const prepareFormData = (): FormData => {
-  const formData = new FormData();
-  formData.append('fileUploadImage', file!);
-  
-  const mappingToColumn = (key: keyof ColumnMapping, defaultVal: string) => 
+    const mappingToColumn = (key: keyof ColumnMapping, defaultVal: string) =>
       columnMapping[key] !== null ? indexToColumnLetter(columnMapping[key]!) : defaultVal;
 
-  const styleCol = mappingToColumn('style', 'A');
-  const brandCol = mappingToColumn('brand', 'B');
-  const imageAddCol = mappingToColumn('imageAdd', '');
-  const readImageCol = mappingToColumn('readImage', '');
-  const colorCol = mappingToColumn('colorName', '');
-  const categoryCol = mappingToColumn('category', '');
+    const styleCol = mappingToColumn('style', 'A');
+    const brandCol = mappingToColumn('brand', 'B');
+    const imageAddCol = mappingToColumn('imageAdd', '');
+    const readImageCol = mappingToColumn('readImage', '');
+    const colorCol = mappingToColumn('colorName', '');
+    const categoryCol = mappingToColumn('category', '');
 
-  const imageColumnImage = readImageCol || imageAddCol;
-  if (imageColumnImage) formData.append('imageColumnImage', imageColumnImage);
-  formData.append('searchColImage', styleCol);
-  
-  // Handle manual brand explicitly
-  if (manualBrand && manualBrand.trim() !== '') {  // If manualBrand is provided and not empty
+    const imageColumnImage = readImageCol || imageAddCol;
+    if (imageColumnImage) formData.append('imageColumnImage', imageColumnImage);
+    formData.append('searchColImage', styleCol);
+
+    if (manualBrand && manualBrand.trim() !== '') {
       formData.append('brandColImage', 'MANUAL');
       formData.append('manualBrand', manualBrand);
-      console.log(`Manual brand set: ${manualBrand}`);  // Debug log
-  } else if (columnMapping.brand !== null) {
+    } else if (columnMapping.brand !== null) {
       formData.append('brandColImage', brandCol);
-  } else {
-      throw new Error("Brand column must be mapped or manual brand provided");
-  }
+    } else {
+      throw new Error('Brand column must be mapped or manual brand provided');
+    }
 
-  if (colorCol) formData.append('ColorColImage', colorCol);
-  if (categoryCol) formData.append('CategoryColImage', categoryCol);
-  if (headerRowIndex === null || headerRowIndex < 0) {
-      throw new Error("Invalid header row index");
-  }
-  formData.append('header_index', String(headerRowIndex + 1));  // 1-based index
+    if (colorCol) formData.append('ColorColImage', colorCol);
+    if (categoryCol) formData.append('CategoryColImage', categoryCol);
+    if (headerRowIndex === null || headerRowIndex < 0) {
+      throw new Error('Invalid header row index');
+    }
+    formData.append('header_index', String(headerRowIndex + 1));
 
-  // Debug FormData
-  for (let pair of formData.entries()) {
-      console.log(`${pair[0]}: ${pair[1]}`);
-  }
-  return formData;
-};
+    return formData;
+  };
+
+  // Column Mapping
+  const handleMappingConfirm = useCallback((confirm: boolean) => {
+    if (!confirm || selectedColumn === null) {
+      resetMappingModal();
+      return;
+    }
+    const newMapping = { ...columnMapping };
+    Object.keys(newMapping).forEach(key => {
+      if (newMapping[key as keyof ColumnMapping] === selectedColumn) {
+        newMapping[key as keyof ColumnMapping] = null;
+      }
+    });
+    if (selectedField) {
+      newMapping[selectedField as keyof ColumnMapping] = selectedColumn;
+    }
+    setColumnMapping(newMapping);
+    resetMappingModal();
+  }, [selectedColumn, selectedField, columnMapping]);
+
   const openMappingModal = useCallback((columnIndex: number) => {
     setSelectedColumn(columnIndex);
     const currentField = Object.keys(columnMapping).find(key => columnMapping[key as keyof ColumnMapping] === columnIndex);
@@ -338,9 +314,8 @@ const prepareFormData = (): FormData => {
 
   // Render
   return (
-    <Container maxW="full" h="100vh" p={4} bg="gray.50">
-      <VStack spacing={1} align="stretch" h="full">
-        <HeaderSection />
+    <Container maxW="container.xl" p={4} bg="white" color="black">
+      <VStack spacing={4} align="stretch">
         <ControlSection
           isLoading={isLoadingFile}
           onFileChange={handleFileChange}
@@ -357,13 +332,13 @@ const prepareFormData = (): FormData => {
           onApply={applyManualBrand}
           isLoading={isLoadingFile}
         />
-        <DataTableSection
-          isLoading={isLoadingFile}
-          excelData={excelData}
-          columnMapping={columnMapping}
-          onColumnClick={openMappingModal}
-          isManualBrand={columnMapping.brand !== null && excelData.headers[columnMapping.brand] === 'BRAND (Manual)'}
-        />
+     <DataTableSection
+            isLoading={isLoadingFile}
+            excelData={excelData} // Change 'data' to 'excelData'
+            columnMapping={columnMapping}
+            onColumnClick={openMappingModal}
+            isManualBrand={columnMapping.brand !== null && excelData.headers[columnMapping.brand] === 'BRAND (Manual)'}
+          />
         <MappingModal
           isOpen={isMappingModalOpen}
           onClose={() => handleMappingConfirm(false)}
@@ -373,7 +348,7 @@ const prepareFormData = (): FormData => {
           setSelectedField={setSelectedField}
           onConfirm={() => handleMappingConfirm(true)}
           allColumns={ALL_COLUMNS}
-          optionalMappings={OPTIONAL_COLUMNS.join(', ')} // Full list of optional mappings
+          optionalMappings={OPTIONAL_COLUMNS.join(', ')}
         />
         <HeaderSelectionModal
           isOpen={isHeaderModalOpen}
@@ -749,6 +724,11 @@ const ConfirmHeaderModal: React.FC<ConfirmHeaderModalProps> = ({
   </Modal>
 );
 
+
+// ... (sub-components remain the same as CMSGoogleSerpForm.tsx)
+
 export const Route = createFileRoute('/_layout/scraping-api/submit-form/google-serp')({
   component: GoogleSerpForm,
 });
+
+export default GoogleSerpForm;
