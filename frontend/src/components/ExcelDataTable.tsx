@@ -1,7 +1,6 @@
-// components/ExcelDataTable.tsx
-import { Table, Thead, Tbody, Tr, Th, Td, Box } from "@chakra-ui/react";
+import { Table, Thead, Tbody, Tr, Th, Td, Box } from '@chakra-ui/react';
 
-interface ExcelData {
+export interface ExcelData {
   headers: string[];
   rows: { row: any[] }[];
 }
@@ -21,7 +20,7 @@ const ExcelDataTable = ({ data }: { data: ExcelData }) => {
           {data.rows.map((row, rowIndex) => (
             <Tr key={rowIndex}>
               {row.row.map((cell, cellIndex) => (
-                <Td key={cellIndex}>{cell ?? ""}</Td>
+                <Td key={cellIndex}>{cell ?? ''}</Td>
               ))}
             </Tr>
           ))}
