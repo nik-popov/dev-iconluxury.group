@@ -44,6 +44,15 @@ interface ColumnMapping {
   image: number | null;
 }
 
+interface ExcelDataTableColumnMapping {
+  style: number | null;
+  brand: number | null;
+  category: number | null;
+  colorName: number | null;
+  imageAdd: number | null;
+  readImage: number | null;
+}
+
 interface HeaderConfig {
   names: string[];
   patterns: string[];
@@ -95,6 +104,15 @@ const indexToColumnLetter = (index: number): string => {
 const normalizeHeader = (header: string): string => {
   return String(header || '').toUpperCase().trim().replace(/\s+/g, '');
 };
+
+const adaptColumnMapping = (mapping: ColumnMapping): ExcelDataTableColumnMapping => ({
+  style: mapping.style,
+  brand: mapping.brand,
+  category: mapping.category,
+  colorName: mapping.color,
+  imageAdd: mapping.image,
+  readImage: mapping.image,
+});
 
 const ExcelDataTableMemo = React.memo(ExcelDataTable);
 
@@ -207,7 +225,7 @@ const CMSGoogleSerpForm: React.FC = () => {
         );
 
         if (hasMatch) {
-          matchScore += col === 'style' || col === 'brand' ? 1.5 : 1; // Weight required columns higher
+          matchScore += col === 'style' || col === 'brand' ? 1.5 : 1;
         }
       });
 
@@ -292,7 +310,7 @@ const CMSGoogleSerpForm: React.FC = () => {
       if (!response.ok) throw new Error(`Server error: ${response.status} - ${await response.text()}`);
       await response.json();
       setTimeout(() => {
-        window.location.reload(); // CMS-specific behavior
+        window.location.reload();
       }, 1000);
     } catch (error) {
       showToast('Submission Error', error instanceof Error ? error.message : 'Unknown error', 'error');
@@ -350,7 +368,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     }
     formData.append('header_index', String(headerRowIndex + 1));
 
-    const userEmail = 'nik@luxurymarket.com'; // Placeholder
+    const userEmail = 'nik@luxurymarket.com';
     if (userEmail) formData.append('sendToEmail', userEmail);
 
     return formData;
@@ -427,9 +445,9 @@ const CMSGoogleSerpForm: React.FC = () => {
         <DataTableSection
           isLoading={isLoadingFile}
           excelData={excelData}
-          columnMapping={columnMapping}
+          columnMapping={adaptColumnMapping(columnMapping)}
           onColumnClick={openMappingModal}
-          isManualBrand={columnMapping.brand !== null && excelData.headers[columnMapping.brand] === 'BRAND (Manual)'}
+          isManualBrand={columnMapping.brand !== null && typeof excelData.headers[columnMapping.brand] === 'string' && excelData.headers[columnMapping.brand] === 'BRAND (Manual)'}
         />
         <MappingModal
           isOpen={isMappingModalOpen}
@@ -505,7 +523,7 @@ const ControlSection: React.FC<ControlSectionProps> = ({
     {rowCount > 0 && (
       <VStack align="start" spacing={0}>
         {missingRequired.length > 0 ? (
-          <VStack align="start" spacing={0} flexDirection="column-reverse">
+          <VStack align="start" spacing ETL 0} flexDirection="column-reverse">
             {missingRequired.map(col => (
               <Text key={col} fontSize="sm" color="red.500">{col}</Text>
             ))}
@@ -573,7 +591,7 @@ const ManualBrandSection: React.FC<ManualBrandSectionProps> = ({
 interface DataTableSectionProps {
   isLoading: boolean;
   excelData: ExcelData;
-  columnMapping: ColumnMapping;
+  columnMapping: ExcelDataTableColumnMapping;
   onColumnClick: (index: number) => void;
   isManualBrand: boolean;
 }
