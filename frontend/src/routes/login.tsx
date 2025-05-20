@@ -76,10 +76,10 @@ function Login() {
       href="https://www.linkedin.com/company/iconluxurygroup"
       target="_blank"
       rel="noopener noreferrer"
-      >
+    >
       <Image
-        src="/assets/images/twitter-x.svg"
-        alt="X Logo"
+        src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png"
+        alt="LinkedIn Logo"
         boxSize="32px"
       />
     </Link>
@@ -90,9 +90,9 @@ function Login() {
       href="https://twitter.com/iconluxurygroup"
       target="_blank"
       rel="noopener noreferrer"
-    >
+     >
       <Image
-        src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/x-social-media-round-icon.png"
+        src="/assets/images/twitter-x.svg"
         alt="X Logo"
         boxSize="32px"
       />
