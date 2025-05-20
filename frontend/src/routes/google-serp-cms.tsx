@@ -24,7 +24,7 @@ import {
 import { createFileRoute } from '@tanstack/react-router';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
-import ExcelDataTable, { ExcelData, ColumnMapping } from '../components/ExcelDataTable.tsx';
+import ExcelDataTable, { ExcelData } from '../components/ExcelDataTable.tsx';
 import useCustomToast from '../hooks/useCustomToast';
 
 // Constants
@@ -35,7 +35,15 @@ const SERVER_URL = 'https://backend-dev.iconluxury.group';
 const MAX_ROWS = 1000;
 const HEADER_LABELS_URL = 'https://iconluxury.group/static_settings/header_labels.json';
 
-// Types for Header Labels Configuration
+// Types
+interface ColumnMapping {
+  style: number | null;
+  brand: number | null;
+  category: number | null;
+  color: number | null;
+  image: number | null;
+}
+
 interface HeaderConfig {
   names: string[];
   patterns: string[];
@@ -88,6 +96,8 @@ const normalizeHeader = (header: string): string => {
   return String(header || '').toUpperCase().trim().replace(/\s+/g, '');
 };
 
+const ExcelDataTableMemo = React.memo(ExcelDataTable);
+
 // Main Component
 const CMSGoogleSerpForm: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -104,9 +114,9 @@ const CMSGoogleSerpForm: React.FC = () => {
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
     style: null,
     brand: null,
-    image: null,
     category: null,
     color: null,
+    image: null,
   });
   const [manualBrand, setManualBrand] = useState<string>('');
   const [headerConfig, setHeaderConfig] = useState<HeaderLabelsConfig | null>(null);
@@ -141,7 +151,7 @@ const CMSGoogleSerpForm: React.FC = () => {
 
     setFile(selectedFile);
     setExcelData({ headers: [], rows: [] });
-    setColumnMapping({ style: null, brand: null, image: null, category: null, color: null });
+    setColumnMapping({ style: null, brand: null, category: null, color: null, image: null });
     setManualBrand('');
     setIsLoadingFile(true);
 
@@ -214,7 +224,7 @@ const CMSGoogleSerpForm: React.FC = () => {
   const processHeaderSelection = (index: number, rows: any[]) => {
     const headers = rows[index] as string[];
     const newRows = rows.slice(index + 1).map(row => ({ row: row as any[] }));
-    const newMapping = headerConfig ? autoMapColumns(headers, headerConfig) : { style: null, brand: null, image: null, category: null, color: null };
+    const newMapping = headerConfig ? autoMapColumns(headers, headerConfig) : { style: null, brand: null, category: null, color: null, image: null };
     setExcelData({ headers, rows: newRows });
     setColumnMapping(newMapping);
     setHeaderRowIndex(index);
@@ -222,7 +232,7 @@ const CMSGoogleSerpForm: React.FC = () => {
 
   // Auto Map Columns
   const autoMapColumns = (headers: string[], config: HeaderLabelsConfig): ColumnMapping => {
-    const mapping: ColumnMapping = { style: null, brand: null, image: null, category: null, color: null };
+    const mapping: ColumnMapping = { style: null, brand: null, category: null, color: null, image: null };
     const { columns } = config;
 
     headers.forEach((header, index) => {
@@ -340,8 +350,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     }
     formData.append('header_index', String(headerRowIndex + 1));
 
-    // CMS-specific: Add sendToEmail if userEmail is available
-    const userEmail = 'nik@luxurymarket.com'; // Placeholder; replace with actual user email if available
+    const userEmail = 'nik@luxurymarket.com'; // Placeholder
     if (userEmail) formData.append('sendToEmail', userEmail);
 
     return formData;
@@ -395,7 +404,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     .filter(([_, index]) => index !== null)
     .map(([col, index]) => `${col.replace(/([A-Z])/g, ' $1').trim()}: ${excelData.headers[index as number] || `Column ${index! + 1}`}`);
 
-  // Render with CMS Styling
+  // Render
   return (
     <Container maxW="container.xl" p={4} bg="white" color="black">
       <VStack spacing={4} align="stretch">
@@ -451,8 +460,285 @@ const CMSGoogleSerpForm: React.FC = () => {
   );
 };
 
-// Sub-components remain unchanged (ControlSection, ManualBrandSection, etc.)
-// ... (Include the rest of the sub-components as in the original code)
+// Sub-components
+interface ControlSectionProps {
+  isLoading: boolean;
+  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onSubmit: () => void;
+  canSubmit: boolean;
+  rowCount: number;
+  missingRequired: string[];
+  mappedColumns: string[];
+}
+
+const ControlSection: React.FC<ControlSectionProps> = ({
+  isLoading,
+  onFileChange,
+  onSubmit,
+  canSubmit,
+  rowCount,
+  missingRequired,
+  mappedColumns,
+}) => (
+  <HStack spacing={2} align="flex-end" wrap="wrap">
+    <FormControl w="xl">
+      <Input
+        type="file"
+        accept=".xlsx,.xls"
+        onChange={onFileChange}
+        disabled={isLoading}
+        bg="white"
+        color="black"
+        borderColor="gray.300"
+        _hover={{ borderColor: 'blue.500' }}
+        _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px blue.200' }}
+      />
+    </FormControl>
+    <Button
+      colorScheme="blue"
+      onClick={onSubmit}
+      isDisabled={!canSubmit || isLoading}
+      isLoading={isLoading}
+    >
+      Submit
+    </Button>
+    {rowCount > 0 && (
+      <VStack align="start" spacing={0}>
+        {missingRequired.length > 0 ? (
+          <VStack align="start" spacing={0} flexDirection="column-reverse">
+            {missingRequired.map(col => (
+              <Text key={col} fontSize="sm" color="red.500">{col}</Text>
+            ))}
+            <Text fontSize="sm" color="red.500">Missing:</Text>
+          </VStack>
+        ) : (
+          <VStack align="start" spacing={0} flexDirection="column-reverse">
+            {mappedColumns.map((columnMapping, index) => (
+              <Text key={index} fontSize="sm" color="blue.600">{columnMapping}</Text>
+            ))}
+            <Text fontSize="sm" color="blue.600">Mapped:</Text>
+          </VStack>
+        )}
+        <Text fontSize="sm" color="gray.600">Rows: {rowCount}</Text>
+      </VStack>
+    )}
+    {isLoading && <Text color="gray.600">Processing...</Text>}
+  </HStack>
+);
+
+interface ManualBrandSectionProps {
+  isVisible: boolean;
+  manualBrand: string;
+  setManualBrand: (value: string) => void;
+  onApply: () => void;
+  isLoading: boolean;
+}
+
+const ManualBrandSection: React.FC<ManualBrandSectionProps> = ({
+  isVisible,
+  manualBrand,
+  setManualBrand,
+  onApply,
+  isLoading,
+}) => (
+  <>
+    {isVisible && (
+      <HStack spacing={2}>
+        <FormControl w="sm">
+          <Input
+            placeholder="Add Brand for All Rows"
+            value={manualBrand}
+            onChange={(e) => setManualBrand(e.target.value)}
+            disabled={isLoading}
+            bg="white"
+            color="black"
+            borderColor="gray.300"
+            _hover={{ borderColor: 'blue.500' }}
+            _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px blue.200' }}
+          />
+        </FormControl>
+        <Button
+          colorScheme="orange"
+          onClick={onApply}
+          isDisabled={!manualBrand || isLoading}
+        >
+          Apply
+        </Button>
+      </HStack>
+    )}
+    <Box borderBottomWidth="1px" borderColor="gray.200" my={2} />
+  </>
+);
+
+interface DataTableSectionProps {
+  isLoading: boolean;
+  excelData: ExcelData;
+  columnMapping: ColumnMapping;
+  onColumnClick: (index: number) => void;
+  isManualBrand: boolean;
+}
+
+const DataTableSection: React.FC<DataTableSectionProps> = ({
+  isLoading,
+  excelData,
+  columnMapping,
+  onColumnClick,
+  isManualBrand,
+}) => (
+  <>
+    {excelData.rows.length > 0 && (
+      <Box flex="1" overflowY="auto" maxH="60vh" borderWidth="1px" borderRadius="md" p={4} borderColor="gray.200" bg="white">
+        {isLoading ? (
+          <VStack justify="center" h="full">
+            <Spinner size="lg" color="green.500" />
+            <Text color="gray.600">Loading table data...</Text>
+          </VStack>
+        ) : (
+          <ExcelDataTableMemo
+            excelData={excelData}
+            columnMapping={columnMapping}
+            onColumnClick={onColumnClick}
+            isManualBrand={isManualBrand}
+          />
+        )}
+      </Box>
+    )}
+  </>
+);
+
+interface MappingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedColumn: number | null;
+  headers: string[];
+  selectedField: string;
+  setSelectedField: (value: string) => void;
+  onConfirm: () => void;
+  allColumns: readonly string[];
+  optionalMappings: string;
+}
+
+const MappingModal: React.FC<MappingModalProps> = ({
+  isOpen,
+  onClose,
+  selectedColumn,
+  headers,
+  selectedField,
+  setSelectedField,
+  onConfirm,
+  allColumns,
+  optionalMappings,
+}) => (
+  <Modal isOpen={isOpen} onClose={onClose}>
+    <ModalOverlay />
+    <ModalContent bg="white" color="black">
+      <ModalHeader>Map Column</ModalHeader>
+      <ModalBody>
+        <Text>
+          Map "{selectedColumn !== null ? headers[selectedColumn] || `Column ${selectedColumn + 1}` : 'Select a column'}" to:
+        </Text>
+        <Select
+          value={selectedField}
+          onChange={(e) => setSelectedField(e.target.value)}
+          mt={2}
+          bg="white"
+          color="black"
+          borderColor="gray.300"
+          _hover={{ borderColor: 'blue.500' }}
+          _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px blue.200' }}
+        >
+          <option value="">None</option>
+          {allColumns.map(col => (
+            <option key={col} value={col}>{col}</option>
+          ))}
+        </Select>
+        <Text fontSize="sm" color="gray.600" mt={2}>Optional mappings: {optionalMappings}</Text>
+      </ModalBody>
+      <ModalFooter>
+        <Button colorScheme="blue" mr={3} onClick={onConfirm}>
+          Confirm
+        </Button>
+        <Button variant="outline" borderColor="gray.300" onClick={onClose} _hover={{ bg: 'gray.100' }}>
+          Cancel
+        </Button>
+      </ModalFooter>
+    </ModalContent>
+  </Modal>
+);
+
+interface HeaderSelectionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  previewRows: any[];
+  onRowSelect: (rowIndex: number) => void;
+}
+
+const HeaderSelectionModal: React.FC<HeaderSelectionModalProps> = ({
+  isOpen,
+  onClose,
+  previewRows,
+  onRowSelect,
+}) => (
+  <Modal isOpen={isOpen} onClose={onClose} size="xl">
+    <ModalOverlay />
+    <ModalContent alignSelf="left" ml={4} mt={16} bg="white" color="black">
+      <ModalHeader>Select Header Row (Click a row) - {previewRows.length} Rows</ModalHeader>
+      <ModalBody maxH="60vh" overflowY="auto">
+        <Table size="sm" colorScheme="gray">
+          <Tbody>
+            {previewRows.map((row, rowIndex) => (
+              <Tr key={rowIndex} onClick={() => onRowSelect(rowIndex)} cursor="pointer" _hover={{ bg: 'blue.50' }}>
+                {row.map((cell: any, cellIndex: number) => (
+                  <Td key={cellIndex} py={2} px={3}>{getDisplayValue(cell)}</Td>
+                ))}
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      </ModalBody>
+      <ModalFooter>
+        <Button size="sm" variant="outline" borderColor="gray.300" onClick={onClose} _hover={{ bg: 'gray.100' }}>
+          Cancel
+        </Button>
+      </ModalFooter>
+    </ModalContent>
+  </Modal>
+);
+
+interface ConfirmHeaderModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedRowIndex: number | null;
+  previewRows: any[];
+  onConfirm: () => void;
+}
+
+const ConfirmHeaderModal: React.FC<ConfirmHeaderModalProps> = ({
+  isOpen,
+  onClose,
+  selectedRowIndex,
+  previewRows,
+  onConfirm,
+}) => (
+  <Modal isOpen={isOpen} onClose={onClose}>
+    <ModalOverlay />
+    <ModalContent bg="white" color="black">
+      <ModalHeader>Confirm Header Selection</ModalHeader>
+      <ModalBody>
+        <Text>Use row {selectedRowIndex !== null ? selectedRowIndex + 1 : ''} as header?</Text>
+        {selectedRowIndex !== null && <Text mt={2} color="gray.600">{previewRows[selectedRowIndex].join(', ')}</Text>}
+      </ModalBody>
+      <ModalFooter>
+        <Button colorScheme="blue" mr={3} onClick={onConfirm}>
+          Confirm
+        </Button>
+        <Button variant="outline" borderColor="gray.300" onClick={onClose} _hover={{ bg: 'gray.100' }}>
+          Cancel
+        </Button>
+      </ModalFooter>
+    </ModalContent>
+  </Modal>
+);
 
 // Export
 export const Route = createFileRoute('/google-serp-cms')({
