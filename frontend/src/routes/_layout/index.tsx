@@ -13,12 +13,13 @@ import {
   Flex,
 } from "@chakra-ui/react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Bar } from "react-chartjs-2";
+import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  BarElement,
+  PointElement,
+  LineElement,
   Title,
   Tooltip,
   Legend,
@@ -29,7 +30,8 @@ import type { UserPublic } from "../../client";
 ChartJS.register(
   CategoryScale,
   LinearScale,
-  BarElement,
+  PointElement,
+  LineElement,
   Title,
   Tooltip,
   Legend
@@ -129,6 +131,31 @@ function Dashboard() {
     ? ((recentSales / totalSales) * 100).toFixed(1)
     : "0.0";
 
+  // Data for charts
+  // Customers over time (new customers per month)
+  const customersByMonth = customers.reduce((acc, customer) => {
+    const date = new Date(customer.joined);
+    const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
+    acc[monthYear] = (acc[monthYear] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Sales over time (total sales per month)
+  const salesByMonth = orders.reduce((acc, order) => {
+    const date = new Date(order.date);
+    const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
+    acc[monthYear] = (acc[monthYear] || 0) + order.amount;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Common months (sorted)
+  const months = Array.from(
+    new Set([
+      ...Object.keys(customersByMonth),
+      ...Object.keys(salesByMonth),
+    ])
+  ).sort();
+
   return (
     <Container maxW="full" bg="gray.50" minH="100vh" p={6}>
       {/* Summary Metrics with User's Name */}
@@ -211,37 +238,81 @@ function Dashboard() {
 
       <Divider my={4} borderColor="gray.200" />
 
-      {/* Sales by Customer Chart */}
+      {/* Charts Section */}
       <Box mb={8}>
         <Text fontSize="xl" fontWeight="bold" color="gray.800" mb={4}>
-          Sales by Customer
+          Trends
         </Text>
-        <Box p={5} shadow="md" borderWidth="1px" borderRadius="lg" bg="white">
-          <Bar
-            data={{
-              labels: ["John Doe", "Jane Smith", "Bob Johnson", "Alice Brown"],
-              datasets: [{
-                label: "Sales by Customer ($)",
-                data: [250, 200, 300, 250],
-                backgroundColor: ["#4A5568", "#2D3748", "#718096", "#A0AEC0"],
-                borderColor: ["#2D3748", "#1A202C", "#4A5568", "#718096"],
-                borderWidth: 1
-              }]
-            }}
-            options={{
-              responsive: true,
-              plugins: {
-                legend: { display: true, position: "top" },
-                title: { display: true, text: "Sales by Customer" }
-              },
-              scales: {
-                y: { beginAtZero: true, title: { display: true, text: "Sales ($)" } },
-                x: { title: { display: true, text: "Customer" } }
-              }
-            }}
-          />
-        </Box>
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+          {/* Customers Over Time Chart */}
+          <Box p={5} shadow="md" borderWidth="1px" borderRadius="lg" bg="white">
+            <Text fontSize="md" fontWeight="medium" color="gray.800" mb={2}>
+              Customers Over Time
+            </Text>
+            <Line
+              data={{
+                labels: months,
+                datasets: [{
+                  label: "New Customers",
+                  data: months.map((month) => customersByMonth[month] || 0),
+                  borderColor: "#4A5568",
+                  backgroundColor: "rgba(74, 85, 104, 0.2)",
+                  fill: true,
+                  tension: 0.3,
+                }]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: true, position: "top" },
+                  title: { display: false },
+                },
+                scales: {
+                  y: { beginAtZero: true, title: { display: true, text: "Customers" } },
+                  x: { title: { display: true, text: "Month" } }
+                }
+              }}
+              height={200}
+            />
+          </Box>
+
+          {/* Sales Over Time Chart */}
+          <Box p={5} shadow="md" borderWidth="1px" borderRadius="lg" bg="white">
+            <Text fontSize="md" fontWeight="medium" color="gray.800" mb={2}>
+              Sales Over Time
+            </Text>
+            <Line
+              data={{
+                labels: months,
+                datasets: [{
+                  label: "Sales ($)",
+                  data: months.map((month) => salesByMonth[month] || 0),
+                  borderColor: "#FFD700",
+                  backgroundColor: "rgba(255, 215, 0, 0.2)",
+                  fill: true,
+                  tension: 0.3,
+                }]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: true, position: "top" },
+                  title: { display: false },
+                },
+                scales: {
+                  y: { beginAtZero: true, title: { display: true, text: "Sales ($)" } },
+                  x: { title: { display: true, text: "Month" } }
+                }
+              }}
+              height={200}
+            />
+          </Box>
+        </SimpleGrid>
       </Box>
+
+      <Divider my={4} borderColor="gray.200" />
 
       {/* Recent Orders */}
       <Box>
