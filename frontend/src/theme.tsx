@@ -1,7 +1,7 @@
 import { extendTheme, ThemeConfig } from "@chakra-ui/react";
 
 const config: ThemeConfig = {
-  initialColorMode: "light", // Changed to light mode as the default
+  initialColorMode: "light",
   useSystemColorMode: false,
 };
 
@@ -12,22 +12,22 @@ const theme = extendTheme({
       "html, body": {
         fontFamily: '"42dot Sans", sans-serif',
         lineHeight: "1.7",
-        bg: "gray.50", // Hardcoded light gray background for light mode
-        color: "gray.800", // Hardcoded dark text for readability in light mode
+        bg: "gray.50", // Match Sidebar's light background
+        color: "gray.800", // Match Sidebar's dark text
         padding: "20px",
       },
     }),
   },
   colors: {
     ui: {
-      main: "#45b05b", // Teal as the primary accent color
-      secondary: "#E6FFFA", // Light teal for secondary elements
-      success: "#38A169", // Green for success states
-      danger: "#E53E3E", // Red for errors (unchanged)
+      main: "#FFD700", // Yellow as primary accent
+      secondary: "#FFF8E1", // Light yellow for secondary elements
+      success: "#38A169", // Keep green for success
+      danger: "#E53E3E", // Keep red for errors
       light: "#FFFFFF", // White for backgrounds
-      dark: "#1A202C", // Dark background for dark mode (unchanged)
+      dark: "#1A202C", // Dark background for dark mode
       darkSlate: "#2D3748", // Darker gray for contrast
-      dim: "#A0AEC0", // Muted gray for secondary text (unchanged)
+      dim: "#A0AEC0", // Muted gray for secondary text
     },
   },
   components: {
@@ -38,13 +38,13 @@ const theme = extendTheme({
     },
     Text: {
       baseStyle: (props) => ({
-        color: props.colorMode === "dark" ? "gray.200" : "gray.700", // Darker text for light mode readability
+        color: props.colorMode === "dark" ? "gray.200" : "gray.800", // Match Sidebar text
       }),
     },
     Code: {
       baseStyle: (props) => ({
-        bg: props.colorMode === "dark" ? "gray.700" : "gray.100", // Light background for light mode
-        color: props.colorMode === "dark" ? "gray.100" : "gray.800", // Dark text in light mode
+        bg: props.colorMode === "dark" ? "gray.700" : "gray.100",
+        color: props.colorMode === "dark" ? "gray.100" : "gray.800",
         fontSize: "sm",
         p: 3,
         borderRadius: "md",
@@ -57,10 +57,10 @@ const theme = extendTheme({
       },
       variants: {
         primary: {
-          backgroundColor: "ui.main", // Teal accent
-          color: "ui.light", // White text
+          backgroundColor: "ui.main", // Yellow accent
+          color: "gray.800", // Dark text for contrast
           _hover: {
-            backgroundColor: "#234E52", // Darker teal on hover
+            backgroundColor: "#E6C200", // Darker yellow on hover
           },
           _disabled: {
             backgroundColor: "ui.main",
@@ -68,10 +68,10 @@ const theme = extendTheme({
           },
         },
         danger: {
-          backgroundColor: "ui.danger", // Red (unchanged)
-          color: "ui.light", // White text
+          backgroundColor: "ui.danger",
+          color: "ui.light",
           _hover: {
-            backgroundColor: "#E32727", // Darker red (unchanged)
+            backgroundColor: "#E32727",
           },
         },
       },
@@ -85,13 +85,13 @@ const theme = extendTheme({
           tab: {
             color: "ui.dim",
             _selected: {
-              color: "ui.main", // Teal for selected tab
+              color: "ui.main", // Yellow for selected tab
               fontWeight: "bold",
-              borderBottomColor: "ui.main", // Teal underline
+              borderBottomColor: "ui.main", // Yellow underline
               borderBottomWidth: "2px",
             },
             _hover: {
-              color: "ui.secondary", // Light teal on hover
+              color: "ui.secondary", // Light yellow on hover
             },
           },
         },
@@ -100,14 +100,14 @@ const theme = extendTheme({
     Toast: {
       baseStyle: {
         container: {
-          bg: "white", // Bright white background (unchanged)
-          color: "gray.100", // Dark text (unchanged)
+          bg: "white",
+          color: "gray.800", // Match Sidebar text
           borderRadius: "md",
           boxShadow: "lg",
           padding: "16px",
           position: "absolute",
           top: "20px",
-          transform: "translateX(-50%)", // Adjust for centering
+          transform: "translateX(-50%)",
           minWidth: "300px",
           maxWidth: "90%",
         },
@@ -115,7 +115,7 @@ const theme = extendTheme({
       variants: {
         error: {
           container: {
-            bg: "red.100", // Light red for error
+            bg: "red.100",
             color: "red.900",
             border: "1px solid",
             borderColor: "red.300",
@@ -123,7 +123,7 @@ const theme = extendTheme({
         },
         success: {
           container: {
-            bg: "green.100", // Light green for success
+            bg: "green.100",
             color: "green.900",
             border: "1px solid",
             borderColor: "green.300",
@@ -131,7 +131,7 @@ const theme = extendTheme({
         },
         info: {
           container: {
-            bg: "blue.100", // Light blue for info
+            bg: "blue.100",
             color: "blue.900",
             border: "1px solid",
             borderColor: "blue.300",
@@ -139,7 +139,7 @@ const theme = extendTheme({
         },
         warning: {
           container: {
-            bg: "yellow.100", // Light yellow for warning
+            bg: "yellow.100",
             color: "yellow.900",
             border: "1px solid",
             borderColor: "yellow.300",

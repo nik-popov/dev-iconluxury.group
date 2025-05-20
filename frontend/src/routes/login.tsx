@@ -57,8 +57,6 @@ function Login() {
   }
 
   // Social media logo components
-
-  // GitHub logo remains unchanged
   const GitHubLogo = () => (
     <Link
       href="https://github.com/iconluxurygroup"
@@ -73,7 +71,6 @@ function Login() {
     </Link>
   )
 
-  // LinkedIn logo component
   const LinkedInLogo = () => (
     <Link
       href="https://www.linkedin.com/company/iconluxurygroup"
@@ -87,51 +84,46 @@ function Login() {
       />
     </Link>
   )
-// X (formerly Twitter) logo component
-const XLogo = () => (
-  <Link
-    href="https://twitter.com/iconluxurygroup"
-    target="_blank"
-    rel="noopener noreferrer"
-  >
-    <Image
-      src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/x-social-media-round-icon.png"
-      alt="XLogo"
-      boxSize="32px"
-    />
-  </Link>
-)
 
-
-  return (
-      <Container
-        as="form"
-        onSubmit={handleSubmit(onSubmit)}
-        maxW="sm"
-        p={10} /* Increased padding for more space inside */
-        centerContent
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        height="100vh" /* Full viewport height */
-        gap={10} /* Adds spacing between form elements */
-      >
-        <Link
-      href="https://iconluxury.group"
+  const XLogo = () => (
+    <Link
+      href="https://twitter.com/iconluxurygroup"
       target="_blank"
       rel="noopener noreferrer"
     >
-
       <Image
-        src={Logo}
-        alt="iconluxurygroup logo"
-        height="auto"
-        maxW="2xs"
-        alignSelf="center"
-        mb={4}
+        src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/x-social-media-round-icon.png"
+        alt="X Logo"
+        boxSize="32px"
       />
-  </Link>
+    </Link>
+  )
+
+  return (
+    <Container
+      as="form"
+      onSubmit={handleSubmit(onSubmit)}
+      maxW="sm"
+      p={10}
+      centerContent
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+      height="100vh"
+      bg="gray.50" // Match Sidebar's light background
+      gap={6} // Reduced gap for tighter spacing like Sidebar
+    >
+      <Link href="https://iconluxury.group" target="_blank" rel="noopener noreferrer">
+        <Image
+          src={Logo}
+          alt="iconluxurygroup logo"
+          height="auto"
+          maxW="180px" // Match Sidebar logo size
+          alignSelf="center"
+          p={6} // Match Sidebar padding
+        />
+      </Link>
       <FormControl id="username" isInvalid={!!errors.username || !!error}>
         <Input
           id="username"
@@ -142,6 +134,9 @@ const XLogo = () => (
           placeholder="Email"
           type="email"
           required
+          bg="white" // Match Sidebar input background
+          color="gray.800" // Dark text for readability
+          _placeholder={{ color: "gray.400" }} // Subtle placeholder
         />
         {errors.username && (
           <FormErrorMessage>{errors.username.message}</FormErrorMessage>
@@ -155,41 +150,49 @@ const XLogo = () => (
             type={show ? "text" : "password"}
             placeholder="Password"
             required
+            bg="white"
+            color="gray.800"
+            _placeholder={{ color: "gray.400" }}
           />
-          <InputRightElement color="ui.dim" _hover={{ cursor: "pointer" }}>
+          <InputRightElement color="gray.400" _hover={{ cursor: "pointer" }}>
             <Icon
               as={show ? ViewOffIcon : ViewIcon}
               onClick={setShow.toggle}
               aria-label={show ? "Hide password" : "Show password"}
-            >
-              {show ? <ViewOffIcon /> : <ViewIcon />}
-            </Icon>
+            />
           </InputRightElement>
         </InputGroup>
         {error && <FormErrorMessage>{error}</FormErrorMessage>}
       </FormControl>
 
-      <Link as={RouterLink} to="/recover-password" color="blue.500">
+      <Link as={RouterLink} to="/recover-password" color="#FFD700" fontWeight="bold">
         Forgot password?
       </Link>
 
-      <Button variant="primary" type="submit" isLoading={isSubmitting}>
+      <Button
+        variant="primary"
+        type="submit"
+        isLoading={isSubmitting}
+        w="full" // Full width for consistency
+        bg="#FFD700" // Yellow accent
+        color="gray.800" // Dark text for contrast
+        _hover={{ bg: "#E6C200" }} // Darker yellow on hover
+      >
         Log In
       </Button>
 
-      <Text>
+      <Text color="gray.800">
         Don't have an account?{" "}
-        <Link as={RouterLink} to="/signup" color="blue.500">
+        <Link as={RouterLink} to="/signup" color="#FFD700" fontWeight="bold">
           Sign up
         </Link>
       </Text>
 
-      {/* Social media icons row pushed lower by increasing the top margin */}
-      {/* <Flex direction="row" justify="center" align="center" gap={4} mt={12}>
+      <Flex direction="row" justify="center" align="center" gap={4} mt={8}>
         <GitHubLogo />
         <LinkedInLogo />
         <XLogo />
-      </Flex> */}
+      </Flex>
     </Container>
   )
 }
