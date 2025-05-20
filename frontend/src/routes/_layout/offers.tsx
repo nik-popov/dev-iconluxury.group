@@ -193,8 +193,8 @@ function OffersPage() {
                     <Td>{getTotalViews(offer.views)}</Td>
                     <Td>{offer.bids}</Td>
                     <Td>
-                      <Badge colorScheme={getStatusColor(offer.status)}>
-                        {offer.status.toUpperCase()}
+                      <Badge colorScheme={getStatusColor(offer.status || "unknown")}>
+                        {(offer.status || "unknown").toUpperCase()}
                       </Badge>
                     </Td>
                   </Tr>
