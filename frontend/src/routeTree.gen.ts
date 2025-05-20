@@ -20,6 +20,7 @@ import { Route as LayoutImport } from './routes/_layout'
 import { Route as LayoutIndexImport } from './routes/_layout/index'
 import { Route as LayoutSettingsImport } from './routes/_layout/settings'
 import { Route as LayoutOrdersImport } from './routes/_layout/orders'
+import { Route as LayoutOffersImport } from './routes/_layout/offers'
 import { Route as LayoutItemsImport } from './routes/_layout/items'
 import { Route as LayoutAdminImport } from './routes/_layout/admin'
 import { Route as LayoutScrapingApiUserAgentsImport } from './routes/_layout/scraping-api/user-agents'
@@ -87,6 +88,12 @@ const LayoutSettingsRoute = LayoutSettingsImport.update({
 const LayoutOrdersRoute = LayoutOrdersImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
+const LayoutOffersRoute = LayoutOffersImport.update({
+  id: '/offers',
+  path: '/offers',
   getParentRoute: () => LayoutRoute,
 } as any)
 
@@ -244,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutItemsImport
       parentRoute: typeof LayoutImport
     }
+    '/_layout/offers': {
+      id: '/_layout/offers'
+      path: '/offers'
+      fullPath: '/offers'
+      preLoaderRoute: typeof LayoutOffersImport
+      parentRoute: typeof LayoutImport
+    }
     '/_layout/orders': {
       id: '/_layout/orders'
       path: '/orders'
@@ -357,6 +371,7 @@ declare module '@tanstack/react-router' {
 interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
+  LayoutOffersRoute: typeof LayoutOffersRoute
   LayoutOrdersRoute: typeof LayoutOrdersRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
@@ -377,6 +392,7 @@ interface LayoutRouteChildren {
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
   LayoutItemsRoute: LayoutItemsRoute,
+  LayoutOffersRoute: LayoutOffersRoute,
   LayoutOrdersRoute: LayoutOrdersRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutIndexRoute: LayoutIndexRoute,
@@ -411,6 +427,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
   '/items': typeof LayoutItemsRoute
+  '/offers': typeof LayoutOffersRoute
   '/orders': typeof LayoutOrdersRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
@@ -436,6 +453,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
   '/items': typeof LayoutItemsRoute
+  '/offers': typeof LayoutOffersRoute
   '/orders': typeof LayoutOrdersRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
@@ -463,6 +481,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_layout/admin': typeof LayoutAdminRoute
   '/_layout/items': typeof LayoutItemsRoute
+  '/_layout/offers': typeof LayoutOffersRoute
   '/_layout/orders': typeof LayoutOrdersRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/': typeof LayoutIndexRoute
@@ -491,6 +510,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/items'
+    | '/offers'
     | '/orders'
     | '/settings'
     | '/'
@@ -515,6 +535,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/items'
+    | '/offers'
     | '/orders'
     | '/settings'
     | '/'
@@ -540,6 +561,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_layout/admin'
     | '/_layout/items'
+    | '/_layout/offers'
     | '/_layout/orders'
     | '/_layout/settings'
     | '/_layout/'
@@ -599,6 +621,7 @@ export const routeTree = rootRoute
       "children": [
         "/_layout/admin",
         "/_layout/items",
+        "/_layout/offers",
         "/_layout/orders",
         "/_layout/settings",
         "/_layout/",
@@ -637,6 +660,10 @@ export const routeTree = rootRoute
     },
     "/_layout/items": {
       "filePath": "_layout/items.tsx",
+      "parent": "/_layout"
+    },
+    "/_layout/offers": {
+      "filePath": "_layout/offers.tsx",
       "parent": "/_layout"
     },
     "/_layout/orders": {
