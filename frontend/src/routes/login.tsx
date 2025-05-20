@@ -76,10 +76,10 @@ function Login() {
       href="https://www.linkedin.com/company/iconluxurygroup"
       target="_blank"
       rel="noopener noreferrer"
-    >
+      >
       <Image
-        src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png"
-        alt="LinkedIn Logo"
+        src="/assets/images/twitter-x.svg"
+        alt="X Logo"
         boxSize="32px"
       />
     </Link>
@@ -92,7 +92,7 @@ function Login() {
       rel="noopener noreferrer"
     >
       <Image
-        src="/assets/images/twitter-x.svg"
+        src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/x-social-media-round-icon.png"
         alt="X Logo"
         boxSize="32px"
       />
@@ -111,17 +111,16 @@ function Login() {
       alignItems="center"
       justifyContent="center"
       height="100vh"
-      bg="gray.50" // Match Sidebar's light background
-      gap={6} // Reduced gap for tighter spacing like Sidebar
+      bg="gray.900"
+      gap={6}
     >
       <Link href="https://iconluxury.group" target="_blank" rel="noopener noreferrer">
         <Image
           src={Logo}
           alt="iconluxurygroup logo"
           height="auto"
-          maxW="180px" // Match Sidebar logo size
-          alignSelf="center"
-          p={6} // Match Sidebar padding
+          maxW="180px"
+          p={6}
         />
       </Link>
       <FormControl id="username" isInvalid={!!errors.username || !!error}>
@@ -134,9 +133,11 @@ function Login() {
           placeholder="Email"
           type="email"
           required
-          bg="white" // Match Sidebar input background
-          color="gray.800" // Dark text for readability
-          _placeholder={{ color: "gray.400" }} // Subtle placeholder
+          bg="gray.700"
+          color="gray.100"
+          _placeholder={{ color: "gray.400" }}
+          borderColor="gray.600"
+          _focus={{ borderColor: "#FFD700" }}
         />
         {errors.username && (
           <FormErrorMessage>{errors.username.message}</FormErrorMessage>
@@ -150,9 +151,11 @@ function Login() {
             type={show ? "text" : "password"}
             placeholder="Password"
             required
-            bg="white"
-            color="gray.800"
+            bg="gray.700"
+            color="gray.100"
             _placeholder={{ color: "gray.400" }}
+            borderColor="gray.600"
+            _focus={{ borderColor: "#FFD700" }}
           />
           <InputRightElement color="gray.400" _hover={{ cursor: "pointer" }}>
             <Icon
@@ -165,7 +168,13 @@ function Login() {
         {error && <FormErrorMessage>{error}</FormErrorMessage>}
       </FormControl>
 
-      <Link as={RouterLink} to="/recover-password" color="#FFD700" fontWeight="bold">
+      <Link
+        as={RouterLink}
+        to="/recover-password"
+        color="gray.100"
+        _hover={{ borderBottom: "1px solid #FFD700" }}
+        fontWeight="bold"
+      >
         Forgot password?
       </Link>
 
@@ -173,17 +182,25 @@ function Login() {
         variant="primary"
         type="submit"
         isLoading={isSubmitting}
-        w="full" // Full width for consistency
-        bg="#FFD700" // Yellow accent
-        color="gray.800" // Dark text for contrast
-        _hover={{ bg: "#E6C200" }} // Darker yellow on hover
+        w="full"
+        bg="gray.700"
+        color="gray.100"
+        border="2px solid"
+        borderColor="#FFD700"
+        _hover={{ bg: "gray.600" }}
       >
         Log In
       </Button>
 
-      <Text color="gray.800">
+      <Text color="gray.100">
         Don't have an account?{" "}
-        <Link as={RouterLink} to="/signup" color="#FFD700" fontWeight="bold">
+        <Link
+          as={RouterLink}
+          to="/signup"
+          color="gray.100"
+          _hover={{ borderBottom: "1px solid #FFD700" }}
+          fontWeight="bold"
+        >
           Sign up
         </Link>
       </Text>
