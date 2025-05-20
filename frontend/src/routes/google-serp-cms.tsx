@@ -523,7 +523,7 @@ const ControlSection: React.FC<ControlSectionProps> = ({
     {rowCount > 0 && (
       <VStack align="start" spacing={0}>
         {missingRequired.length > 0 ? (
-          <VStack align="start" spacing ETL 0} flexDirection="column-reverse">
+          <VStack align="start" spacing={0} flexDirection="column-reverse">
             {missingRequired.map(col => (
               <Text key={col} fontSize="sm" color="red.500">{col}</Text>
             ))}
