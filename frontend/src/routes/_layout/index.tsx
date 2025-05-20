@@ -1,5 +1,5 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Container,
@@ -11,31 +11,10 @@ import {
   StatLabel,
   StatNumber,
   StatHelpText,
+  Flex,
 } from "@chakra-ui/react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Line } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
 import type { UserPublic } from "../../client";
-
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
 
 export const Route = createFileRoute("/_layout/")({
   component: Dashboard,
@@ -48,16 +27,17 @@ const fetchCustomers = async () => {
     { id: "2", name: "Jane Smith", joined: "2025-04-15" },
     { id: "3", name: "Bob Johnson", joined: "2025-03-20" },
     { id: "4", name: "Alice Brown", joined: "2025-05-10" },
+    { id: "5", name: "Charlie Davis", joined: "2025-04-01" },
   ];
 };
 
 const fetchOrders = async () => {
   return [
-    { id: "1", customerId: "1", date: "2025-05-10", amount: 100, source: "google-serp" },
+    { id: "1", customerId: "1", date: "2025-05-10", amount: 100, source: "standard" },
     { id: "2", customerId: "2", date: "2025-05-05", amount: 200, source: "standard" },
-    { id: "3", customerId: "1", date: "2025-04-25", amount: 150, source: "google-serp" },
+    { id: "3", customerId: "1", date: "2025-04-25", amount: 150, source: "standard" },
     { id: "4", customerId: "3", date: "2025-03-15", amount: 300, source: "standard" },
-    { id: "5", customerId: "4", date: "2025-02-20", amount: 250, source: "google-serp" },
+    { id: "5", customerId: "4", date: "2025-05-15", amount: 250, source: "standard" },
   ];
 };
 
@@ -65,14 +45,15 @@ const fetchOffers = async () => {
   return [
     { id: "1", name: "Spring Sale", validUntil: "2025-06-01" },
     { id: "2", name: "Summer Discount", validUntil: "2025-08-01" },
-    { id: "3", name: "Expired Offer", validUntil: "2025-04-01" },
+    { id: "3", name: "Winter Promo", validUntil: "2025-12-01" },
+    { id: "4", name: "Expired Offer", validUntil: "2025-04-01" },
   ];
 };
 
 function Dashboard() {
   const queryClient = useQueryClient();
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
-  const isSuperuser = currentUser?.is_superuser || false;
+  const userName = currentUser?.full_name || currentUser?.email || "Guest";
 
   // Fetch summary data
   const { data: customers = [], isLoading: customersLoading } = useQuery({
@@ -115,51 +96,32 @@ function Dashboard() {
     return joinDate >= thirtyDaysAgo;
   }).length;
 
-  // Filter orders for superusers (restrict google-serp orders)
-  const accessibleOrders = isSuperuser
-    ? orders
-    : orders.filter((order) => order.source !== "google-serp");
+  // Sales growth (recent sales as % of total)
+  const recentSales = orders
+    .filter((order) => {
+      const orderDate = new Date(order.date);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      return orderDate >= thirtyDaysAgo;
+    })
+    .reduce((sum, order) => sum + order.amount, 0);
 
-  // Prepare chart data (orders per month)
-  const orderTrends = accessibleOrders.reduce((acc, order) => {
-    const date = new Date(order.date);
-    const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
-    acc[monthYear] = (acc[monthYear] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const chartData = {
-    labels: Object.keys(orderTrends).sort(),
-    datasets: [
-      {
-        label: "Orders per Month",
-        data: Object.values(orderTrends),
-        borderColor: "rgb(75, 192, 192)",
-        backgroundColor: "rgba(75, 192, 192, 0.2)",
-        tension: 0.1,
-      },
-    ],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: { position: "top" as const },
-      title: { display: true, text: "Order Trends" },
-    },
-    scales: {
-      y: { beginAtZero: true, title: { display: true, text: "Number of Orders" } },
-      x: { title: { display: true, text: "Month" } },
-    },
-  };
+  const salesGrowth = totalSales
+    ? ((recentSales / totalSales) * 100).toFixed(1)
+    : "0.0";
 
   return (
     <Container maxW="full" bg="gray.50" minH="100vh" p={6}>
-      {/* Summary Metrics */}
+      {/* Summary Metrics with User's Name */}
       <Box mb={8}>
-        <Text fontSize="2xl" fontWeight="bold" color="gray.800" mb={4}>
-          Sales Dashboard
-        </Text>
+        <Flex justify="space-between" align="center" mb={4}>
+          <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+            Sales Dashboard
+          </Text>
+          <Text fontSize="lg" fontWeight="medium" color="gray.600">
+            Welcome, {userName}
+          </Text>
+        </Flex>
         <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={6}>
           <Stat
             p={5}
@@ -187,7 +149,7 @@ function Dashboard() {
           >
             <StatLabel color="gray.600">Total Orders</StatLabel>
             <StatNumber color="gray.800">
-              {ordersLoading ? "Loading..." : accessibleOrders.length}
+              {ordersLoading ? "Loading..." : totalOrders}
             </StatNumber>
             <StatHelpText color="gray.500">
               {recentOrders} in last 30 days
@@ -203,9 +165,11 @@ function Dashboard() {
           >
             <StatLabel color="gray.600">Total Sales</StatLabel>
             <StatNumber color="gray.800">
-              {ordersLoading ? "Loading..." : `$${accessibleOrders.reduce((sum, order) => sum + order.amount, 0)}`}
+              {ordersLoading ? "Loading..." : `$${totalSales}`}
             </StatNumber>
-            <StatHelpText color="gray.500">All time</StatHelpText>
+            <StatHelpText color="gray.500">
+              {salesGrowth}% from recent
+            </StatHelpText>
           </Stat>
           <Stat
             p={5}
@@ -228,28 +192,27 @@ function Dashboard() {
 
       <Divider my={4} borderColor="gray.200" />
 
-      {/* Order Trends Chart */}
+      {/* Sales by Customer Chart (Pie Chart) */}
       <Box mb={8}>
         <Text fontSize="xl" fontWeight="bold" color="gray.800" mb={4}>
-          Order Trends
+          Sales by Customer
         </Text>
         <Box p={5} shadow="md" borderWidth="1px" borderRadius="lg" bg="white">
-          <Line data={chartData} options={chartOptions} />
         </Box>
       </Box>
 
-      {/* Recent Activity */}
+      {/* Recent Orders */}
       <Box>
         <Text fontSize="xl" fontWeight="bold" color="gray.800" mb={4}>
           Recent Orders
         </Text>
         <VStack spacing={4} align="stretch">
-          {accessibleOrders.length === 0 ? (
+          {orders.length === 0 ? (
             <Text textAlign="center" fontSize="lg" color="gray.600">
               No recent orders.
             </Text>
           ) : (
-            accessibleOrders
+            orders
               .slice(0, 5)
               .map((order) => (
                 <Box
@@ -267,11 +230,6 @@ function Dashboard() {
                   <Text fontSize="sm" color="gray.600">
                     Customer ID: {order.customerId} | Date: {order.date} | Amount: ${order.amount}
                   </Text>
-                  {order.source === "google-serp" && (
-                    <Text fontSize="sm" color="gray.500">
-                      Source: Google SERP (Superuser)
-                    </Text>
-                  )}
                 </Box>
               ))
           )}
