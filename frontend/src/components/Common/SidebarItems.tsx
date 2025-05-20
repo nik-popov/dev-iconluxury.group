@@ -30,16 +30,10 @@ interface SidebarItem {
 }
 
 const sidebarStructure: SidebarItem[] = [
-  {
-    title: "Home",
-    icon: FiHome,
-    subItems: [
-      { title: "Dashboard", path: "/" },
-      { title: "Orders", path: "/orders" },
-      { title: "Offers", path: "/offers" },
-      { title: "Customer", path: "/customer" },
-    ],
-  },
+  { title: "Dashboard", icon: FiHome, path: "/" },
+  { title: "Orders", icon: FiLayers, path: "/orders" },
+  { title: "Offers", icon: FiCalendar, path: "/offers" },
+  { title: "Customer", icon: FiUsers, path: "/customer" },
   {
     title: "Data Warehouse",
     subItems: [
@@ -77,25 +71,25 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   }
 
   const isEnabled = (title: string) => {
-    // Home and its sub-items are always enabled
-    if (["Home", "Dashboard", "Orders", "Offers", "Customer"].includes(title)) {
+    // Dashboard, Orders, Offers, Customer are always enabled
+    if (["Dashboard", "Orders", "Offers", "Customer"].includes(title)) {
       return true;
     }
-    // Data Warehouse and its sub-items are only enabled for superusers
-    if (title === "Data Warehouse" || ["Jobs", "S3", "Proxies", "Vision", "Reasoning"].includes(title)) {
+    // Data Warehouse, its sub-items, and Admin are only enabled for superusers
+    if (["Data Warehouse", "Jobs", "S3", "Proxies", "Vision", "Reasoning", "Admin"].includes(title)) {
       return currentUser?.is_superuser || false;
     }
-    // Admin is enabled for superusers
-    if (title === "Admin") {
-      return currentUser?.is_superuser || false;
-    }
-    // All other items remain disabled
-    return false;
+    // All other items are enabled by default
+    return true;
   };
 
   const renderItems = (items: SidebarItem[]) =>
     items.map(({ icon, title, path, subItems }) => {
       const enabled = isEnabled(title);
+      // Skip rendering restricted items for non-superusers
+      if (!enabled && !currentUser?.is_superuser) {
+        return null;
+      }
       return (
         <Box key={title}>
           {path ? (
