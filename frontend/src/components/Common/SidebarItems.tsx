@@ -30,22 +30,29 @@ interface SidebarItem {
 }
 
 const sidebarStructure: SidebarItem[] = [
-  { title: "Home", icon: FiHome, path: "/" },
-  { title:  "S3", icon: FiCloud, path: "/scraping-api/explore-assets" },
   {
-    title: "Scraping",
+    title: "Home",
+    icon: FiHome,
+    subItems: [
+      { title: "Dashboard", path: "/" },
+      { title: "Orders", path: "/orders" },
+      { title: "Offers", path: "/offers" },
+      { title: "Customer", path: "/customer" },
+    ],
+  },
+  {
+    title: "Data Warehouse",
     subItems: [
       { title: "Jobs", path: "/scraping-api/explore" },
+      { title: "S3", icon: FiCloud, path: "/scraping-api/explore-assets" },
       { title: "Proxies", path: "/scraping-api/search-proxies" },
       { title: "Vision", path: "/scraping-api/vision" },
       { title: "Reasoning", path: "/scraping-api/language-model" },
-
     ],
     icon: FiGlobe,
   },
   { title: "Remote Desktop", icon: FiTool, path: "/support/remote-desktop" },
   { title: "VPN", icon: FiShield, path: "/support/vpn" },
-  // { title: "Sonos", icon: FiMusic, path: "/sonos" },
   { title: "Network Logs", icon: FiFileText, path: "/support/network-logs" },
   { title: "NAS", icon: FiDatabase, path: "/support/backup-recovery" },
   { title: "Email Logs", icon: FiMessageSquare, path: "/support/email" },
@@ -57,11 +64,11 @@ interface SidebarItemsProps {
 
 const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const queryClient = useQueryClient();
-  const textColor = "gray.800"  // Dark text for enabled items
-  const disabledColor = "gray.300"  // Darker gray for disabled items (was gray.400)
-  const hoverColor = "green.600"  // Green accent for hover
-  const bgActive = "green.100"  // Light green for active state
-  const activeTextColor = "green.800"  // Darker green for active text
+  const textColor = "gray.800";
+  const disabledColor = "gray.300";
+  const hoverColor = "green.600";
+  const bgActive = "green.100";
+  const activeTextColor = "green.800";
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
 
   const finalSidebarStructure = [...sidebarStructure];
@@ -69,18 +76,22 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     finalSidebarStructure.push({ title: "Admin", icon: FiUsers, path: "/admin" });
   }
 
-  const isEnabled = (title: string) =>
-    ["Home", "Scraping","S3", "Admin"].includes(title) ||
-    (title === "Jobs" && 
-      finalSidebarStructure.some(item => 
-        item.title === "Scraping" && 
-        item.subItems?.some(sub => sub.title === "Jobs")
-      )) ||
-    (title === "Proxies" && 
-      finalSidebarStructure.some(item => 
-        item.title === "Scraping" && 
-        item.subItems?.some(sub => sub.title === "Proxies")
-      ));
+  const isEnabled = (title: string) => {
+    // Home and its sub-items are always enabled
+    if (["Home", "Dashboard", "Orders", "Offers", "Customer"].includes(title)) {
+      return true;
+    }
+    // Data Warehouse and its sub-items are only enabled for superusers
+    if (title === "Data Warehouse" || ["Jobs", "S3", "Proxies", "Vision", "Reasoning"].includes(title)) {
+      return currentUser?.is_superuser || false;
+    }
+    // Admin is enabled for superusers
+    if (title === "Admin") {
+      return currentUser?.is_superuser || false;
+    }
+    // All other items remain disabled
+    return false;
+  };
 
   const renderItems = (items: SidebarItem[]) =>
     items.map(({ icon, title, path, subItems }) => {

@@ -44,7 +44,7 @@ const Sidebar = () => {
         position="absolute"
         fontSize="20px"
         m={4}
-        color="green.600"  // Green accent
+        color="#FFD700"  // Green accent
         icon={<FiMenu />}
       />
       <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
@@ -62,7 +62,7 @@ const Sidebar = () => {
                   as="button"
                   onClick={handleLogout}
                   p={2}
-                  color="green.600"  // Green accent for logout
+                  color="#FFD700"  // Green accent for logout
                   fontWeight="bold"
                   alignItems="center"
                 >
