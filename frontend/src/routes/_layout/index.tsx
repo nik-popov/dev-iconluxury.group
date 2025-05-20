@@ -1,5 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Container,
@@ -15,7 +14,8 @@ import {
 } from "@chakra-ui/react";
 import { createFileRoute } from "@tanstack/react-router";
 import type { UserPublic } from "../../client";
-
+import { Bar } from "react-chartjs-2";
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from "chart.js";
 export const Route = createFileRoute("/_layout/")({
   component: Dashboard,
 });
@@ -53,7 +53,7 @@ const fetchOffers = async () => {
 function Dashboard() {
   const queryClient = useQueryClient();
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
-  const userName = currentUser?.full_name || currentUser?.email || "Guest";
+  const userName = currentUser?.name || currentUser?.email || "Guest";
 
   // Fetch summary data
   const { data: customers = [], isLoading: customersLoading } = useQuery({
@@ -192,12 +192,37 @@ function Dashboard() {
 
       <Divider my={4} borderColor="gray.200" />
 
-      {/* Sales by Customer Chart (Pie Chart) */}
+      {/* Sales by Customer Chart */}
       <Box mb={8}>
         <Text fontSize="xl" fontWeight="bold" color="gray.800" mb={4}>
           Sales by Customer
         </Text>
         <Box p={5} shadow="md" borderWidth="1px" borderRadius="lg" bg="white">
+
+
+<Bar
+  data={{
+    labels: ["John Doe", "Jane Smith", "Bob Johnson", "Alice Brown"],
+    datasets: [{
+      label: "Sales by Customer ($)",
+      data: [250, 200, 300, 250],
+      backgroundColor: ["#4A5568", "#2D3748", "#718096", "#A0AEC0"],
+      borderColor: ["#2D3748", "#1A202C", "#4A5568", "#718096"],
+      borderWidth: 1
+    }]
+  }}
+  options={{
+    responsive: true,
+    plugins: {
+      legend: { display: true, position: "top" },
+      title: { display: true, text: "Sales by Customer" }
+    },
+    scales: {
+      y: { beginAtZero: true, title: { display: true, text: "Sales ($)" } },
+      x: { title: { display: true, text: "Customer" } }
+    }
+  }}
+/>
         </Box>
       </Box>
 
