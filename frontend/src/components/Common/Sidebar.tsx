@@ -100,7 +100,7 @@ const Sidebar = () => {
           </Box>
           <Box>
             {currentUser?.email && (
-              <Text color="gray.800" noOfLines={2} fontSize="sm" p={2} maxW="180px">
+              <Text color="gray.100" noOfLines={2} fontSize="sm" p={2} maxW="180px">
                 Logged in as: {currentUser.email}
               </Text>
             )}
