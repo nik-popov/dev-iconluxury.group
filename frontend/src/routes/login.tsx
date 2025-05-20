@@ -92,7 +92,7 @@ function Login() {
       rel="noopener noreferrer"
     >
       <Image
-        src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/x-social-media-round-icon.png"
+        src="/assets/images/twitter-x.svg"
         alt="X Logo"
         boxSize="32px"
       />
