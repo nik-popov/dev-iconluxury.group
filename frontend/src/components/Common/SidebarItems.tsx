@@ -76,11 +76,25 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     if (["Dashboard", "Orders", "Offers", "Customer"].includes(title)) {
       return true;
     }
-    // Data Warehouse, its sub-items, Remote Desktop, and Admin are only enabled for superusers
-    if (["Data Warehouse", "Jobs", "S3", "Proxies", "Vision", "Reasoning", "Google SERP", "Remote Desktop", "Admin"].includes(title)) {
+    // Data Warehouse, its sub-items, Remote Desktop, VPN, Network Logs, NAS, Email Logs, and Admin are only enabled for superusers
+    if ([
+      "Data Warehouse",
+      "Jobs",
+      "S3",
+      "Proxies",
+      "Vision",
+      "Reasoning",
+      "Google SERP",
+      "Remote Desktop",
+      "VPN",
+      "Network Logs",
+      "NAS",
+      "Email Logs",
+      "Admin"
+    ].includes(title)) {
       return currentUser?.is_superuser || false;
     }
-    // All other items are enabled by default
+    // No other items exist in this structure
     return true;
   };
 
