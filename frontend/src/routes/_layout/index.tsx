@@ -13,9 +13,28 @@ import {
   Flex,
 } from "@chakra-ui/react";
 import { createFileRoute } from "@tanstack/react-router";
-import type { UserPublic } from "../../client";
 import { Bar } from "react-chartjs-2";
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from "chart.js";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import type { UserPublic } from "../../client";
+
+// Register all necessary Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
 export const Route = createFileRoute("/_layout/")({
   component: Dashboard,
 });
@@ -198,31 +217,29 @@ function Dashboard() {
           Sales by Customer
         </Text>
         <Box p={5} shadow="md" borderWidth="1px" borderRadius="lg" bg="white">
-
-
-<Bar
-  data={{
-    labels: ["John Doe", "Jane Smith", "Bob Johnson", "Alice Brown"],
-    datasets: [{
-      label: "Sales by Customer ($)",
-      data: [250, 200, 300, 250],
-      backgroundColor: ["#4A5568", "#2D3748", "#718096", "#A0AEC0"],
-      borderColor: ["#2D3748", "#1A202C", "#4A5568", "#718096"],
-      borderWidth: 1
-    }]
-  }}
-  options={{
-    responsive: true,
-    plugins: {
-      legend: { display: true, position: "top" },
-      title: { display: true, text: "Sales by Customer" }
-    },
-    scales: {
-      y: { beginAtZero: true, title: { display: true, text: "Sales ($)" } },
-      x: { title: { display: true, text: "Customer" } }
-    }
-  }}
-/>
+          <Bar
+            data={{
+              labels: ["John Doe", "Jane Smith", "Bob Johnson", "Alice Brown"],
+              datasets: [{
+                label: "Sales by Customer ($)",
+                data: [250, 200, 300, 250],
+                backgroundColor: ["#4A5568", "#2D3748", "#718096", "#A0AEC0"],
+                borderColor: ["#2D3748", "#1A202C", "#4A5568", "#718096"],
+                borderWidth: 1
+              }]
+            }}
+            options={{
+              responsive: true,
+              plugins: {
+                legend: { display: true, position: "top" },
+                title: { display: true, text: "Sales by Customer" }
+              },
+              scales: {
+                y: { beginAtZero: true, title: { display: true, text: "Sales ($)" } },
+                x: { title: { display: true, text: "Customer" } }
+              }
+            }}
+          />
         </Box>
       </Box>
 
