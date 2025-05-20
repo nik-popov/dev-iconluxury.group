@@ -22,6 +22,7 @@ import { Route as LayoutSettingsImport } from './routes/_layout/settings'
 import { Route as LayoutOrdersImport } from './routes/_layout/orders'
 import { Route as LayoutOffersImport } from './routes/_layout/offers'
 import { Route as LayoutItemsImport } from './routes/_layout/items'
+import { Route as LayoutCustomersImport } from './routes/_layout/customers'
 import { Route as LayoutAdminImport } from './routes/_layout/admin'
 import { Route as LayoutScrapingApiUserAgentsImport } from './routes/_layout/scraping-api/user-agents'
 import { Route as LayoutScrapingApiSearchProxiesImport } from './routes/_layout/scraping-api/search-proxies'
@@ -100,6 +101,12 @@ const LayoutOffersRoute = LayoutOffersImport.update({
 const LayoutItemsRoute = LayoutItemsImport.update({
   id: '/items',
   path: '/items',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
+const LayoutCustomersRoute = LayoutCustomersImport.update({
+  id: '/customers',
+  path: '/customers',
   getParentRoute: () => LayoutRoute,
 } as any)
 
@@ -244,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminImport
       parentRoute: typeof LayoutImport
     }
+    '/_layout/customers': {
+      id: '/_layout/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof LayoutCustomersImport
+      parentRoute: typeof LayoutImport
+    }
     '/_layout/items': {
       id: '/_layout/items'
       path: '/items'
@@ -370,6 +384,7 @@ declare module '@tanstack/react-router' {
 
 interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
+  LayoutCustomersRoute: typeof LayoutCustomersRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
   LayoutOffersRoute: typeof LayoutOffersRoute
   LayoutOrdersRoute: typeof LayoutOrdersRoute
@@ -391,6 +406,7 @@ interface LayoutRouteChildren {
 
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
+  LayoutCustomersRoute: LayoutCustomersRoute,
   LayoutItemsRoute: LayoutItemsRoute,
   LayoutOffersRoute: LayoutOffersRoute,
   LayoutOrdersRoute: LayoutOrdersRoute,
@@ -426,6 +442,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
+  '/customers': typeof LayoutCustomersRoute
   '/items': typeof LayoutItemsRoute
   '/offers': typeof LayoutOffersRoute
   '/orders': typeof LayoutOrdersRoute
@@ -452,6 +469,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
+  '/customers': typeof LayoutCustomersRoute
   '/items': typeof LayoutItemsRoute
   '/offers': typeof LayoutOffersRoute
   '/orders': typeof LayoutOrdersRoute
@@ -480,6 +498,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_layout/admin': typeof LayoutAdminRoute
+  '/_layout/customers': typeof LayoutCustomersRoute
   '/_layout/items': typeof LayoutItemsRoute
   '/_layout/offers': typeof LayoutOffersRoute
   '/_layout/orders': typeof LayoutOrdersRoute
@@ -509,6 +528,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/admin'
+    | '/customers'
     | '/items'
     | '/offers'
     | '/orders'
@@ -534,6 +554,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/admin'
+    | '/customers'
     | '/items'
     | '/offers'
     | '/orders'
@@ -560,6 +581,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_layout/admin'
+    | '/_layout/customers'
     | '/_layout/items'
     | '/_layout/offers'
     | '/_layout/orders'
@@ -620,6 +642,7 @@ export const routeTree = rootRoute
       "filePath": "_layout.tsx",
       "children": [
         "/_layout/admin",
+        "/_layout/customers",
         "/_layout/items",
         "/_layout/offers",
         "/_layout/orders",
@@ -656,6 +679,10 @@ export const routeTree = rootRoute
     },
     "/_layout/admin": {
       "filePath": "_layout/admin.tsx",
+      "parent": "/_layout"
+    },
+    "/_layout/customers": {
+      "filePath": "_layout/customers.tsx",
       "parent": "/_layout"
     },
     "/_layout/items": {
