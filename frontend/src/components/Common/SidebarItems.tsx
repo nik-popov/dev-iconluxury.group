@@ -75,8 +75,8 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     if (["Dashboard", "Orders", "Offers", "Customer"].includes(title)) {
       return true;
     }
-    // Data Warehouse, its sub-items, and Admin are only enabled for superusers
-    if (["Data Warehouse", "Jobs", "S3", "Proxies", "Vision", "Reasoning", "Admin"].includes(title)) {
+    // Data Warehouse, its sub-items, Remote Desktop, and Admin are only enabled for superusers
+    if (["Data Warehouse", "Jobs", "S3", "Proxies", "Vision", "Reasoning", "Remote Desktop", "Admin"].includes(title)) {
       return currentUser?.is_superuser || false;
     }
     // All other items are enabled by default
