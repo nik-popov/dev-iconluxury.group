@@ -42,6 +42,7 @@ const sidebarStructure: SidebarItem[] = [
       { title: "Proxies", path: "/scraping-api/search-proxies" },
       { title: "Vision", path: "/scraping-api/vision" },
       { title: "Reasoning", path: "/scraping-api/language-model" },
+      { title: "Google SERP", path: "/scraping-api/google-serp" },
     ],
     icon: FiGlobe,
   },
@@ -76,7 +77,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
       return true;
     }
     // Data Warehouse, its sub-items, Remote Desktop, and Admin are only enabled for superusers
-    if (["Data Warehouse", "Jobs", "S3", "Proxies", "Vision", "Reasoning", "Remote Desktop", "Admin"].includes(title)) {
+    if (["Data Warehouse", "Jobs", "S3", "Proxies", "Vision", "Reasoning", "Google SERP", "Remote Desktop", "Admin"].includes(title)) {
       return currentUser?.is_superuser || false;
     }
     // All other items are enabled by default
