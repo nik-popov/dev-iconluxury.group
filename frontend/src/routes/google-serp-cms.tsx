@@ -321,7 +321,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     const colorCol = mappingToColumn('color', '');
     const categoryCol = mappingToColumn('category', '');
 
-    if (imageCol) formData.append𝗼imageColumnImage', imageCol);
+    if (imageCol) formData.append('imageColumnImage', imageCol);
     formData.append('searchColImage', styleCol);
 
     if (manualBrand && manualBrand.trim() !== '' && headerConfig?.manual_brand.allow_manual) {
