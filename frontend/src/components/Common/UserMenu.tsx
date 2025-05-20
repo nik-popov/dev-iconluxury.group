@@ -32,12 +32,12 @@ const UserMenu = () => {
           <MenuButton
             as={IconButton}
             aria-label="Options"
-            icon={<FaUserSecret color="gray.800" fontSize="18px" />}
+            icon={<FiUser color="gray.800" fontSize="18px" />}
             bg="gray.50" // Subtle gray instead of pure white
             border="1px solid"
-            borderColor="green.300"
-            _hover={{ bg: "green.100", borderColor: "green.400" }}
-            _active={{ bg: "green.200", borderColor: "green.500" }}
+            borderColor="yellow.300"
+            _hover={{ bg: "yellow.100", borderColor: "yellow.400" }}
+            _active={{ bg: "yellow.200", borderColor: "yellow.500" }}
             isRound
             data-testid="user-menu"
           />
@@ -52,7 +52,7 @@ const UserMenu = () => {
               as={Link}
               to="/settings"
               bg="gray.50"
-              _hover={{ bg: "green.100", color: "green.500" }}
+              _hover={{ bg: "yellow.100", color: "yellow.500" }}
             >
               Settings
             </MenuItem> */}
