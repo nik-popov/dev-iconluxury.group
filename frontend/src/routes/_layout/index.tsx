@@ -9,7 +9,6 @@ import {
   Stat,
   StatLabel,
   StatNumber,
-  StatHelpText,
   Flex,
 } from "@chakra-ui/react";
 import { createFileRoute } from "@tanstack/react-router";
@@ -26,7 +25,7 @@ import {
 } from "chart.js";
 import type { UserPublic } from "../../client";
 
-// Register all necessary Chart.js components
+// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -64,10 +63,25 @@ const fetchOrders = async () => {
 
 const fetchOffers = async () => {
   return [
-    { id: "1", name: "Spring Sale", validUntil: "2025-06-01" },
-    { id: "2", name: "Summer Discount", validUntil: "2025-08-01" },
-    { id: "3", name: "Winter Promo", validUntil: "2025-12-01" },
-    { id: "4", name: "Expired Offer", validUntil: "2025-04-01" },
+    { id: "1", name: "Spring Sale", validUntil: "2025-06-01", views: [
+      { month: "2025-03", count: 50 },
+      { month: "2025-04", count: 80 },
+      { month: "2025-05", count: 120 },
+    ]},
+    { id: "2", name: "Summer Discount", validUntil: "2025-08-01", views: [
+      { month: "2025-03", count: 30 },
+      { month: "2025-04", count: 60 },
+      { month: "2025-05", count: 100 },
+    ]},
+    { id: "3", name: "Winter Promo", validUntil: "2025-12-01", views: [
+      { month: "2025-03", count: 20 },
+      { month: "2025-04", count: 40 },
+      { month: "2025-05", count: 70 },
+    ]},
+    { id: "4", name: "Expired Offer", validUntil: "2025-04-01", views: [
+      { month: "2025-03", count: 40 },
+      { month: "2025-04", count: 50 },
+    ]},
   ];
 };
 
@@ -98,250 +112,151 @@ function Dashboard() {
   const totalSales = orders.reduce((sum, order) => sum + order.amount, 0);
   const totalOffers = offers.length;
 
-  const recentOrders = orders.filter((order) => {
-    const orderDate = new Date(order.date);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return orderDate >= thirtyDaysAgo;
-  }).length;
-
-  const activeOffers = offers.filter((offer) => {
-    const validUntil = new Date(offer.validUntil);
-    return validUntil >= new Date();
-  }).length;
-
-  const newCustomers = customers.filter((customer) => {
-    const joinDate = new Date(customer.joined);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return joinDate >= thirtyDaysAgo;
-  }).length;
-
-  // Sales growth (recent sales as % of total)
-  const recentSales = orders
-    .filter((order) => {
-      const orderDate = new Date(order.date);
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      return orderDate >= thirtyDaysAgo;
-    })
-    .reduce((sum, order) => sum + order.amount, 0);
-
-  const salesGrowth = totalSales
-    ? ((recentSales / totalSales) * 100).toFixed(1)
-    : "0.0";
-
-  // Data for charts
-  // Customers over time (new customers per month)
-  const customersByMonth = customers.reduce((acc, customer) => {
-    const date = new Date(customer.joined);
-    const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
-    acc[monthYear] = (acc[monthYear] || 0) + 1;
+  // Offer views over time
+  const viewsByMonth = offers.reduce((acc, offer) => {
+    offer.views.forEach(({ month, count }) => {
+      acc[month] = (acc[month] || 0) + count;
+    });
     return acc;
   }, {} as Record<string, number>);
 
-  // Sales over time (total sales per month)
-  const salesByMonth = orders.reduce((acc, order) => {
-    const date = new Date(order.date);
-    const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
-    acc[monthYear] = (acc[monthYear] || 0) + order.amount;
-    return acc;
-  }, {} as Record<string, number>);
-
-  // Common months (sorted)
-  const months = Array.from(
-    new Set([
-      ...Object.keys(customersByMonth),
-      ...Object.keys(salesByMonth),
-    ])
-  ).sort();
+  const months = Object.keys(viewsByMonth).sort();
 
   return (
-    <Container maxW="full" bg="gray.50" minH="100vh" p={6}>
-      {/* Summary Metrics with User's Name */}
-      <Box mb={8}>
-        <Flex justify="space-between" align="center" mb={4}>
-          <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+    <Container maxW="full" bg="gray.50" minH="100vh" p={4}>
+      {/* Header with User's Name */}
+      <Box mb={4}>
+        <Flex justify="space-between" align="center">
+          <Text fontSize="xl" fontWeight="bold" color="gray.800">
             Sales Dashboard
           </Text>
-          <Text fontSize="lg" fontWeight="medium" color="gray.600">
+          <Text fontSize="md" fontWeight="medium" color="gray.600">
             Welcome, {userName}
           </Text>
         </Flex>
-        <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={6}>
-          <Stat
-            p={5}
-            shadow="md"
-            borderWidth="1px"
-            borderRadius="lg"
-            bg="white"
-            borderColor="gray.200"
-          >
-            <StatLabel color="gray.600">Total Customers</StatLabel>
-            <StatNumber color="gray.800">
-              {customersLoading ? "Loading..." : totalCustomers}
-            </StatNumber>
-            <StatHelpText color="gray.500">
-              {newCustomers} new this month
-            </StatHelpText>
-          </Stat>
-          <Stat
-            p={5}
-            shadow="md"
-            borderWidth="1px"
-            borderRadius="lg"
-            bg="white"
-            borderColor="gray.200"
-          >
-            <StatLabel color="gray.600">Total Orders</StatLabel>
-            <StatNumber color="gray.800">
-              {ordersLoading ? "Loading..." : totalOrders}
-            </StatNumber>
-            <StatHelpText color="gray.500">
-              {recentOrders} in last 30 days
-            </StatHelpText>
-          </Stat>
-          <Stat
-            p={5}
-            shadow="md"
-            borderWidth="1px"
-            borderRadius="lg"
-            bg="white"
-            borderColor="gray.200"
-          >
-            <StatLabel color="gray.600">Total Sales</StatLabel>
-            <StatNumber color="gray.800">
-              {ordersLoading ? "Loading..." : `$${totalSales}`}
-            </StatNumber>
-            <StatHelpText color="gray.500">
-              {salesGrowth}% from recent
-            </StatHelpText>
-          </Stat>
-          <Stat
-            p={5}
-            shadow="md"
-            borderWidth="1px"
-            borderRadius="lg"
-            bg="white"
-            borderColor="gray.200"
-          >
-            <StatLabel color="gray.600">Total Offers</StatLabel>
-            <StatNumber color="gray.800">
-              {offersLoading ? "Loading..." : totalOffers}
-            </StatNumber>
-            <StatHelpText color="gray.500">
-              {activeOffers} active
-            </StatHelpText>
-          </Stat>
-        </SimpleGrid>
       </Box>
 
-      <Divider my={4} borderColor="gray.200" />
+      {/* Summary Metrics */}
+      <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={4} mb={4}>
+        <Stat
+          p={3}
+          shadow="sm"
+          borderWidth="1px"
+          borderRadius="md"
+          bg="white"
+          borderColor="gray.200"
+        >
+          <StatLabel fontSize="sm" color="gray.600">Customers</StatLabel>
+          <StatNumber fontSize="lg" color="gray.800">
+            {customersLoading ? "Loading..." : totalCustomers}
+          </StatNumber>
+        </Stat>
+        <Stat
+          p={3}
+          shadow="sm"
+          borderWidth="1px"
+          borderRadius="md"
+          bg="white"
+          borderColor="gray.200"
+        >
+          <StatLabel fontSize="sm" color="gray.600">Orders</StatLabel>
+          <StatNumber fontSize="lg" color="gray.800">
+            {ordersLoading ? "Loading..." : totalOrders}
+          </StatNumber>
+        </Stat>
+        <Stat
+          p={3}
+          shadow="sm"
+          borderWidth="1px"
+          borderRadius="md"
+          bg="white"
+          borderColor="gray.200"
+        >
+          <StatLabel fontSize="sm" color="gray.600">Sales</StatLabel>
+          <StatNumber fontSize="lg" color="gray.800">
+            {ordersLoading ? "Loading..." : `$${totalSales}`}
+          </StatNumber>
+        </Stat>
+        <Stat
+          p={3}
+          shadow="sm"
+          borderWidth="1px"
+          borderRadius="md"
+          bg="white"
+          borderColor="gray.200"
+        >
+          <StatLabel fontSize="sm" color="gray.600">Offers</StatLabel>
+          <StatNumber fontSize="lg" color="gray.800">
+            {offersLoading ? "Loading..." : totalOffers}
+          </StatNumber>
+        </Stat>
+      </SimpleGrid>
 
-      {/* Charts Section */}
-      <Box mb={8}>
-        <Text fontSize="xl" fontWeight="bold" color="gray.800" mb={4}>
-          Trends
+      <Divider my={3} borderColor="gray.200" />
+
+      {/* Offer Views Over Time Chart */}
+      <Box mb={4}>
+        <Text fontSize="md" fontWeight="bold" color="gray.800" mb={2}>
+          Offer Views Over Time
         </Text>
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-          {/* Customers Over Time Chart */}
-          <Box p={5} shadow="md" borderWidth="1px" borderRadius="lg" bg="white">
-            <Text fontSize="md" fontWeight="medium" color="gray.800" mb={2}>
-              Customers Over Time
-            </Text>
-            <Line
-              data={{
-                labels: months,
-                datasets: [{
-                  label: "New Customers",
-                  data: months.map((month) => customersByMonth[month] || 0),
-                  borderColor: "#4A5568",
-                  backgroundColor: "rgba(74, 85, 104, 0.2)",
-                  fill: true,
-                  tension: 0.3,
-                }]
-              }}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { display: true, position: "top" },
-                  title: { display: false },
-                },
-                scales: {
-                  y: { beginAtZero: true, title: { display: true, text: "Customers" } },
-                  x: { title: { display: true, text: "Month" } }
-                }
-              }}
-              height={200}
-            />
-          </Box>
-
-          {/* Sales Over Time Chart */}
-          <Box p={5} shadow="md" borderWidth="1px" borderRadius="lg" bg="white">
-            <Text fontSize="md" fontWeight="medium" color="gray.800" mb={2}>
-              Sales Over Time
-            </Text>
-            <Line
-              data={{
-                labels: months,
-                datasets: [{
-                  label: "Sales ($)",
-                  data: months.map((month) => salesByMonth[month] || 0),
-                  borderColor: "#FFD700",
-                  backgroundColor: "rgba(255, 215, 0, 0.2)",
-                  fill: true,
-                  tension: 0.3,
-                }]
-              }}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { display: true, position: "top" },
-                  title: { display: false },
-                },
-                scales: {
-                  y: { beginAtZero: true, title: { display: true, text: "Sales ($)" } },
-                  x: { title: { display: true, text: "Month" } }
-                }
-              }}
-              height={200}
-            />
-          </Box>
-        </SimpleGrid>
+        <Box p={3} shadow="sm" borderWidth="1px" borderRadius="md" bg="white">
+          <Line
+            data={{
+              labels: months,
+              datasets: [{
+                label: "Offer Views",
+                data: months.map((month) => viewsByMonth[month] || 0),
+                borderColor: "#2D3748",
+                backgroundColor: "rgba(45, 55, 72, 0.1)",
+                fill: true,
+                tension: 0.3,
+              }]
+            }}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                title: { display: false },
+              },
+              scales: {
+                y: { beginAtZero: true, title: { display: false }, grid: { display: false } },
+                x: { title: { display: false }, grid: { display: false } }
+              }
+            }}
+            height={150}
+          />
+        </Box>
       </Box>
 
-      <Divider my={4} borderColor="gray.200" />
+      <Divider my={3} borderColor="gray.200" />
 
       {/* Recent Orders */}
       <Box>
-        <Text fontSize="xl" fontWeight="bold" color="gray.800" mb={4}>
+        <Text fontSize="md" fontWeight="bold" color="gray.800" mb={2}>
           Recent Orders
         </Text>
-        <VStack spacing={4} align="stretch">
+        <VStack spacing={3} align="stretch">
           {orders.length === 0 ? (
-            <Text textAlign="center" fontSize="lg" color="gray.600">
-              No recent orders.
-            </Text>
+            <Text fontSize="sm" color="gray.600">No recent orders.</Text>
           ) : (
             orders
-              .slice(0, 5)
+              .slice(0, 3)
               .map((order) => (
                 <Box
                   key={order.id}
-                  p={5}
-                  shadow="md"
+                  p={3}
+                  shadow="sm"
                   borderWidth="1px"
-                  borderRadius="lg"
+                  borderRadius="md"
                   bg="white"
                   borderColor="gray.200"
                 >
-                  <Text fontWeight="bold" color="gray.800">
+                  <Text fontSize="sm" fontWeight="medium" color="gray.800">
                     Order #{order.id}
                   </Text>
-                  <Text fontSize="sm" color="gray.600">
-                    Customer ID: {order.customerId} | Date: {order.date} | Amount: ${order.amount}
+                  <Text fontSize="xs" color="gray.600">
+                    Customer ID: {order.customerId} | Date: {order.date} | ${order.amount}
                   </Text>
                 </Box>
               ))
