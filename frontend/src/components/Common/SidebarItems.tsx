@@ -33,7 +33,7 @@ const sidebarStructure: SidebarItem[] = [
   { title: "Dashboard", icon: FiHome, path: "/" },
   { title: "Orders", icon: FiLayers, path: "/orders" },
   { title: "Offers", icon: FiCalendar, path: "/offers" },
-  { title: "Customer", icon: FiUsers, path: "/customer" },
+  { title: "Customers", icon: FiUsers, path: "/customers" },
   {
     title: "Data Warehouse",
     subItems: [
@@ -73,7 +73,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
 
   const isEnabled = (title: string) => {
     // Dashboard, Orders, Offers, Customer are always enabled
-    if (["Dashboard", "Orders", "Offers", "Customer"].includes(title)) {
+    if (["Dashboard", "Orders", "Offers", "Customers"].includes(title)) {
       return true;
     }
     // Data Warehouse, its sub-items, Remote Desktop, VPN, Network Logs, NAS, Email Logs, and Admin are only enabled for superusers
