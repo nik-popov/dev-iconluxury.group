@@ -25,7 +25,7 @@ const Sidebar = () => {
   const queryClient = useQueryClient()
   const bgColor = "gray.900"  // Changed to fixed light background
   const textColor = "gray.100"  // Dark text for visibility
-  const secBgColor = "gray.600"  // Light gray secondary background
+  const secBgColor = "gray.700"  // Light gray secondary background
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { logout } = useAuth()
