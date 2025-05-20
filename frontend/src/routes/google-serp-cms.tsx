@@ -81,7 +81,6 @@ interface State {
   manualBrand: string;
   headerConfig: HeaderLabelsConfig | null;
 }
-
 type Action =
   | { type: 'SET_FILE'; payload: File | null }
   | { type: 'SET_LOADING'; payload: boolean }
