@@ -67,8 +67,8 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const textColor = "gray.100";
   const disabledColor = "gray.300";
   const hoverColor = "#FFD700";
-  const bgActive = "#FFD700";
-  const activeTextColor = "#FFD700";
+  const bgActive = "yellow.100";
+  const activeTextColor = "yellow.800";
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
 
   const finalSidebarStructure = [...sidebarStructure];
