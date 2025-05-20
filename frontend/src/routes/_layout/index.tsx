@@ -53,7 +53,7 @@ const fetchOffers = async () => {
 function Dashboard() {
   const queryClient = useQueryClient();
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
-  const userName = currentUser?.name || currentUser?.email || "Guest";
+  const userName = currentUser?.full_name || currentUser?.email || "Guest";
 
   // Fetch summary data
   const { data: customers = [], isLoading: customersLoading } = useQuery({
