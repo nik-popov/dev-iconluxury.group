@@ -1,129 +1,282 @@
-import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   Box,
   Container,
   Text,
   VStack,
-  Button,
   Divider,
-  Flex,
-  Switch,
+  SimpleGrid,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
 } from "@chakra-ui/react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import type { UserPublic } from "../../client";
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 export const Route = createFileRoute("/_layout/")({
   component: Dashboard,
 });
 
-function Dashboard() {
-  const navigate = useNavigate();
-  const [ownedOnly, setOwnedOnly] = useState(true);
-  const [activeFilter, setActiveFilter] = useState("serp");
+// Mock data fetching functions (replace with actual API calls)
+const fetchCustomers = async () => {
+  return [
+    { id: "1", name: "John Doe", joined: "2025-05-01" },
+    { id: "2", name: "Jane Smith", joined: "2025-04-15" },
+    { id: "3", name: "Bob Johnson", joined: "2025-03-20" },
+    { id: "4", name: "Alice Brown", joined: "2025-05-10" },
+  ];
+};
 
-  type Product = {
-    id: string;
-    name: string;
-    type: string;
-    description: string;
-    owned: boolean;
-    path: string;
+const fetchOrders = async () => {
+  return [
+    { id: "1", customerId: "1", date: "2025-05-10", amount: 100, source: "google-serp" },
+    { id: "2", customerId: "2", date: "2025-05-05", amount: 200, source: "standard" },
+    { id: "3", customerId: "1", date: "2025-04-25", amount: 150, source: "google-serp" },
+    { id: "4", customerId: "3", date: "2025-03-15", amount: 300, source: "standard" },
+    { id: "5", customerId: "4", date: "2025-02-20", amount: 250, source: "google-serp" },
+  ];
+};
+
+const fetchOffers = async () => {
+  return [
+    { id: "1", name: "Spring Sale", validUntil: "2025-06-01" },
+    { id: "2", name: "Summer Discount", validUntil: "2025-08-01" },
+    { id: "3", name: "Expired Offer", validUntil: "2025-04-01" },
+  ];
+};
+
+function Dashboard() {
+  const queryClient = useQueryClient();
+  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
+  const isSuperuser = currentUser?.is_superuser || false;
+
+  // Fetch summary data
+  const { data: customers = [], isLoading: customersLoading } = useQuery({
+    queryKey: ["customers"],
+    queryFn: fetchCustomers,
+  });
+
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ["orders"],
+    queryFn: fetchOrders,
+  });
+
+  const { data: offers = [], isLoading: offersLoading } = useQuery({
+    queryKey: ["offers"],
+    queryFn: fetchOffers,
+  });
+
+  // Calculate summary metrics
+  const totalCustomers = customers.length;
+  const totalOrders = orders.length;
+  const totalSales = orders.reduce((sum, order) => sum + order.amount, 0);
+  const totalOffers = offers.length;
+
+  const recentOrders = orders.filter((order) => {
+    const orderDate = new Date(order.date);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return orderDate >= thirtyDaysAgo;
+  }).length;
+
+  const activeOffers = offers.filter((offer) => {
+    const validUntil = new Date(offer.validUntil);
+    return validUntil >= new Date();
+  }).length;
+
+  const newCustomers = customers.filter((customer) => {
+    const joinDate = new Date(customer.joined);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return joinDate >= thirtyDaysAgo;
+  }).length;
+
+  // Filter orders for superusers (restrict google-serp orders)
+  const accessibleOrders = isSuperuser
+    ? orders
+    : orders.filter((order) => order.source !== "google-serp");
+
+  // Prepare chart data (orders per month)
+  const orderTrends = accessibleOrders.reduce((acc, order) => {
+    const date = new Date(order.date);
+    const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
+    acc[monthYear] = (acc[monthYear] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const chartData = {
+    labels: Object.keys(orderTrends).sort(),
+    datasets: [
+      {
+        label: "Orders per Month",
+        data: Object.values(orderTrends),
+        borderColor: "rgb(75, 192, 192)",
+        backgroundColor: "rgba(75, 192, 192, 0.2)",
+        tension: 0.1,
+      },
+    ],
   };
 
-  const proxyProducts: Product[] = [
-    // { id: "submit-form", name: "🧑‍💻 Scraper Submit Form", type: "SERP", description: "Submit files to Dev Scraper.", owned: true, path: "/scraping-api/submit-form/google-serp" },
-    { id: "explore-serp", name: "📋 Scraper Jobs", type: "SERP", description: "View Scraper Files.", owned: true, path: "/scraping-api/explore" },
-    { id: "icon-gpt", name: "🤖 IconGpt", type: "AI", description: "Use OpenAI and X models.", owned: true, path: "/ai/icongpt" },
-    { id: "manage-proxy", name: "👺 Proxy Management", type: "SERP", description: "Manage Proxy Endpoints.", owned: true, path: "/scraping-api/search-proxies" },
-    { id: "google-serp", name: "⚙️ Google Management", type: "SERP", description: "Scrape real-time Google search results.", owned: true, path: "/scraping-api/google-serp" },
-  //   { id: "cettire", name: "🔍 Cettire", type: "SERP", description: "Scrape Cettire search results.", owned: true, path: "/scraping-api/cettire" },
-  ];
-
-  const filteredProducts = useMemo(() => {
-    return proxyProducts.filter((product) => {
-      const matchesFilter =
-        activeFilter === "all" ||
-        product.type.toLowerCase() === activeFilter.toLowerCase();
-      const matchesOwnership = !ownedOnly || product.owned;
-      return matchesFilter && matchesOwnership;
-    });
-  }, [activeFilter, ownedOnly]);
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: "top" as const },
+      title: { display: true, text: "Order Trends" },
+    },
+    scales: {
+      y: { beginAtZero: true, title: { display: true, text: "Number of Orders" } },
+      x: { title: { display: true, text: "Month" } },
+    },
+  };
 
   return (
-    <Container maxW="full" bg="gray.50" minH="100vh">
-      {/* Filters & Toggle */}
-      <Flex mt={6} gap={4} justify="space-between" align="center" flexWrap="wrap">
-      <Flex align="center">
-  <Text fontWeight="bold" mr={2} color="gray.800">My Tools</Text>
-  <Switch 
-    isChecked={ownedOnly} 
-    onChange={() => setOwnedOnly((prev) => !prev)} 
-    colorScheme="green"
-    mr={4}
-  />
-</Flex>
-
-        <Flex gap={2}>
-  {["All", "SERP", "AI"].map((type) => (
-    <Button
-      key={type}
-      size="md"
-      fontWeight="bold"
-      borderRadius="full"
-      colorScheme={
-        activeFilter === type.toLowerCase() || 
-        (type === "All" && activeFilter === "all") ? "green" : "gray"
-      }
-      variant={
-        activeFilter === type.toLowerCase() || 
-        (type === "All" && activeFilter === "all") ? "solid" : "outline"
-      }
-      color={
-        activeFilter === type.toLowerCase() || 
-        (type === "All" && activeFilter === "all") ? "gray.800" : "gray.600"
-      }
-      onClick={() => setActiveFilter(type === "All" ? "all" : type.toLowerCase())}
-    >
-      {type}
-    </Button>
-  ))}
-</Flex>
-      </Flex>
+    <Container maxW="full" bg="gray.50" minH="100vh" p={6}>
+      {/* Summary Metrics */}
+      <Box mb={8}>
+        <Text fontSize="2xl" fontWeight="bold" color="gray.800" mb={4}>
+          Sales Dashboard
+        </Text>
+        <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={6}>
+          <Stat
+            p={5}
+            shadow="md"
+            borderWidth="1px"
+            borderRadius="lg"
+            bg="white"
+            borderColor="gray.200"
+          >
+            <StatLabel color="gray.600">Total Customers</StatLabel>
+            <StatNumber color="gray.800">
+              {customersLoading ? "Loading..." : totalCustomers}
+            </StatNumber>
+            <StatHelpText color="gray.500">
+              {newCustomers} new this month
+            </StatHelpText>
+          </Stat>
+          <Stat
+            p={5}
+            shadow="md"
+            borderWidth="1px"
+            borderRadius="lg"
+            bg="white"
+            borderColor="gray.200"
+          >
+            <StatLabel color="gray.600">Total Orders</StatLabel>
+            <StatNumber color="gray.800">
+              {ordersLoading ? "Loading..." : accessibleOrders.length}
+            </StatNumber>
+            <StatHelpText color="gray.500">
+              {recentOrders} in last 30 days
+            </StatHelpText>
+          </Stat>
+          <Stat
+            p={5}
+            shadow="md"
+            borderWidth="1px"
+            borderRadius="lg"
+            bg="white"
+            borderColor="gray.200"
+          >
+            <StatLabel color="gray.600">Total Sales</StatLabel>
+            <StatNumber color="gray.800">
+              {ordersLoading ? "Loading..." : `$${accessibleOrders.reduce((sum, order) => sum + order.amount, 0)}`}
+            </StatNumber>
+            <StatHelpText color="gray.500">All time</StatHelpText>
+          </Stat>
+          <Stat
+            p={5}
+            shadow="md"
+            borderWidth="1px"
+            borderRadius="lg"
+            bg="white"
+            borderColor="gray.200"
+          >
+            <StatLabel color="gray.600">Total Offers</StatLabel>
+            <StatNumber color="gray.800">
+              {offersLoading ? "Loading..." : totalOffers}
+            </StatNumber>
+            <StatHelpText color="gray.500">
+              {activeOffers} active
+            </StatHelpText>
+          </Stat>
+        </SimpleGrid>
+      </Box>
 
       <Divider my={4} borderColor="gray.200" />
 
-      <Flex mt={6} gap={6} justify="space-between">
-        <Box flex="1">
-          <VStack spacing={6} mt={6} align="stretch">
-            {filteredProducts.length === 0 ? (
-              <Text textAlign="center" fontSize="lg" color="gray.600">No products match this filter.</Text>
-            ) : (
-              filteredProducts.map((product) => (
-                <Box 
-                  key={product.id} 
-                  p={5} 
-                  shadow="md" 
-                  borderWidth="1px" 
-                  borderRadius="lg" 
+      {/* Order Trends Chart */}
+      <Box mb={8}>
+        <Text fontSize="xl" fontWeight="bold" color="gray.800" mb={4}>
+          Order Trends
+        </Text>
+        <Box p={5} shadow="md" borderWidth="1px" borderRadius="lg" bg="white">
+          <Line data={chartData} options={chartOptions} />
+        </Box>
+      </Box>
+
+      {/* Recent Activity */}
+      <Box>
+        <Text fontSize="xl" fontWeight="bold" color="gray.800" mb={4}>
+          Recent Orders
+        </Text>
+        <VStack spacing={4} align="stretch">
+          {accessibleOrders.length === 0 ? (
+            <Text textAlign="center" fontSize="lg" color="gray.600">
+              No recent orders.
+            </Text>
+          ) : (
+            accessibleOrders
+              .slice(0, 5)
+              .map((order) => (
+                <Box
+                  key={order.id}
+                  p={5}
+                  shadow="md"
+                  borderWidth="1px"
+                  borderRadius="lg"
                   bg="white"
                   borderColor="gray.200"
                 >
-                  <Text fontWeight="bold" fontSize="lg" color="gray.800">{product.name}</Text>
-                  <Text fontSize="sm" color="gray.600">{product.description}</Text>
-                  <Button 
-                    mt={3} 
-                    size="sm" 
-                    colorScheme="blue" 
-                    borderRadius="full" 
-                    onClick={() => navigate({ to: product.path })}
-                  >
-                    Manage
-                  </Button>
+                  <Text fontWeight="bold" color="gray.800">
+                    Order #{order.id}
+                  </Text>
+                  <Text fontSize="sm" color="gray.600">
+                    Customer ID: {order.customerId} | Date: {order.date} | Amount: ${order.amount}
+                  </Text>
+                  {order.source === "google-serp" && (
+                    <Text fontSize="sm" color="gray.500">
+                      Source: Google SERP (Superuser)
+                    </Text>
+                  )}
                 </Box>
               ))
-            )}
-          </VStack>
-        </Box>
-      </Flex>
+          )}
+        </VStack>
+      </Box>
     </Container>
   );
 }
