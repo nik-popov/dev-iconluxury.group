@@ -238,14 +238,39 @@ const CMSGoogleSerpForm: React.FC = () => {
     showToast('Manual Brand Error', 'Cannot apply manual brand. Ensure no brand column is mapped and a brand is entered.', 'warning');
     return;
   }
-  // Add 'BRAND (Manual)' as the first header
-  const newHeaders = ['BRAND (Manual)', ...excelData.headers];
-  // Add manualBrand as the first element in each row
-  const newRows = excelData.rows.map(row => ({ row: [manualBrand, ...row.row] }));
+
+  // Determine where to insert the 'BRAND (Manual)' column
+  const styleIndex = columnMapping.style;
+  const insertIndex = styleIndex !== null ? styleIndex + 1 : 0;
+
+  // Insert 'BRAND (Manual)' at the determined index
+  const newHeaders = [
+    ...excelData.headers.slice(0, insertIndex),
+    'BRAND (Manual)',
+    ...excelData.headers.slice(insertIndex),
+  ];
+
+  // Add manualBrand to each row at the same index
+  const newRows = excelData.rows.map(row => ({
+    row: [
+      ...row.row.slice(0, insertIndex),
+      manualBrand,
+      ...row.row.slice(insertIndex),
+    ],
+  }));
+
+  // Update column mappings to account for the shift
+  const newMapping: ColumnMapping = { ...columnMapping, brand: insertIndex };
+  Object.keys(newMapping).forEach(key => {
+    const index = newMapping[key as keyof ColumnMapping];
+    if (index !== null && index >= insertIndex && key !== 'brand') {
+      newMapping[key as keyof ColumnMapping] = index + 1;
+    }
+  });
+
   setExcelData({ headers: newHeaders, rows: newRows });
-  // Set brand mapping to index 0 (first column)
-  setColumnMapping(prev => ({ ...prev, brand: 0 }));
-}, [manualBrand, columnMapping.brand, excelData, showToast]);
+  setColumnMapping(newMapping);
+}, [manualBrand, columnMapping, excelData, showToast]);
 
   // Form Submission
   const handleSubmit = useCallback(async () => {
