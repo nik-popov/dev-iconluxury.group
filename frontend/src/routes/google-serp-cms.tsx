@@ -150,13 +150,49 @@ const CMSGoogleSerpForm: React.FC = () => {
   };
 
   const detectHeaderRow = (rows: (string | number | boolean | null)[][]): number | null => {
-    for (let i = 0; i < Math.min(10, rows.length); i++) {
-      const rowValues = rows[i].map(cell => String(cell || '').toUpperCase().trim());
-      const matchedHeaders = rowValues.filter(value => TARGET_HEADERS.includes(value as 'BRAND' | 'STYLE'));
-      if (matchedHeaders.length >= 2) return i;
-    }
-    return null;
+  // Define patterns for header matching (case-insensitive)
+  const patterns = {
+    style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))$/i,
+    brand: /^(brand|brand\s*name|manufacturer|label)$/i,
   };
+
+  // Maximum rows to search (configurable, default 50 to handle metadata rows)
+  const MAX_SEARCH_ROWS = 50;
+
+  for (let i = 0; i < Math.min(MAX_SEARCH_ROWS, rows.length); i++) {
+    // Skip empty or near-empty rows
+    const rowValues = rows[i]
+      .map(cell => String(cell ?? '').trim())
+      .filter(value => value !== '');
+    if (rowValues.length < 2) {
+      console.debug(`Row ${i} skipped: too few non-empty values (${rowValues.length})`);
+      continue;
+    }
+
+    // Count matches for style and brand patterns
+    let styleMatch = false;
+    let brandMatch = false;
+
+    for (const value of rowValues) {
+      const normalizedValue = value.toUpperCase();
+      if (patterns.style.test(normalizedValue)) {
+        styleMatch = true;
+      } else if (patterns.brand.test(normalizedValue)) {
+        brandMatch = true;
+      }
+    }
+
+    // Return the row index if both style and brand are found
+    if (styleMatch && brandMatch) {
+      console.debug(`Header row detected at index ${i}: ${rowValues.join(', ')}`);
+      return i;
+    }
+  }
+
+  // Log if no header row is found
+  console.warn('No header row found with both style and brand headers');
+  return null;
+};
 
   const processHeaderSelection = (index: number, rows: (string | number | boolean | null)[][]) => {
     const headers = rows[index].map(cell => String(cell ?? ''));
