@@ -538,11 +538,10 @@ const DataTableSection: React.FC<DataTableSectionProps> = ({
             <Text color="gray.600">Loading table data...</Text>
           </VStack>
         ) : (
-          <ExcelDataTableMemo
+         <ExcelDataTable
             excelData={excelData}
             columnMapping={columnMapping}
             onColumnClick={onColumnClick}
-            isManualBrand={isManualBrand}
           />
         )}
       </Box>
