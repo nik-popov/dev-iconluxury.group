@@ -51,6 +51,19 @@ const ExcelDataTable = ({ excelData, columnMapping, onColumnClick, isManualBrand
     }));
   };
 
+  // Helper to check if a column is mapped
+  const isColumnMapped = (index: number): boolean => {
+    if (!columnMapping) return false;
+    return Object.values(columnMapping).includes(index);
+  };
+
+  // Helper to get the mapped field name for a column
+  const getMappedField = (index: number): string => {
+    if (!columnMapping) return '';
+    const field = Object.entries(columnMapping).find(([_, value]) => value === index)?.[0];
+    return field ? field.replace(/([A-Z])/g, ' $1').trim() : '';
+  };
+
   if (!excelData.headers.length || !excelData.rows.length) {
     return <Box>No data to display</Box>;
   }
@@ -63,31 +76,51 @@ const ExcelDataTable = ({ excelData, columnMapping, onColumnClick, isManualBrand
         </caption>
         <Thead>
           <Tr>
-            {excelData.headers.map((header, index) => (
-              <Th
-                key={index}
-                onClick={onColumnClick ? () => onColumnClick(index) : undefined}
-                cursor={onColumnClick ? 'pointer' : 'default'}
-                bg={isManualBrand && columnMapping?.brand != null && columnMapping.brand === index ? 'blue.100' : undefined}
-                _hover={onColumnClick ? { bg: 'gray.200' } : undefined}
-                role={onColumnClick ? 'button' : undefined}
-                aria-label={onColumnClick ? `Map column ${header || index + 1}` : undefined}
-              >
-                <Tooltip label={onColumnClick ? `Click to map ${header || `Column ${index + 1}`}` : undefined}>
-                  <Box display="flex" alignItems="center">
-                    {header || `Column ${index + 1}`}
-                    <IconButton
-                      aria-label={`Sort by ${header || `Column ${index + 1}`}`}
-                      icon={<ArrowUpDownIcon />}
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => handleSort(index)}
-                      ml={2}
-                    />
-                  </Box>
-                </Tooltip>
-              </Th>
-            ))}
+            {excelData.headers.map((header, index) => {
+              const isMapped = isColumnMapped(index);
+              const mappedField = getMappedField(index);
+              return (
+                <Th
+                  key={index}
+                  onClick={onColumnClick ? () => onColumnClick(index) : undefined}
+                  cursor={onColumnClick ? 'pointer' : 'default'}
+                  bg={isMapped ? 'blue.100' : 'gray.50'}
+                  borderBottom={isMapped ? '2px solid' : '1px solid'}
+                  borderColor={isMapped ? 'blue.500' : 'gray.200'}
+                  _hover={{ bg: isMapped ? 'blue.200' : 'gray.200' }}
+                  role={onColumnClick ? 'button' : undefined}
+                  aria-label={
+                    onColumnClick
+                      ? isMapped
+                        ? `Mapped as ${mappedField} (click to remap)`
+                        : `Map column ${header || index + 1}`
+                      : undefined
+                  }
+                >
+                  <Tooltip
+                    label={
+                      onColumnClick
+                        ? isMapped
+                          ? `Mapped as ${mappedField} (click to remap)`
+                          : `Click to map ${header || `Column ${index + 1}`}`
+                        : undefined
+                    }
+                  >
+                    <Box display="flex" alignItems="center" color={isMapped ? 'blue.800' : 'gray.800'}>
+                      {header || `Column ${index + 1}`}
+                      <IconButton
+                        aria-label={`Sort by ${header || `Column ${index + 1}`}`}
+                        icon={<ArrowUpDownIcon />}
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => handleSort(index)}
+                        ml={2}
+                      />
+                    </Box>
+                  </Tooltip>
+                </Th>
+              );
+            })}
           </Tr>
         </Thead>
         <Tbody>
