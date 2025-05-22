@@ -527,7 +527,6 @@ const DataTableSection: React.FC<DataTableSectionProps> = ({
   excelData,
   columnMapping,
   onColumnClick,
-  isManualBrand = false,
 }) => (
   <>
     {excelData.rows.length > 0 && (
