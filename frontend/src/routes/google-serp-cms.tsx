@@ -203,7 +203,7 @@ const CMSGoogleSerpForm: React.FC = () => {
       showToast('Manual Brand Error', 'Cannot apply manual brand. Ensure no brand column is mapped and a brand is entered.', 'warning');
       return;
     }
-    const newHeaders = [...excelData.headers, 'BRAND (Manual)'];
+    const newHeaders = ['BRAND (Manual)', ...excelData.headers];
     const newRows = excelData.rows.map(row => ({ row: [...row.row, manualBrand] }));
     setExcelData({ headers: newHeaders, rows: newRows });
     setColumnMapping(prev => ({ ...prev, brand: newHeaders.length - 1 }));
