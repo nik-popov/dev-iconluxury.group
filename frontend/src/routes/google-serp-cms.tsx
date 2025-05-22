@@ -519,7 +519,6 @@ interface DataTableSectionProps {
   excelData: ExcelData;
   columnMapping: ColumnMapping;
   onColumnClick: (index: number) => void;
-  isManualBrand?: boolean; // Match ExcelDataTableProps
 }
 
 const DataTableSection: React.FC<DataTableSectionProps> = ({
