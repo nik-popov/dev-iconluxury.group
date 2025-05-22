@@ -183,7 +183,6 @@ const CMSGoogleSerpForm: React.FC = () => {
     brand: /^(brand|brand\s*name|manufacturer|label)$/i,
     category: /^(category|type|product\s*type|group)$/i,
     colorName: /^(color|colour|color\s*name|shade)$/i,
-    image: /^(image|photo|picture|img|image\s*(add|url|link)|read\s*image)$/i,
   };
 
   // Track matched columns to detect conflicts
@@ -207,13 +206,6 @@ const CMSGoogleSerpForm: React.FC = () => {
     } else if (patterns.colorName.test(normalizedHeader) && mapping.colorName === null) {
       mapping.colorName = index;
       matchedColumns.add(index);
-    } else if (patterns.image.test(normalizedHeader)) {
-      // Allow imageAdd and readImage to share the same column if not already mapped
-      if (mapping.imageAdd === null && mapping.readImage === null && !matchedColumns.has(index)) {
-        mapping.imageAdd = index;
-        mapping.readImage = index;
-        matchedColumns.add(index);
-      }
     }
   });
 
