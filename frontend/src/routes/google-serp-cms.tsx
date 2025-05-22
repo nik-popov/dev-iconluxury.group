@@ -174,7 +174,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     let brandMatch = false;
 
     for (const value of rowValues) {
-      const normalizedValue = value.toUpperCase();
+      const normalizedValue = String(value ?? '').trim().toUpperCase();
       if (patterns.style.test(normalizedValue)) {
         styleMatch = true;
       } else if (patterns.brand.test(normalizedValue)) {
