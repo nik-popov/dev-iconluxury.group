@@ -168,22 +168,65 @@ const CMSGoogleSerpForm: React.FC = () => {
   };
 
   const autoMapColumns = (headers: string[]): ColumnMapping => {
-    const mapping: ColumnMapping = { style: null, brand: null, imageAdd: null, readImage: null, category: null, colorName: null };
-    headers.forEach((header, index) => {
-      const upperHeader = String(header).toUpperCase().trim();
-      if (upperHeader === 'STYLE') mapping.style = index;
-      if (upperHeader === 'BRAND') mapping.brand = index;
-      // Optionally map other columns if needed
-      if (upperHeader.includes('CATEGORY')) mapping.category = index;
-      if (upperHeader.includes('COLOR')) mapping.colorName = index;
-      if (upperHeader.includes('IMAGE')) {
-        mapping.imageAdd = index;
-        mapping.readImage = index;
-      }
-    });
-    return mapping;
+  const mapping: ColumnMapping = {
+    style: null,
+    brand: null,
+    imageAdd: null,
+    readImage: null,
+    category: null,
+    colorName: null,
   };
 
+  // Define keyword patterns for matching headers (case-insensitive)
+  const patterns = {
+    style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))$/i,
+    brand: /^(brand|brand\s*name|manufacturer|label)$/i,
+    category: /^(category|type|product\s*type|group)$/i,
+    colorName: /^(color|colour|color\s*name|shade)$/i,
+    image: /^(image|photo|picture|img|image\s*(add|url|link)|read\s*image)$/i,
+  };
+
+  // Track matched columns to detect conflicts
+  const matchedColumns: Set<number> = new Set();
+
+  headers.forEach((header, index) => {
+    // Convert header to string, trim, and normalize
+    const normalizedHeader = String(header ?? '').trim().toUpperCase();
+    if (!normalizedHeader) return; // Skip empty headers
+
+    // Test each pattern and assign mappings
+    if (patterns.style.test(normalizedHeader) && mapping.style === null) {
+      mapping.style = index;
+      matchedColumns.add(index);
+    } else if (patterns.brand.test(normalizedHeader) && mapping.brand === null) {
+      mapping.brand = index;
+      matchedColumns.add(index);
+    } else if (patterns.category.test(normalizedHeader) && mapping.category === null) {
+      mapping.category = index;
+      matchedColumns.add(index);
+    } else if (patterns.colorName.test(normalizedHeader) && mapping.colorName === null) {
+      mapping.colorName = index;
+      matchedColumns.add(index);
+    } else if (patterns.image.test(normalizedHeader)) {
+      // Allow imageAdd and readImage to share the same column if not already mapped
+      if (mapping.imageAdd === null && mapping.readImage === null && !matchedColumns.has(index)) {
+        mapping.imageAdd = index;
+        mapping.readImage = index;
+        matchedColumns.add(index);
+      }
+    }
+  });
+
+  // Log unmapped required fields for debugging
+  const requiredFields = ['style', 'brand'] as const;
+  requiredFields.forEach(field => {
+    if (mapping[field] === null) {
+      console.warn(`No matching column found for required field: ${field}`);
+    }
+  });
+
+  return mapping;
+};
   // Header Selection
   const handleRowSelect = useCallback((rowIndex: number) => {
     setSelectedRowIndex(rowIndex);
