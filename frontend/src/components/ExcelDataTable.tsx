@@ -20,6 +20,7 @@ export interface ExcelDataTableProps {
   excelData: ExcelData;
   columnMapping?: ColumnMapping;
   onColumnClick?: (index: number) => void;
+  isManualBrand?: boolean; 
 }
 
 const ExcelDataTable = ({ excelData, columnMapping, onColumnClick }: ExcelDataTableProps) => {
