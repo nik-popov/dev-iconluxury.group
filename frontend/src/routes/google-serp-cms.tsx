@@ -152,7 +152,7 @@ const CMSGoogleSerpForm: React.FC = () => {
   const detectHeaderRow = (rows: (string | number | boolean | null)[][]): number | null => {
   // Define patterns for header matching (case-insensitive)
   const patterns = {
-    style: /^(style|product style|style\s*( #|no|number|id)|sku|item\s*( #|no|number))$/i,
+    style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))$/i,
     brand: /^(brand|brand\s*name|manufacturer|label)$/i,
   };
 
