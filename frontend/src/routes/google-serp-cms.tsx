@@ -198,16 +198,19 @@ const CMSGoogleSerpForm: React.FC = () => {
   }, [selectedRowIndex, previewRows]);
 
   // Manual Brand
-  const applyManualBrand = useCallback(() => {
-    if (!manualBrand || columnMapping.brand !== null) {
-      showToast('Manual Brand Error', 'Cannot apply manual brand. Ensure no brand column is mapped and a brand is entered.', 'warning');
-      return;
-    }
-    const newHeaders = ['BRAND (Manual)', ...excelData.headers];
-    const newRows = excelData.rows.map(row => ({ row: [...row.row, manualBrand] }));
-    setExcelData({ headers: newHeaders, rows: newRows });
-    setColumnMapping(prev => ({ ...prev, brand: newHeaders.length - 1 }));
-  }, [manualBrand, columnMapping.brand, excelData, showToast]);
+ const applyManualBrand = useCallback(() => {
+  if (!manualBrand || columnMapping.brand !== null) {
+    showToast('Manual Brand Error', 'Cannot apply manual brand. Ensure no brand column is mapped and a brand is entered.', 'warning');
+    return;
+  }
+  // Add 'BRAND (Manual)' as the first header
+  const newHeaders = ['BRAND (Manual)', ...excelData.headers];
+  // Add manualBrand as the first element in each row
+  const newRows = excelData.rows.map(row => ({ row: [manualBrand, ...row.row] }));
+  setExcelData({ headers: newHeaders, rows: newRows });
+  // Set brand mapping to index 0 (first column)
+  setColumnMapping(prev => ({ ...prev, brand: 0 }));
+}, [manualBrand, columnMapping.brand, excelData, showToast]);
 
   // Form Submission
   const handleSubmit = useCallback(async () => {
