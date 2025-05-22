@@ -20,10 +20,9 @@ export interface ExcelDataTableProps {
   excelData: ExcelData;
   columnMapping?: ColumnMapping;
   onColumnClick?: (index: number) => void;
-  isManualBrand?: boolean;
 }
 
-const ExcelDataTable = ({ excelData, columnMapping, onColumnClick, isManualBrand = false }: ExcelDataTableProps) => {
+const ExcelDataTable = ({ excelData, columnMapping, onColumnClick }: ExcelDataTableProps) => {
   const [sortConfig, setSortConfig] = useState<{ key: number; direction: 'asc' | 'desc' | null }>({ key: -1, direction: null });
 
   const getDisplayValue = (cell: string | number | boolean | null): string => {
@@ -63,7 +62,6 @@ const ExcelDataTable = ({ excelData, columnMapping, onColumnClick, isManualBrand
     const field = Object.entries(columnMapping).find(([_, value]) => value === index)?.[0];
     return field ? field.replace(/([A-Z])/g, ' $1').trim() : '';
   };
-
   if (!excelData.headers.length || !excelData.rows.length) {
     return <Box>No data to display</Box>;
   }
