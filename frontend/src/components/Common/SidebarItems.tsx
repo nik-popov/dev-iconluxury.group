@@ -35,11 +35,10 @@ const sidebarStructure: SidebarItem[] = [
   { title: "Offers", icon: FiCalendar, path: "/offers" },
   { title: "Customers", icon: FiUsers, path: "/customers" },
   {
-    title: "Data Warehouse",
+    title: "Scraper",
     subItems: [
       { title: "Jobs", path: "/scraping-api/explore" },
       { title: "S3", path: "/scraping-api/explore-assets" },
-      { title: "Proxies", path: "/scraping-api/search-proxies" },
       { title: "Vision", path: "/scraping-api/vision" },
       { title: "Reasoning", path: "/scraping-api/language-model" },
       { title: "Google SERP", path: "/scraping-api/google-serp" },
@@ -78,10 +77,9 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     }
     // Data Warehouse, its sub-items, Remote Desktop, VPN, Network Logs, NAS, Email Logs, and Admin are only enabled for superusers
     if ([
-      "Data Warehouse",
+      "Scraper",
       "Jobs",
       "S3",
-      "Proxies",
       "Vision",
       "Reasoning",
       "Google SERP",
