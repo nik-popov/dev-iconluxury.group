@@ -156,7 +156,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     brand: /^(brand|brand\s*name|manufacturer|label)$/i,
   };
 
-  // Maximum rows to search (configurable, default 50 to handle metadata rows)
+  // Maximum rows to search
   const MAX_SEARCH_ROWS = 50;
 
   for (let i = 0; i < Math.min(MAX_SEARCH_ROWS, rows.length); i++) {
@@ -169,28 +169,24 @@ const CMSGoogleSerpForm: React.FC = () => {
       continue;
     }
 
-    // Count matches for style and brand patterns
+    // Check for style pattern
     let styleMatch = false;
-    let brandMatch = false;
-
     for (const value of rowValues) {
-      const normalizedValue = String(value ?? '').trim().toUpperCase();
+      const normalizedValue = String(value ?? '').trim();
       if (patterns.style.test(normalizedValue)) {
         styleMatch = true;
-      } else if (patterns.brand.test(normalizedValue)) {
-        brandMatch = true;
+        break;
       }
     }
 
-    // Return the row index if both style and brand are found
-    if (styleMatch && brandMatch) {
+    // Return the row index if style is found (brand is optional)
+    if (styleMatch) {
       console.debug(`Header row detected at index ${i}: ${rowValues.join(', ')}`);
       return i;
     }
   }
 
-  // Log if no header row is found
-  console.warn('No header row found with both style and brand headers');
+  console.warn('No header row found with style header');
   return null;
 };
 
