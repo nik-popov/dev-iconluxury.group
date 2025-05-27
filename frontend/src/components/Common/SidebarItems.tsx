@@ -1,11 +1,15 @@
-import { Box, Flex, Icon, Text, useColorModeValue, Tooltip } from "@chakra-ui/react";
+import { Box, Flex, Icon, Text, Tooltip } from "@chakra-ui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
-  FiGlobe,
-  FiShield,
+  FiHome,
+  FiUsers,
+  FiLayers,
+  FiCalendar,
   FiFileText,
   FiMessageSquare,
+  FiGlobe,
+  FiShield,
   FiHelpCircle,
   FiLogOut,
   FiSearch,
@@ -25,13 +29,17 @@ interface SidebarItem {
 }
 
 const sidebarStructure: SidebarItem[] = [
+  { title: "Dashboard", icon: FiHome, path: "/" },
+  { title: "Orders", icon: FiLayers, path: "/orders" },
+  { title: "Offers", icon: FiCalendar, path: "/offers" },
+  { title: "Customers", icon: FiUsers, path: "/customers" },
   {
     title: "Scraper",
     subItems: [
       { title: "Jobs", path: "/scraping-api/explore", icon: FiSearch },
       { title: "Archive", path: "/scraping-api/explore-assets", icon: FiArchive },
       { title: "Vision", path: "/scraping-api/vision", icon: FiEye },
-      { title: "Reasoning", path: "/scraping-api/language-model", icon: FiGlobe },
+      { title: "Reasoning", path: "/scraping-api/language-model", icon: FiBrain },
       { title: "Google SERP", path: "/scraping-api/google-serp", icon: FiGoogleSerp },
     ],
   },
@@ -42,8 +50,8 @@ const sidebarStructure: SidebarItem[] = [
       { title: "Email Logs", path: "/support/email", icon: FiMessageSquare },
     ],
   },
-  { title: "VPN", path: "/support/vpn", icon: FiShield },
-  { title: "Support", path: "/support", icon: FiHelpCircle },
+  { title: "VPN", icon: FiShield, path: "/support/vpn" },
+  { title: "Support", icon: FiHelpCircle, path: "/support" },
   { title: "Sign out", icon: FiLogOut, action: () => {} },
 ];
 
@@ -54,11 +62,11 @@ interface SidebarItemsProps {
 const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const queryClient = useQueryClient();
   const { logout } = useAuth();
-  const textColor = "gray.600";
-  const disabledColor = "gray.300";
-  const hoverColor = "gray.800";
-  const bgActive = "white";
-  const activeTextColor = "gray.800";
+  const textColor = "gray.800"; // Matches theme's Text baseStyle
+  const disabledColor = "ui.dim"; // Matches theme's muted gray
+  const hoverColor = "ui.main"; // Yellow from theme
+  const bgActive = "ui.light"; // White background for active item
+  const activeTextColor = "gray.800"; // Matches theme's text color
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
 
   const finalSidebarStructure = [...sidebarStructure];
@@ -66,113 +74,53 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     finalSidebarStructure.splice(finalSidebarStructure.length - 1, 0, { title: "Admin", icon: FiShield, path: "/admin" });
   }
 
-  const isEnabled = (title: string) => {
-    if (["Sign out"].includes(title)) {
-      return true;
-    }
-    if ([
-      "Scraper",
-      "Jobs",
-      "Archive",
-      "Vision",
-      "Reasoning",
-      "Google SERP",
-      "VPN",
-      "Network Logs",
-      "Email Logs",
-      "Admin",
-      "Support"
-    ].includes(title)) {
-      return currentUser?.is_superuser || false;
-    }
-    return true;
-  };
-
   const renderItems = (items: SidebarItem[]) =>
     items.map(({ icon, title, path, subItems, action }) => {
-      const enabled = isEnabled(title);
-      if (!enabled && !currentUser?.is_superuser) {
-        return null;
-      }
       return (
         <Box key={title} mb={2}>
           {path ? (
-            enabled ? (
-              <Flex
-                as={Link}
-                to={path}
-                w="100%"
-                p={2}
-                borderRadius="md"
-                activeProps={{
-                  style: { 
-                    background: bgActive, 
-                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-                    color: activeTextColor 
-                  },
-                }}
-                color={textColor}
-                _hover={{ color: hoverColor, bg: "gray.50" }}
-                onClick={onClose}
-                align="center"
-              >
-                {icon && <Icon as={icon} mr={2} />}
-                <Text fontSize="sm" fontWeight="medium">{title}</Text>
-              </Flex>
-            ) : (
-              <Tooltip label="Restricted" placement="right">
-                <Flex
-                  w="100%"
-                  p={2}
-                  color={disabledColor}
-                  cursor="not-allowed"
-                  _hover={{ color: hoverColor }}
-                  align="center"
-                >
-                  {icon && <Icon as={icon} mr={2} color={disabledColor} />}
-                  <Text fontSize="sm" fontWeight="medium" color={disabledColor}>{title}</Text>
-                </Flex>
-              </Tooltip>
-            )
+            <Flex
+              as={Link}
+              to={path}
+              w="100%"
+              p={2}
+              borderRadius="md"
+              activeProps={{
+                style: {
+                  background: bgActive,
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+                  color: activeTextColor,
+                },
+              }}
+              color={textColor}
+              _hover={{ color: hoverColor, bg: "gray.50" }}
+              onClick={onClose}
+              align="center"
+            >
+              {icon && <Icon as={icon} mr={2} />}
+              <Text fontSize="sm" fontWeight="medium">{title}</Text>
+            </Flex>
           ) : action ? (
-            enabled ? (
-              <Flex
-                w="100%"
-                p={2}
-                borderRadius="md"
-                color={textColor}
-                _hover={{ color: hoverColor, bg: "gray.50" }}
-                onClick={() => {
-                  if (title === "Sign out") logout();
-                  onClose?.();
-                }}
-                cursor="pointer"
-                align="center"
-              >
-                {icon && <Icon as={icon} mr={2} />}
-                <Text fontSize="sm" fontWeight="medium">{title}</Text>
-              </Flex>
-            ) : (
-              <Tooltip label="Restricted" placement="right">
-                <Flex
-                  w="100%"
-                  p={2}
-                  color={disabledColor}
-                  cursor="not-allowed"
-                  _hover={{ color: hoverColor }}
-                  align="center"
-                >
-                  {icon && <Icon as={icon} mr={2} color={disabledColor} />}
-                  <Text fontSize="sm" fontWeight="medium" color={disabledColor}>{title}</Text>
-                </Flex>
-              </Tooltip>
-            )
+            <Flex
+              w="100%"
+              p={2}
+              borderRadius="md"
+              color={textColor}
+              _hover={{ color: hoverColor, bg: "gray.50" }}
+              onClick={() => {
+                if (title === "Sign out") logout();
+                onClose?.();
+              }}
+              cursor="pointer"
+              align="center"
+            >
+              {icon && <Icon as={icon} mr={2} />}
+              <Text fontSize="sm" fontWeight="medium">{title}</Text>
+            </Flex>
           ) : (
             <Box>
-              <Flex p={2} color={enabled ? textColor : disabledColor} align="center">
-                <Text fontSize="sm" fontWeight="bold">{title}</Text>
-              </Flex>
-              <Box ml={4} bg="white" borderRadius="md" boxShadow="0 2px 8px rgba(0, 0, 0, 0.1)" p={2}>
+              <Text p={2} fontSize="sm" fontWeight="bold" color={textColor}>{title}</Text>
+              <Box bg="ui.light" borderRadius="md" boxShadow="0 2px 8px rgba(0, 0, 0, 0.1)" p={2}>
                 {subItems && renderItems(subItems)}
               </Box>
             </Box>
@@ -181,7 +129,30 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
       );
     });
 
-  return <Box>{renderItems(finalSidebarStructure)}</Box>;
+  return (
+    <Box>
+      <Box>{renderItems(finalSidebarStructure)}</Box>
+      {currentUser && (
+        <Flex
+          as={Link}
+          to="/settings"
+          w="100%"
+          p={2}
+          mt={4}
+          borderRadius="md"
+          bg="ui.light"
+          boxShadow="0 2px 8px rgba(0, 0, 0, 0.1)"
+          color={textColor}
+          _hover={{ color: hoverColor, bg: "gray.50" }}
+          onClick={onClose}
+          direction="column"
+        >
+          <Text fontSize="sm" fontWeight="medium">{currentUser.full_name || "User"}</Text>
+          <Text fontSize="xs" color="ui.dim">{currentUser.email || "email@example.com"}</Text>
+        </Flex>
+      )}
+    </Box>
+  );
 };
 
 export default SidebarItems;
