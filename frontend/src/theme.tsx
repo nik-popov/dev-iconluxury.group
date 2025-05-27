@@ -12,9 +12,14 @@ const theme = extendTheme({
       "html, body": {
         fontFamily: '"42dot Sans", sans-serif',
         lineHeight: "1.7",
-        bg: "gray.50", // Match Sidebar's light background
-        color: "gray.800", // Match Sidebar's dark text
+        bg: "gray.50", // Light background for the app
+        color: "gray.800", // Dark text for readability
         padding: "20px",
+      },
+      ".sidebar": { // Add a specific style for the sidebar container
+        bg: "gray.100", // Slightly darker than the app background for contrast
+        minHeight: "100vh", // Full height
+        p: 4, // Padding for content
       },
     }),
   },
@@ -22,13 +27,16 @@ const theme = extendTheme({
     ui: {
       main: "#FFD700", // Yellow as primary accent
       secondary: "#FFF8E1", // Light yellow for secondary elements
-      success: "#38A169", // Keep green for success
-      danger: "#E53E3E", // Keep red for errors
+      success: "#38A169", // Green for success
+      danger: "#E53E3E", // Red for errors
       light: "#FFFFFF", // White for backgrounds
       dark: "#1A202C", // Dark background for dark mode
       darkSlate: "#2D3748", // Darker gray for contrast
       dim: "#A0AEC0", // Muted gray for secondary text
     },
+  },
+  shadows: {
+    card: "0 2px 8px rgba(0, 0, 0, 0.1)", // Define a shadow for card-like elements
   },
   components: {
     Heading: {
@@ -38,7 +46,9 @@ const theme = extendTheme({
     },
     Text: {
       baseStyle: (props) => ({
-        color: props.colorMode === "dark" ? "gray.200" : "gray.800", // Match Sidebar text
+        color: props.colorMode === "dark" ? "gray.200" : "gray.800",
+        fontSize: "sm", // Match sidebar's font size
+        fontWeight: "medium", // Match sidebar's font weight
       }),
     },
     Code: {
@@ -101,7 +111,7 @@ const theme = extendTheme({
       baseStyle: {
         container: {
           bg: "white",
-          color: "gray.800", // Match Sidebar text
+          color: "gray.800",
           borderRadius: "md",
           boxShadow: "lg",
           padding: "16px",
