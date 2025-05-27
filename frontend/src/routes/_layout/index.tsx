@@ -7,6 +7,7 @@ import {
   SimpleGrid,
   Stat,
   StatLabel,
+  Icon,
   StatNumber,
   Flex,
   Input,
