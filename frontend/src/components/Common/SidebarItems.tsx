@@ -15,6 +15,7 @@ import {
   FiSearch,
   FiArchive,
   FiEye,
+  FiBrain,
   FiGlobe as FiGoogleSerp,
 } from "react-icons/fi";
 import type { UserPublic } from "../../client";
@@ -39,7 +40,7 @@ const sidebarStructure: SidebarItem[] = [
       { title: "Jobs", path: "/scraping-api/explore", icon: FiSearch },
       { title: "Archive", path: "/scraping-api/explore-assets", icon: FiArchive },
       { title: "Vision", path: "/scraping-api/vision", icon: FiEye },
-      { title: "Reasoning", path: "/scraping-api/language-model", icon: FiGlobe },
+      { title: "Reasoning", path: "/scraping-api/language-model", icon: FiBrain },
       { title: "Google SERP", path: "/scraping-api/google-serp", icon: FiGoogleSerp },
     ],
   },
@@ -62,11 +63,11 @@ interface SidebarItemsProps {
 const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const queryClient = useQueryClient();
   const { logout } = useAuth();
-  const textColor = "gray.800"; // Matches theme's Text baseStyle
-  const disabledColor = "ui.dim"; // Matches theme's muted gray
-  const hoverColor = "ui.main"; // Yellow from theme
-  const bgActive = "ui.light"; // White background for active item
-  const activeTextColor = "gray.800"; // Matches theme's text color
+  const textColor = "gray.800";
+  const disabledColor = "ui.dim";
+  const hoverColor = "ui.main";
+  const bgActive = "ui.light";
+  const activeTextColor = "gray.800";
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
 
   const finalSidebarStructure = [...sidebarStructure];
@@ -88,7 +89,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
               activeProps={{
                 style: {
                   background: bgActive,
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+                  boxShadow: "card",
                   color: activeTextColor,
                 },
               }}
@@ -98,7 +99,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
               align="center"
             >
               {icon && <Icon as={icon} mr={2} />}
-              <Text fontSize="sm" fontWeight="medium">{title}</Text>
+              <Text>{title}</Text>
             </Flex>
           ) : action ? (
             <Flex
@@ -115,12 +116,12 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
               align="center"
             >
               {icon && <Icon as={icon} mr={2} />}
-              <Text fontSize="sm" fontWeight="medium">{title}</Text>
+              <Text>{title}</Text>
             </Flex>
           ) : (
             <Box>
-              <Text p={2} fontSize="sm" fontWeight="bold" color={textColor}>{title}</Text>
-              <Box bg="ui.light" borderRadius="md" boxShadow="0 2px 8px rgba(0, 0, 0, 0.1)" p={2}>
+              <Text p={2} fontWeight="bold">{title}</Text>
+              <Box bg="ui.light" borderRadius="md" boxShadow="card" p={2}>
                 {subItems && renderItems(subItems)}
               </Box>
             </Box>
@@ -130,7 +131,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     });
 
   return (
-    <Box>
+    <Box className="sidebar">
       <Box>{renderItems(finalSidebarStructure)}</Box>
       {currentUser && (
         <Flex
@@ -141,13 +142,13 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
           mt={4}
           borderRadius="md"
           bg="ui.light"
-          boxShadow="0 2px 8px rgba(0, 0, 0, 0.1)"
+          boxShadow="card"
           color={textColor}
           _hover={{ color: hoverColor, bg: "gray.50" }}
           onClick={onClose}
           direction="column"
         >
-          <Text fontSize="sm" fontWeight="medium">{currentUser.full_name || "User"}</Text>
+          <Text fontWeight="medium">{currentUser.full_name || "User"}</Text>
           <Text fontSize="xs" color="ui.dim">{currentUser.email || "email@example.com"}</Text>
         </Flex>
       )}
