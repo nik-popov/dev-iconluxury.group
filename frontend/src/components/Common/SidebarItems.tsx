@@ -19,14 +19,17 @@ import {
   FiCloud,
   FiMonitor,
   FiHelpCircle,
+  FiLogOut,
 } from "react-icons/fi";
 import type { UserPublic } from "../../client";
+import useAuth from "../../hooks/useAuth";
 
 interface SidebarItem {
   title: string;
   icon?: any;
   path?: string;
   subItems?: SidebarItem[];
+  action?: () => void;
 }
 
 const sidebarStructure: SidebarItem[] = [
@@ -50,6 +53,7 @@ const sidebarStructure: SidebarItem[] = [
   { title: "Network Logs", icon: FiFileText, path: "/support/network-logs" },
   { title: "NAS", icon: FiDatabase, path: "/support/backup-recovery" },
   { title: "Email Logs", icon: FiMessageSquare, path: "/support/email" },
+  { title: "Sign out", icon: FiLogOut, action: () => {} }, // Placeholder action
 ];
 
 interface SidebarItemsProps {
@@ -58,6 +62,7 @@ interface SidebarItemsProps {
 
 const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const queryClient = useQueryClient();
+  const { logout } = useAuth();
   const textColor = "gray.100";
   const disabledColor = "gray.300";
   const hoverColor = "#FFD700";
@@ -67,15 +72,13 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
 
   const finalSidebarStructure = [...sidebarStructure];
   if (currentUser?.is_superuser && !finalSidebarStructure.some(item => item.title === "Admin")) {
-    finalSidebarStructure.push({ title: "Admin", icon: FiUsers, path: "/admin" });
+    finalSidebarStructure.splice(finalSidebarStructure.length - 1, 0, { title: "Admin", icon: FiUsers, path: "/admin" });
   }
 
   const isEnabled = (title: string) => {
-    // Dashboard, Orders, Offers, Customer are always enabled
-    if (["Dashboard", "Offers", "Orders", "Customers"].includes(title)) {
+    if (["Dashboard", "Offers", "Orders", "Customers", "Sign out"].includes(title)) {
       return true;
     }
-    // Data Warehouse, its sub-items, Remote Desktop, VPN, Network Logs, NAS, Email Logs, and Admin are only enabled for superusers
     if ([
       "Scraper",
       "Jobs",
@@ -92,14 +95,12 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     ].includes(title)) {
       return currentUser?.is_superuser || false;
     }
-    // No other items exist in this structure
     return true;
   };
 
   const renderItems = (items: SidebarItem[]) =>
-    items.map(({ icon, title, path, subItems }) => {
+    items.map(({ icon, title, path, subItems, action }) => {
       const enabled = isEnabled(title);
-      // Skip rendering restricted items for non-superusers
       if (!enabled && !currentUser?.is_superuser) {
         return null;
       }
@@ -118,6 +119,36 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
                 color={textColor}
                 _hover={{ color: hoverColor }}
                 onClick={onClose}
+              >
+                {icon && <Icon as={icon} alignSelf="center" />}
+                <Text color={textColor} ml={2}>{title}</Text>
+              </Flex>
+            ) : (
+              <Tooltip label="Restricted" placement="right">
+                <Flex
+                  w="100%"
+                  p={2}
+                  color={disabledColor}
+                  cursor="not-allowed"
+                  _hover={{ color: hoverColor }}
+                >
+                  {icon && <Icon as={icon} alignSelf="center" color={disabledColor} />}
+                  <Text ml={2} color={disabledColor}>{title}</Text>
+                </Flex>
+              </Tooltip>
+            )
+          ) : action ? (
+            enabled ? (
+              <Flex
+                w="100%"
+                p={2}
+                color={textColor}
+                _hover={{ color: hoverColor }}
+                onClick={() => {
+                  if (title === "Sign out") logout();
+                  onClose?.();
+                }}
+                cursor="pointer"
               >
                 {icon && <Icon as={icon} alignSelf="center" />}
                 <Text color={textColor} ml={2}>{title}</Text>
