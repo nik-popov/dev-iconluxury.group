@@ -72,7 +72,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
 
   const isEnabled = (title: string) => {
     // Dashboard, Orders, Offers, Customer are always enabled
-    if (["Dashboard", "Orders", "Offers", "Customers"].includes(title)) {
+    if (["Dashboard", "Offers", "Orders", "Customers"].includes(title)) {
       return true;
     }
     // Data Warehouse, its sub-items, Remote Desktop, VPN, Network Logs, NAS, Email Logs, and Admin are only enabled for superusers
