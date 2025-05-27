@@ -199,15 +199,7 @@ function Dashboard() {
       <Box mb={4}>
         <Box bg="white" shadow="sm" borderWidth="1px" borderColor="gray.200" borderRadius="md">
           <Flex justify="space-between" align="center" p={4} pb={0}>
-            <Text fontSize="md" fontWeight="bold" color="gray.800">SALES</Text>
-            <Tabs variant="soft-rounded" size="sm">
-              <TabList>
-                <Tab>Weekly</Tab>
-                <Tab>Daily</Tab>
-                <Tab>Monthly</Tab>
-                <Tab>Yearly</Tab>
-              </TabList>
-            </Tabs>
+            <Text fontSize="md" fontWeight="bold" color="gray.800">Total Sales</Text>
           </Flex>
           <Flex p={4}>
             <Box flex="3">
