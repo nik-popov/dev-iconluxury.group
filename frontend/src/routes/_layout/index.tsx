@@ -51,6 +51,24 @@ const fetchCustomers = async () => {
   return [
     { id: "1", name: "Theo Lawrence", joined: "2024-10-18" },
     { id: "2", name: "Amy March", joined: "2024-05-24" },
+    { id: "3", name: "John Doe", joined: "2024-03-15" },
+    { id: "4", name: "Jane Smith", joined: "2024-11-01" },
+    { id: "5", name: "Alice Johnson", joined: "2024-09-10" },
+    { id: "6", name: "Bob Brown", joined: "2024-07-20" },
+    { id: "7", name: "Charlie Davis", joined: "2024-06-05" },
+    { id: "8", name: "Eve White", joined: "2024-08-30" },
+    { id: "9", name: "Frank Black", joined: "2024-04-22" },
+    { id: "10", name: "Grace Green", joined: "2024-02-14" },
+    { id: "11", name: "Hannah Blue", joined: "2024-01-01" },
+    { id: "12", name: "Ian Gray", joined: "2024-12-25" },
+    { id: "13", name: "Jack Red", joined: "2024-11-30" },
+    { id: "14", name: "Kathy Yellow", joined: "2024-10-05" },
+    { id: "15", name: "Leo Purple", joined: "2024-09-15" },
+    { id: "16", name: "Mia Orange", joined: "2024-08-01" },
+    { id: "17", name: "Nina Pink", joined: "2024-07-10" },
+    { id: "18", name: "Oscar Cyan", joined: "2024-06-20" },
+    { id: "19", name: "Paul Magenta", joined: "2024-05-30" },
+    { id: "20", name: "Quinn Teal", joined: "2024-04-10" },
   ];
 };
 
@@ -122,7 +140,7 @@ function Dashboard() {
   const totalCustomers = customers.length;
   const totalOrders = orders.length;
   const totalMerchandiseValue = 320845.20; // As per screenshot
-  const totalOffers = 8672.20;
+  const totalOffers = 10;
   const totalCustomersCount = customers.length;
   const totalOpenOrders = 14376.16;
 
@@ -246,7 +264,7 @@ function Dashboard() {
           <Stat p={3}>
             <StatLabel fontSize="sm" color="gray.600">Total Offers</StatLabel>
             <StatNumber fontSize="lg" color="gray.800">
-              {customersLoading ? "Loading..." : `€ ${totalOffers.toLocaleString()}`}
+              {customersLoading ? "Loading..." : `${totalOffers.toLocaleString()}`}
             </StatNumber>
             <Text fontSize="xs" color="green.500">
               16.50% <Icon as={FiArrowUp} color="green.500" /> vs. 7,120.14 Last Period
