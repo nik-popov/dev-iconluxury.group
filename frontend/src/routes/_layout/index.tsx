@@ -82,9 +82,9 @@ const fetchOrders = async () => {
 const fetchCashFlow = async () => {
   return [
     { date: "2024-10-18", amount: 5000 },
-    { date: "2024-10-25", amount: -3000 },
+    { date: "2024-10-25", amount: 3000 },
     { date: "2024-11-02", amount: 4000 },
-    { date: "2024-11-09", amount: -2000 },
+    { date: "2024-11-09", amount: 2000 },
     { date: "2024-11-18", amount: 3000 },
   ];
 };
