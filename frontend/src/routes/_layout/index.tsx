@@ -29,7 +29,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { FiFilter, FiMoreVertical, FiArrowUp, FiArrowDown } from "react-icons/fi";
+import { FiFilter, FiMoreVertical, FiArrowUp, FiArrowDown, FiShoppingCart, FiMessageSquare, FiUpload, FiTag } from "react-icons/fi";
 import type { UserPublic } from "../../client";
 
 // Register Chart.js components
@@ -73,8 +73,10 @@ const fetchCashFlow = async () => {
 
 const fetchActivity = async () => {
   return [
-    { type: "Page View", name: "Theo Lawrence", date: "2024-10-18", amount: 120, currency: "USD" },
-    { type: "Order", name: "Amy March", date: "2024-05-24", amount: 150, currency: "USD" },
+    { type: "Order", name: "Theo Lawrence", date: "2024-10-18", amount: 120, currency: "USD" },
+    { type: "Message", name: "Amy March", date: "2024-05-24", amount: 150, currency: "USD" },
+    { type: "Upload", name: "Theo Lawrence", date: "2024-10-19", amount: 0, currency: "USD" },
+    { type: "Offer", name: "Amy March", date: "2024-05-25", amount: 200, currency: "USD" },
   ];
 };
 
@@ -120,9 +122,9 @@ function Dashboard() {
   const totalCustomers = customers.length;
   const totalOrders = orders.length;
   const totalMerchandiseValue = 320845.20; // As per screenshot
-  const totalBusinessAccount = 8672.20;
-  const totalSaving = 3765.35;
-  const totalReserve = 14376.16;
+  const totalOffers = 8672.20;
+  const totalCustomersCount = customers.length;
+  const totalOpenOrders = 14376.16;
 
   // Sales data
   const dates = cashFlow.map(item => item.date);
@@ -131,6 +133,14 @@ function Dashboard() {
   const lowestPoint = Math.min(...amounts);
   const increaseValue = highestPoint > 0 ? `${highestPoint} on ${dates[amounts.indexOf(highestPoint)]}` : "N/A";
   const dropValue = lowestPoint < 0 ? `${lowestPoint} on ${dates[amounts.indexOf(lowestPoint)]}` : "N/A";
+
+  // Map activity types to icons
+  const activityIcons = {
+    Order: FiShoppingCart,
+    Message: FiMessageSquare,
+    Upload: FiUpload,
+    Offer: FiTag,
+  };
 
   return (
     <Container maxW="full" bg="gray.50" minH="100vh" p={4}>
@@ -234,9 +244,9 @@ function Dashboard() {
       <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={4} mb={4}>
         <Box bg="white" shadow="sm" borderWidth="1px" borderColor="gray.200" borderRadius="md">
           <Stat p={3}>
-            <StatLabel fontSize="sm" color="gray.600">Business Account</StatLabel>
+            <StatLabel fontSize="sm" color="gray.600">Total Offers</StatLabel>
             <StatNumber fontSize="lg" color="gray.800">
-              {customersLoading ? "Loading..." : `€ ${totalBusinessAccount.toLocaleString()}`}
+              {customersLoading ? "Loading..." : `€ ${totalOffers.toLocaleString()}`}
             </StatNumber>
             <Text fontSize="xs" color="green.500">
               16.50% <Icon as={FiArrowUp} color="green.500" /> vs. 7,120.14 Last Period
@@ -245,9 +255,9 @@ function Dashboard() {
         </Box>
         <Box bg="white" shadow="sm" borderWidth="1px" borderColor="gray.200" borderRadius="md">
           <Stat p={3}>
-            <StatLabel fontSize="sm" color="gray.600">Total Saving</StatLabel>
+            <StatLabel fontSize="sm" color="gray.600">Total Customers</StatLabel>
             <StatNumber fontSize="lg" color="gray.800">
-              {ordersLoading ? "Loading..." : `€ ${totalSaving.toLocaleString()}`}
+              {customersLoading ? "Loading..." : `${totalCustomersCount}`}
             </StatNumber>
             <Text fontSize="xs" color="red.500">
               8.21% <Icon as={FiArrowDown} color="red.500" /> vs. 4,116.50 Last Period
@@ -256,9 +266,9 @@ function Dashboard() {
         </Box>
         <Box bg="white" shadow="sm" borderWidth="1px" borderColor="gray.200" borderRadius="md">
           <Stat p={3}>
-            <StatLabel fontSize="sm" color="gray.600">Reserve</StatLabel>
+            <StatLabel fontSize="sm" color="gray.600">Open Orders</StatLabel>
             <StatNumber fontSize="lg" color="gray.800">
-              {ordersLoading ? "Loading..." : `€ ${totalReserve.toLocaleString()}`}
+              {ordersLoading ? "Loading..." : `€ ${totalOpenOrders.toLocaleString()}`}
             </StatNumber>
             <Text fontSize="xs" color="green.500">
               35.16% <Icon as={FiArrowUp} color="green.500" /> vs. 10,236.46 Last Period
@@ -285,11 +295,14 @@ function Dashboard() {
               ) : (
                 activity.map((item, index) => (
                   <Box key={index} p={3} shadow="sm" borderWidth="1px" borderRadius="md" bg="white" borderColor="gray.200">
-                    <Flex justify="space-between">
-                      <Box>
-                        <Text fontSize="sm" fontWeight="medium" color="gray.800">{item.type}</Text>
-                        <Text fontSize="xs" color="gray.600">{item.name} • {item.date}</Text>
-                      </Box>
+                    <Flex justify="space-between" align="center">
+                      <Flex align="center">
+                        <Icon as={activityIcons[item.type]} color="gray.600" mr={3} />
+                        <Box>
+                          <Text fontSize="sm" fontWeight="medium" color="gray.800">{item.type}</Text>
+                          <Text fontSize="xs" color="gray.600">{item.name} • {item.date}</Text>
+                        </Box>
+                      </Flex>
                       <Text fontSize="sm" fontWeight="medium" color="gray.800">{item.amount} {item.currency}</Text>
                     </Flex>
                   </Box>
