@@ -16,10 +16,6 @@ import {
   TabList,
   Tab,
   IconButton,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
 } from "@chakra-ui/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Bar } from "react-chartjs-2";
@@ -125,9 +121,9 @@ function Dashboard() {
   const totalMerchandiseValue = 320845.20; // As per screenshot
   const totalBusinessAccount = 8672.20;
   const totalSaving = 3765.35;
-  const totalReserve = 14376.16;
+  const totalReserve = 14376.16; // Completed from screenshot
 
-  // Cash flow data
+  // Sales data
   const dates = cashFlow.map(item => item.date);
   const amounts = cashFlow.map(item => item.amount);
   const highestPoint = Math.max(...amounts);
@@ -165,10 +161,10 @@ function Dashboard() {
         </Flex>
       </Box>
 
-      {/* Cash Flow Chart */}
+      {/* Sales Chart with High/Low Points */}
       <Box mb={4}>
         <Flex justify="space-between" align="center" mb={2}>
-          <Text fontSize="md" fontWeight="bold" color="gray.800">CASH FLOW</Text>
+          <Text fontSize="md" fontWeight="bold" color="gray.800">SALES</Text>
           <Flex>
             <Tabs variant="soft-rounded" size="sm">
               <TabList>
@@ -181,43 +177,45 @@ function Dashboard() {
             <Button size="sm" ml={2} variant="outline" borderRadius="md">Manage</Button>
           </Flex>
         </Flex>
-        <Box p={3} shadow="sm" borderWidth="1px" borderRadius="md" bg="white">
-          <Bar
-            data={{
-              labels: dates,
-              datasets: [
-                {
-                  label: "Cash Flow",
-                  data: amounts,
-                  backgroundColor: amounts.map(amount => amount >= 0 ? "rgba(75, 192, 192, 0.6)" : "rgba(255, 99, 132, 0.6)"),
-                  borderColor: amounts.map(amount => amount >= 0 ? "rgba(75, 192, 192, 1)" : "rgba(255, 99, 132, 1)"),
-                  borderWidth: 1,
+        <Flex>
+          <Box flex="3" p={3} shadow="sm" borderWidth="1px" borderRadius="md" bg="white">
+            <Bar
+              data={{
+                labels: dates,
+                datasets: [
+                  {
+                    label: "Sales",
+                    data: amounts,
+                    backgroundColor: amounts.map(amount => amount >= 0 ? "rgba(75, 192, 192, 0.6)" : "rgba(255, 99, 132, 0.6)"),
+                    borderColor: amounts.map(amount => amount >= 0 ? "rgba(75, 192, 192, 1)" : "rgba(255, 99, 132, 1)"),
+                    borderWidth: 1,
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  title: { display: false },
                 },
-              ],
-            }}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                title: { display: false },
-              },
-              scales: {
-                y: { beginAtZero: true, title: { display: false }, grid: { display: false } },
-                x: { title: { display: false }, grid: { display: false } },
-              },
-            }}
-            height={150}
-          />
-        </Box>
-        <Flex justify="space-between" mt={2}>
-          <Box>
-            <Text fontSize="sm" color="gray.600">Highest Point</Text>
-            <Text fontSize="md" fontWeight="bold">€ {increaseValue}</Text>
+                scales: {
+                  y: { beginAtZero: true, title: { display: false }, grid: { display: false } },
+                  x: { title: { display: false }, grid: { display: false } },
+                },
+              }}
+              height={150}
+            />
           </Box>
-          <Box>
-            <Text fontSize="sm" color="gray.600">Lowest Point</Text>
-            <Text fontSize="md" fontWeight="bold">€ {dropValue}</Text>
+          <Box flex="1" ml={4}>
+            <Box mb={4}>
+              <Text fontSize="sm" color="gray.600">Highest Point</Text>
+              <Text fontSize="md" fontWeight="bold">€ {increaseValue}</Text>
+            </Box>
+            <Box>
+              <Text fontSize="sm" color="gray.600">Lowest Point</Text>
+              <Text fontSize="md" fontWeight="bold">€ {dropValue}</Text>
+            </Box>
           </Box>
         </Flex>
       </Box>
@@ -247,58 +245,61 @@ function Dashboard() {
         </Stat>
       </SimpleGrid>
 
-      {/* Recent Activity (Offer Views) */}
-      <Box mb={4}>
-        <Flex justify="space-between" align="center" mb={2}>
-          <Text fontSize="md" fontWeight="bold" color="gray.800">Recent Activity</Text>
-          <Flex>
-            <IconButton aria-label="Filter" icon={<FiFilter />} size="sm" variant="outline" mr={2} />
-            <Button size="sm" variant="outline">Sort</Button>
+      {/* Recent Activity and Communication in Two Columns */}
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+        {/* Recent Activity */}
+        <Box>
+          <Flex justify="space-between" align="center" mb={2}>
+            <Text fontSize="md" fontWeight="bold" color="gray.800">Recent Activity</Text>
+            <Flex>
+              <IconButton aria-label="Filter" icon={<FiFilter />} size="sm" variant="outline" mr={2} />
+              <Button size="sm" variant="outline">Sort</Button>
+            </Flex>
           </Flex>
-        </Flex>
-        <VStack spacing={3} align="stretch">
-          {activity.length === 0 ? (
-            <Text fontSize="sm" color="gray.600">No recent activity.</Text>
-          ) : (
-            activity.map((item, index) => (
-              <Box key={index} p={3} shadow="sm" borderWidth="1px" borderRadius="md" bg="white" borderColor="gray.200">
-                <Flex justify="space-between">
-                  <Box>
-                    <Text fontSize="sm" fontWeight="medium" color="gray.800">{item.type}</Text>
-                    <Text fontSize="xs" color="gray.600">{item.name} • {item.date}</Text>
-                  </Box>
-                  <Text fontSize="sm" fontWeight="medium" color="gray.800">{item.amount} {item.currency}</Text>
-                </Flex>
-              </Box>
-            ))
-          )}
-        </VStack>
-      </Box>
+          <VStack spacing={3} align="stretch">
+            {activity.length === 0 ? (
+              <Text fontSize="sm" color="gray.600">No recent activity.</Text>
+            ) : (
+              activity.map((item, index) => (
+                <Box key={index} p={3} shadow="sm" borderWidth="1px" borderRadius="md" bg="white" borderColor="gray.200">
+                  <Flex justify="space-between">
+                    <Box>
+                      <Text fontSize="sm" fontWeight="medium" color="gray.800">{item.type}</Text>
+                      <Text fontSize="xs" color="gray.600">{item.name} • {item.date}</Text>
+                    </Box>
+                    <Text fontSize="sm" fontWeight="medium" color="gray.800">{item.amount} {item.currency}</Text>
+                  </Flex>
+                </Box>
+              ))
+            )}
+          </VStack>
+        </Box>
 
-      {/* Communication Card */}
-      <Box>
-        <Flex justify="space-between" align="center" mb={2}>
-          <Text fontSize="md" fontWeight="bold" color="gray.800">Communication</Text>
-          <Button size="sm" variant="outline">See All</Button>
-        </Flex>
-        <VStack spacing={3} align="stretch">
-          {messages.length === 0 ? (
-            <Text fontSize="sm" color="gray.600">No recent messages.</Text>
-          ) : (
-            messages.map((msg, index) => (
-              <Box key={index} p={3} shadow="sm" borderWidth="1px" borderRadius="md" bg="white" borderColor="gray.200">
-                <Flex justify="space-between">
-                  <Box>
-                    <Text fontSize="sm" fontWeight="medium" color="gray.800">{msg.customer}</Text>
-                    <Text fontSize="xs" color="gray.600">{msg.message}</Text>
-                  </Box>
-                  <Text fontSize="xs" color="gray.600">{msg.date}</Text>
-                </Flex>
-              </Box>
-            ))
-          )}
-        </VStack>
-      </Box>
+        {/* Communication Card */}
+        <Box>
+          <Flex justify="space-between" align="center" mb={2}>
+            <Text fontSize="md" fontWeight="bold" color="gray.800">Communication</Text>
+            <Button size="sm" variant="outline">See All</Button>
+          </Flex>
+          <VStack spacing={3} align="stretch">
+            {messages.length === 0 ? (
+              <Text fontSize="sm" color="gray.600">No recent messages.</Text>
+            ) : (
+              messages.map((msg, index) => (
+                <Box key={index} p={3} shadow="sm" borderWidth="1px" borderRadius="md" bg="white" borderColor="gray.200">
+                  <Flex justify="space-between">
+                    <Box>
+                      <Text fontSize="sm" fontWeight="medium" color="gray.800">{msg.customer}</Text>
+                      <Text fontSize="xs" color="gray.600">{msg.message}</Text>
+                    </Box>
+                    <Text fontSize="xs" color="gray.600">{msg.date}</Text>
+                  </Flex>
+                </Box>
+              ))
+            )}
+          </VStack>
+        </Box>
+      </SimpleGrid>
     </Container>
   );
 }
