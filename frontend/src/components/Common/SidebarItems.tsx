@@ -1,55 +1,38 @@
-import { Box, Flex, Icon, Text, useColorModeValue, Tooltip } from "@chakra-ui/react";
+import { Box, Flex, Icon, Text, IconButton, Menu, MenuButton, MenuList, MenuItem } from "@chakra-ui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   FiHome,
-  FiUsers,
-  FiLayers,
-  FiMessageSquare,
-  FiCpu,
-  FiMusic,
-  FiWifi,
-  FiCalendar,
-  FiFileText,
+  FiCreditCard,
+  FiList,
+  FiCreditCard as FiCards,
+  FiDollarSign,
+  FiPieChart,
   FiSettings,
-  FiTool,
-  FiDatabase,
-  FiGlobe,
-  FiShield,
-  FiCloud,
-  FiMonitor,
   FiHelpCircle,
+  FiUser,
+  FiLogOut,
 } from "react-icons/fi";
 import type { UserPublic } from "../../client";
+import useAuth from "../../hooks/useAuth";
 
 interface SidebarItem {
   title: string;
   icon?: any;
   path?: string;
-  subItems?: SidebarItem[];
 }
 
 const sidebarStructure: SidebarItem[] = [
   { title: "Dashboard", icon: FiHome, path: "/" },
-  { title: "Orders", icon: FiLayers, path: "/orders" },
-  { title: "Offers", icon: FiCalendar, path: "/offers" },
-  { title: "Customers", icon: FiUsers, path: "/customers" },
-  {
-    title: "Scraper",
-    subItems: [
-      { title: "Jobs", path: "/scraping-api/explore" },
-      { title: "Archive", path: "/scraping-api/explore-assets" },
-      { title: "Vision", path: "/scraping-api/vision" },
-      { title: "Reasoning", path: "/scraping-api/language-model" },
-      { title: "Google SERP", path: "/scraping-api/google-serp" },
-    ],
-    icon: FiGlobe,
-  },
-  { title: "Remote Desktop", icon: FiTool, path: "/support/remote-desktop" },
-  { title: "VPN", icon: FiShield, path: "/support/vpn" },
-  { title: "Network Logs", icon: FiFileText, path: "/support/network-logs" },
-  { title: "NAS", icon: FiDatabase, path: "/support/backup-recovery" },
-  { title: "Email Logs", icon: FiMessageSquare, path: "/support/email" },
+  { title: "Payment", icon: FiDollarSign, path: "/payment" },
+  { title: "Transaction", icon: FiList, path: "/transaction" },
+  { title: "Cards", icon: FiCards, path: "/cards" },
+  { title: "Capital", icon: FiPieChart, path: "/capital" },
+  { title: "Vaults", icon: FiCreditCard, path: "/vaults" },
+  { title: "Reports", icon: FiPieChart, path: "/reports" },
+  { title: "Account Management", icon: FiSettings, path: "/settings" },
+  { title: "Settings", icon: FiSettings, path: "/settings" },
+  { title: "Help", icon: FiHelpCircle, path: "/help" },
 ];
 
 interface SidebarItemsProps {
@@ -58,98 +41,104 @@ interface SidebarItemsProps {
 
 const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const queryClient = useQueryClient();
-  const textColor = "gray.100";
-  const disabledColor = "gray.300";
-  const hoverColor = "#FFD700";
+  const { logout } = useAuth();
+  const textColor = "gray.600";
+  const hoverColor = "yellow.500";
   const bgActive = "yellow.100";
-  const activeTextColor = "yellow.800";
+  const activeTextColor = "yellow.500";
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
 
   const finalSidebarStructure = [...sidebarStructure];
-  if (currentUser?.is_superuser && !finalSidebarStructure.some(item => item.title === "Admin")) {
-    finalSidebarStructure.push({ title: "Admin", icon: FiUsers, path: "/admin" });
-  }
 
-  const isEnabled = (title: string) => {
-    // Dashboard, Orders, Offers, Customer are always enabled
-    if (["Dashboard", "Offers", "Orders", "Customers"].includes(title)) {
-      return true;
-    }
-    // Data Warehouse, its sub-items, Remote Desktop, VPN, Network Logs, NAS, Email Logs, and Admin are only enabled for superusers
-    if ([
-      "Scraper",
-      "Jobs",
-      "Archive",
-      "Vision",
-      "Reasoning",
-      "Google SERP",
-      "Remote Desktop",
-      "VPN",
-      "Network Logs",
-      "NAS",
-      "Email Logs",
-      "Admin"
-    ].includes(title)) {
-      return currentUser?.is_superuser || false;
-    }
-    // No other items exist in this structure
-    return true;
+  const handleLogout = async () => {
+    logout();
   };
 
   const renderItems = (items: SidebarItem[]) =>
-    items.map(({ icon, title, path, subItems }) => {
-      const enabled = isEnabled(title);
-      // Skip rendering restricted items for non-superusers
-      if (!enabled && !currentUser?.is_superuser) {
-        return null;
-      }
-      return (
-        <Box key={title}>
-          {path ? (
-            enabled ? (
-              <Flex
-                as={Link}
-                to={path}
-                w="100%"
-                p={2}
-                activeProps={{
-                  style: { background: bgActive, borderRadius: "12px", color: activeTextColor },
-                }}
-                color={textColor}
-                _hover={{ color: hoverColor }}
-                onClick={onClose}
-              >
-                {icon && <Icon as={icon} alignSelf="center" />}
-                <Text color={textColor} ml={2}>{title}</Text>
-              </Flex>
-            ) : (
-              <Tooltip label="Restricted" placement="right">
-                <Flex
-                  w="100%"
-                  p={2}
-                  color={disabledColor}
-                  cursor="not-allowed"
-                  _hover={{ color: hoverColor }}
-                >
-                  {icon && <Icon as={icon} alignSelf="center" color={disabledColor} />}
-                  <Text ml={2} color={disabledColor}>{title}</Text>
-                </Flex>
-              </Tooltip>
-            )
-          ) : (
-            <Box>
-              <Flex p={2} color={enabled ? textColor : disabledColor}>
-                {icon && <Icon as={icon} alignSelf="center" color={enabled ? textColor : disabledColor} />}
-                <Text ml={2} color={enabled ? textColor : disabledColor}>{title}</Text>
-              </Flex>
-              <Box ml={6}>{subItems && renderItems(subItems)}</Box>
-            </Box>
-          )}
-        </Box>
-      );
-    });
+    items.map(({ icon, title, path }) => (
+      <Box key={title}>
+        {path ? (
+          <Flex
+            as={Link}
+            to={path}
+            w="100%"
+            p={2}
+            mb={1}
+            borderRadius="md"
+            activeProps={{
+              style: { background: bgActive, color: activeTextColor },
+            }}
+            color={textColor}
+            _hover={{ color: hoverColor, bg: "yellow.100" }}
+            onClick={onClose}
+          >
+            {icon && <Icon as={icon} mr={3} boxSize={5} />}
+            <Text fontSize="sm">{title}</Text>
+          </Flex>
+        ) : null}
+      </Box>
+    ));
 
-  return <Box>{renderItems(finalSidebarStructure)}</Box>;
+  return (
+    <Box bg="gray.50" h="100%" p={4}>
+      <Box mb={4}>
+        <Text fontSize="xs" fontWeight="bold" color="gray.500" mb={2}>GENERAL</Text>
+        {renderItems(finalSidebarStructure.slice(0, 4))}
+      </Box>
+      <Box mb={4}>
+        <Text fontSize="xs" fontWeight="bold" color="gray.500" mb={2}>SUPPORT</Text>
+        {renderItems(finalSidebarStructure.slice(4, 7))}
+      </Box>
+      <Box>
+        {renderItems(finalSidebarStructure.slice(7))}
+        <Flex p={2} align="center">
+          <Text fontSize="sm" color="green.500">Earn €150</Text>
+        </Flex>
+      </Box>
+      <Box mt={4} p={2} borderTopWidth="1px" borderColor="gray.200">
+        <Flex align="center" mb={2}>
+          <Box boxSize={8} bg="gray.200" borderRadius="full" mr={2} />
+          <Box>
+            <Text fontSize="sm" fontWeight="medium">{currentUser?.full_name || "Young Alaska"}</Text>
+            <Text fontSize="xs" color="gray.500">{currentUser?.email || "alskayng@gmail.com"}</Text>
+          </Box>
+        </Flex>
+        {/* User Menu Integrated Below User Details */}
+        <Menu>
+          <MenuButton
+            as={IconButton}
+            aria-label="Options"
+            icon={<FiUser color="gray.800" fontSize="18px" />}
+            bg="gray.50"
+            border="1px solid"
+            borderColor="yellow.300"
+            _hover={{ bg: "yellow.100", borderColor: "yellow.400" }}
+            _active={{ bg: "yellow.200", borderColor: "yellow.500" }}
+            isRound
+            size="sm"
+            data-testid="user-menu"
+          />
+          <MenuList
+            bg="gray.50"
+            borderColor="gray.200"
+            color="gray.800"
+            boxShadow="md"
+          >
+            <MenuItem
+              icon={<FiLogOut fontSize="18px" color="red.500" />}
+              onClick={handleLogout}
+              color="red.500"
+              fontWeight="bold"
+              bg="gray.50"
+              _hover={{ bg: "red.100" }}
+            >
+              Sign out
+            </MenuItem>
+          </MenuList>
+        </Menu>
+      </Box>
+    </Box>
+  );
 };
 
 export default SidebarItems;
