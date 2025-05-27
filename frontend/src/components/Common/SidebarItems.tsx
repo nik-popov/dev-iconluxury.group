@@ -2,24 +2,17 @@ import { Box, Flex, Icon, Text, useColorModeValue, Tooltip } from "@chakra-ui/re
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
-  FiHome,
-  FiUsers,
-  FiLayers,
-  FiMessageSquare,
-  FiCpu,
-  FiMusic,
-  FiWifi,
-  FiCalendar,
-  FiFileText,
-  FiSettings,
-  FiTool,
-  FiDatabase,
   FiGlobe,
   FiShield,
-  FiCloud,
-  FiMonitor,
+  FiFileText,
+  FiMessageSquare,
   FiHelpCircle,
   FiLogOut,
+  FiSearch,
+  FiArchive,
+  FiEye,
+  FiBrain,
+  FiGlobe as FiGoogleSerp,
 } from "react-icons/fi";
 import type { UserPublic } from "../../client";
 import useAuth from "../../hooks/useAuth";
@@ -33,27 +26,26 @@ interface SidebarItem {
 }
 
 const sidebarStructure: SidebarItem[] = [
-  { title: "Dashboard", icon: FiHome, path: "/" },
-  { title: "Orders", icon: FiLayers, path: "/orders" },
-  { title: "Offers", icon: FiCalendar, path: "/offers" },
-  { title: "Customers", icon: FiUsers, path: "/customers" },
   {
     title: "Scraper",
     subItems: [
-      { title: "Jobs", path: "/scraping-api/explore" },
-      { title: "Archive", path: "/scraping-api/explore-assets" },
-      { title: "Vision", path: "/scraping-api/vision" },
-      { title: "Reasoning", path: "/scraping-api/language-model" },
-      { title: "Google SERP", path: "/scraping-api/google-serp" },
+      { title: "Jobs", path: "/scraping-api/explore", icon: FiSearch },
+      { title: "Archive", path: "/scraping-api/explore-assets", icon: FiArchive },
+      { title: "Vision", path: "/scraping-api/vision", icon: FiEye },
+      { title: "Reasoning", path: "/scraping-api/language-model", icon: FiGlobe },
+      { title: "Google SERP", path: "/scraping-api/google-serp", icon: FiGoogleSerp },
     ],
-    icon: FiGlobe,
   },
-  { title: "Remote Desktop", icon: FiTool, path: "/support/remote-desktop" },
-  { title: "VPN", icon: FiShield, path: "/support/vpn" },
-  { title: "Network Logs", icon: FiFileText, path: "/support/network-logs" },
-  { title: "NAS", icon: FiDatabase, path: "/support/backup-recovery" },
-  { title: "Email Logs", icon: FiMessageSquare, path: "/support/email" },
-  { title: "Sign out", icon: FiLogOut, action: () => {} }, // Placeholder action
+  {
+    title: "Logs",
+    subItems: [
+      { title: "Network Logs", path: "/support/network-logs", icon: FiFileText },
+      { title: "Email Logs", path: "/support/email", icon: FiMessageSquare },
+    ],
+  },
+  { title: "VPN", path: "/support/vpn", icon: FiShield },
+  { title: "Support", path: "/support", icon: FiHelpCircle },
+  { title: "Sign out", icon: FiLogOut, action: () => {} },
 ];
 
 interface SidebarItemsProps {
@@ -63,20 +55,20 @@ interface SidebarItemsProps {
 const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const queryClient = useQueryClient();
   const { logout } = useAuth();
-  const textColor = "gray.100";
+  const textColor = "gray.600";
   const disabledColor = "gray.300";
-  const hoverColor = "#FFD700";
-  const bgActive = "yellow.100";
-  const activeTextColor = "yellow.800";
+  const hoverColor = "gray.800";
+  const bgActive = "white";
+  const activeTextColor = "gray.800";
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
 
   const finalSidebarStructure = [...sidebarStructure];
   if (currentUser?.is_superuser && !finalSidebarStructure.some(item => item.title === "Admin")) {
-    finalSidebarStructure.splice(finalSidebarStructure.length - 1, 0, { title: "Admin", icon: FiUsers, path: "/admin" });
+    finalSidebarStructure.splice(finalSidebarStructure.length - 1, 0, { title: "Admin", icon: FiShield, path: "/admin" });
   }
 
   const isEnabled = (title: string) => {
-    if (["Dashboard", "Offers", "Orders", "Customers", "Sign out"].includes(title)) {
+    if (["Sign out"].includes(title)) {
       return true;
     }
     if ([
@@ -86,12 +78,11 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
       "Vision",
       "Reasoning",
       "Google SERP",
-      "Remote Desktop",
       "VPN",
       "Network Logs",
-      "NAS",
       "Email Logs",
-      "Admin"
+      "Admin",
+      "Support"
     ].includes(title)) {
       return currentUser?.is_superuser || false;
     }
@@ -105,7 +96,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
         return null;
       }
       return (
-        <Box key={title}>
+        <Box key={title} mb={2}>
           {path ? (
             enabled ? (
               <Flex
@@ -113,15 +104,21 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
                 to={path}
                 w="100%"
                 p={2}
+                borderRadius="md"
                 activeProps={{
-                  style: { background: bgActive, borderRadius: "12px", color: activeTextColor },
+                  style: { 
+                    background: bgActive, 
+                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+                    color: activeTextColor 
+                  },
                 }}
                 color={textColor}
-                _hover={{ color: hoverColor }}
+                _hover={{ color: hoverColor, bg: "gray.50" }}
                 onClick={onClose}
+                align="center"
               >
-                {icon && <Icon as={icon} alignSelf="center" />}
-                <Text color={textColor} ml={2}>{title}</Text>
+                {icon && <Icon as={icon} mr={2} />}
+                <Text fontSize="sm" fontWeight="medium">{title}</Text>
               </Flex>
             ) : (
               <Tooltip label="Restricted" placement="right">
@@ -131,9 +128,10 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
                   color={disabledColor}
                   cursor="not-allowed"
                   _hover={{ color: hoverColor }}
+                  align="center"
                 >
-                  {icon && <Icon as={icon} alignSelf="center" color={disabledColor} />}
-                  <Text ml={2} color={disabledColor}>{title}</Text>
+                  {icon && <Icon as={icon} mr={2} color={disabledColor} />}
+                  <Text fontSize="sm" fontWeight="medium" color={disabledColor}>{title}</Text>
                 </Flex>
               </Tooltip>
             )
@@ -142,16 +140,18 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
               <Flex
                 w="100%"
                 p={2}
+                borderRadius="md"
                 color={textColor}
-                _hover={{ color: hoverColor }}
+                _hover={{ color: hoverColor, bg: "gray.50" }}
                 onClick={() => {
                   if (title === "Sign out") logout();
                   onClose?.();
                 }}
                 cursor="pointer"
+                align="center"
               >
-                {icon && <Icon as={icon} alignSelf="center" />}
-                <Text color={textColor} ml={2}>{title}</Text>
+                {icon && <Icon as={icon} mr={2} />}
+                <Text fontSize="sm" fontWeight="medium">{title}</Text>
               </Flex>
             ) : (
               <Tooltip label="Restricted" placement="right">
@@ -161,19 +161,21 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
                   color={disabledColor}
                   cursor="not-allowed"
                   _hover={{ color: hoverColor }}
+                  align="center"
                 >
-                  {icon && <Icon as={icon} alignSelf="center" color={disabledColor} />}
-                  <Text ml={2} color={disabledColor}>{title}</Text>
+                  {icon && <Icon as={icon} mr={2} color={disabledColor} />}
+                  <Text fontSize="sm" fontWeight="medium" color={disabledColor}>{title}</Text>
                 </Flex>
               </Tooltip>
             )
           ) : (
             <Box>
-              <Flex p={2} color={enabled ? textColor : disabledColor}>
-                {icon && <Icon as={icon} alignSelf="center" color={enabled ? textColor : disabledColor} />}
-                <Text ml={2} color={enabled ? textColor : disabledColor}>{title}</Text>
+              <Flex p={2} color={enabled ? textColor : disabledColor} align="center">
+                <Text fontSize="sm" fontWeight="bold">{title}</Text>
               </Flex>
-              <Box ml={6}>{subItems && renderItems(subItems)}</Box>
+              <Box ml={4} bg="white" borderRadius="md" boxShadow="0 2px 8px rgba(0, 0, 0, 0.1)" p={2}>
+                {subItems && renderItems(subItems)}
+              </Box>
             </Box>
           )}
         </Box>
