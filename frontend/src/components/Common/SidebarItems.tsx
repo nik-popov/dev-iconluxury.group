@@ -38,7 +38,7 @@ const sidebarStructure: SidebarItem[] = [
     title: "Scraper",
     subItems: [
       { title: "Jobs", path: "/scraping-api/explore" },
-      { title: "S3", path: "/scraping-api/explore-assets" },
+      { title: "Archive", path: "/scraping-api/explore-assets" },
       { title: "Vision", path: "/scraping-api/vision" },
       { title: "Reasoning", path: "/scraping-api/language-model" },
       { title: "Google SERP", path: "/scraping-api/google-serp" },
@@ -79,7 +79,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     if ([
       "Scraper",
       "Jobs",
-      "S3",
+      "Archive",
       "Vision",
       "Reasoning",
       "Google SERP",
