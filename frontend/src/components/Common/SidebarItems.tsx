@@ -15,7 +15,6 @@ import {
   FiSearch,
   FiArchive,
   FiEye,
-  FiGlobe,
   FiGlobe as FiGoogleSerp,
 } from "react-icons/fi";
 import type { UserPublic } from "../../client";
