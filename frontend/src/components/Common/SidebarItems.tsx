@@ -1,4 +1,4 @@
-import { Box, Flex, Icon, Text, Tooltip } from "@chakra-ui/react";
+import { Box, Flex, Icon, Text, Tooltip, Avatar } from "@chakra-ui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
@@ -69,6 +69,15 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const activeTextColor = "gray.800";
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
 
+  // Hardcoded avatar options (using placeholder avatars from pravatar.cc)
+  const avatarOptions = [
+    "https://i.pravatar.cc/150?img=1",
+    "https://i.pravatar.cc/150?img=2",
+    "https://i.pravatar.cc/150?img=3",
+  ];
+  // Pick a random avatar (or you can hardcode a specific one)
+  const hardcodedAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
+
   const finalSidebarStructure = [...sidebarStructure];
   if (currentUser?.is_superuser && !finalSidebarStructure.some(item => item.title === "Admin")) {
     finalSidebarStructure.splice(finalSidebarStructure.length - 1, 0, { title: "Admin", icon: FiShield, path: "/admin" });
@@ -90,6 +99,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
       if (!enabled) {
         return null;
       }
+      const showAdminLabel = ["VPN", "Admin"].includes(title);
       return (
         <Box key={title} mb={2}>
           {path ? (
@@ -111,9 +121,25 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
               _hover={{ color: hoverColor }}
               onClick={onClose}
               align="center"
+              justify="space-between"
             >
-              {icon && <Icon as={icon} mr={2} />}
-              <Text>{title}</Text>
+              <Flex align="center">
+                {icon && <Icon as={icon} mr={2} />}
+                <Text>{title}</Text>
+              </Flex>
+              {showAdminLabel && (
+                <Text
+                  fontSize="xs"
+                  fontWeight="medium"
+                  bg="gray.200"
+                  color={textColor}
+                  px={2}
+                  py={0.5}
+                  borderRadius="full"
+                >
+                  Admin
+                </Text>
+              )}
             </Flex>
           ) : action ? (
             <Flex
@@ -158,10 +184,26 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
           color={textColor}
           _hover={{ color: hoverColor, bg: "gray.50" }}
           onClick={onClose}
-          direction="column"
+          align="center"
         >
-          <Text fontWeight="medium">{currentUser.full_name || "User"}</Text>
-          <Text fontSize="xs" color="ui.dim">{currentUser.email || "email@example.com"}</Text>
+          <Avatar
+            size="sm"
+            name={currentUser.full_name || "User"}
+            src={hardcodedAvatar} // Hardcoded avatar source
+            mr={2}
+            filter="grayscale(100%)"
+            border="2px solid"
+            borderColor="transparent"
+            _hover={{
+              filter: "grayscale(0)",
+              borderColor: "ui.main",
+            }}
+            transition="all 0.2s ease"
+          />
+          <Box>
+            <Text fontWeight="medium">{currentUser.full_name || "User"}</Text>
+            <Text fontSize="xs" color="ui.dim">{currentUser.email || "email@example.com"}</Text>
+          </Box>
         </Flex>
       )}
     </Box>
