@@ -15,6 +15,7 @@ import {
   FiSearch,
   FiArchive,
   FiEye,
+  FiBrain,
   FiGlobe as FiGoogleSerp,
 } from "react-icons/fi";
 import type { UserPublic } from "../../client";
@@ -39,7 +40,7 @@ const sidebarStructure: SidebarItem[] = [
       { title: "Jobs", path: "/scraping-api/explore", icon: FiSearch },
       { title: "Archive", path: "/scraping-api/explore-assets", icon: FiArchive },
       { title: "Vision", path: "/scraping-api/vision", icon: FiEye },
-      { title: "Reasoning", path: "/scraping-api/language-model", icon: FiGlobe },
+      { title: "Reasoning", path: "/scraping-api/language-model", icon: FiBrain },
       { title: "Google SERP", path: "/scraping-api/google-serp", icon: FiGoogleSerp },
     ],
   },
