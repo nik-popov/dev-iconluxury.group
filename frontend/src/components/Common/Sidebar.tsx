@@ -10,30 +10,22 @@ import {
   Image,
   Link,
   Text,
-  useColorModeValue,
-  useDisclosure,
-} from "@chakra-ui/react"
-import { useQueryClient } from "@tanstack/react-query"
-import { FiLogOut, FiMenu } from "react-icons/fi"
-
-import Logo from "/assets/images/luxury-market-logo-svg.svg"
-import type { UserPublic } from "../../client"
-import useAuth from "../../hooks/useAuth"
-import SidebarItems from "./SidebarItems"
+} from "@chakra-ui/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { FiMenu } from "react-icons/fi";
+import Logo from "/assets/images/luxury-market-logo-svg.svg";
+import type { UserPublic } from "../../client";
+import { useDisclosure } from "@chakra-ui/react";
+import SidebarItems from "./SidebarItems";
 
 const Sidebar = () => {
-  const queryClient = useQueryClient()
-  const bgColor = "gray.900"  // Changed to fixed light background
-  const textColor = "gray.100"  // Dark text for visibility
-  const secBgColor = "gray.700"  // Light gray secondary background
-  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
-  const { isOpen, onOpen, onClose } = useDisclosure()
-  const { logout } = useAuth()
+  const queryClient = useQueryClient();
+  const bgColor = "gray.100"; // Matches theme's .sidebar background
+  const textColor = "gray.800"; // Matches theme's text color
+  const accentColor = "ui.main"; // Yellow accent from theme
+  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const handleLogout = async () => {
-    logout()
-  }
-  
   return (
     <>
       {/* Mobile */}
@@ -44,31 +36,20 @@ const Sidebar = () => {
         position="absolute"
         fontSize="20px"
         m={4}
-        color="#FFD700"  // Green accent
+        color={accentColor}
         icon={<FiMenu />}
       />
       <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
         <DrawerOverlay />
         <DrawerContent maxW="250px">
-          <DrawerCloseButton color="gray.800" />  // Dark close button
-          <DrawerBody py={8} bg="white">  // Light background
-            <Flex flexDir="column" justify="space-between" h="100%">
+          <DrawerCloseButton color={textColor} />
+          <DrawerBody py={8} bg="ui.light" className="sidebar">
+            <Flex flexDir="column" h="100%">
               <Box>
                 <Link href="https://dashboard.iconluxury.group">
                   <Image src={Logo} alt="Logo" p={6} />
                 </Link>
                 <SidebarItems onClose={onClose} />
-                <Flex
-                  as="button"
-                  onClick={handleLogout}
-                  p={2}
-                  color="#FFD700"  // Green accent for logout
-                  fontWeight="bold"
-                  alignItems="center"
-                >
-                  <FiLogOut />
-                  <Text color={{textColor}} ml={2}>Sign out</Text>
-                </Flex>
               </Box>
             </Flex>
           </DrawerBody>
@@ -83,13 +64,14 @@ const Sidebar = () => {
         position="sticky"
         top="0"
         display={{ base: "none", md: "flex" }}
+        className="sidebar"
       >
         <Flex
           flexDir="column"
           justify="space-between"
-          bg={secBgColor}
           p={4}
-          borderRadius={12}
+          borderRadius="md"
+          boxShadow="card"
           w="250px"
         >
           <Box>
@@ -98,17 +80,10 @@ const Sidebar = () => {
             </Link>
             <SidebarItems />
           </Box>
-          <Box>
-            {currentUser?.email && (
-              <Text color="gray.100" noOfLines={2} fontSize="sm" p={2} maxW="180px">
-                Logged in as: {currentUser.email}
-              </Text>
-            )}
-          </Box>
         </Flex>
       </Box>
     </>
-  )
-}
+  );
+};
 
-export default Sidebar
+export default Sidebar;
