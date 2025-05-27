@@ -180,7 +180,14 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
           bg="gray.100"
           boxShadow="card"
           color={textColor}
-          _hover={{ color: hoverColor, bg: "gray.50" }}
+          border="2px solid"
+          borderColor="transparent"
+          _hover={{
+            color: hoverColor,
+            bg: "gray.50",
+            borderColor: "ui.main",
+          }}
+          transition="all 0.2s ease"
           onClick={onClose}
           align="center"
         >
