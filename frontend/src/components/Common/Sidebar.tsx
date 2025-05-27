@@ -13,7 +13,7 @@ import {
 } from "@chakra-ui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { FiMenu } from "react-icons/fi";
-import Logo from "/assets/images/luxury-market-logo-svg.svg";
+import Logo from "/assets/images/lm-logo-blk.svg";
 import type { UserPublic } from "../../client";
 import { useDisclosure } from "@chakra-ui/react";
 import SidebarItems from "./SidebarItems";
