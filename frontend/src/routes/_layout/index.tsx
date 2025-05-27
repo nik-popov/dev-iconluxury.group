@@ -6,6 +6,7 @@ import {
   VStack,
   SimpleGrid,
   Stat,
+  Button,
   StatLabel,
   Icon,
   StatNumber,
