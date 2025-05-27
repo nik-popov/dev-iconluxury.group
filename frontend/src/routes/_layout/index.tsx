@@ -136,34 +136,33 @@ function Dashboard() {
     <Container maxW="full" bg="gray.50" minH="100vh" p={4}>
       {/* Top Bar with Search, Date Filter, and Export */}
       <Flex justify="space-between" align="center" mb={4}>
+        <Input placeholder="Search" size="sm" mr={4} borderRadius="md" />
         <Flex align="center">
-          <Input placeholder="Search" size="sm" mr={4} borderRadius="md" />
           <Select size="sm" defaultValue="Last 30 days" w="150px" mr={4} borderRadius="md">
             <option value="Last 30 days">Last 30 days</option>
             <option value="Last 7 days">Last 7 days</option>
             <option value="Last 90 days">Last 90 days</option>
           </Select>
+          <Button size="sm" variant="outline" borderRadius="md">Export</Button>
         </Flex>
-        <Button size="sm" variant="outline" borderRadius="md">Export</Button>
       </Flex>
 
       {/* Total Merchandise Value */}
       <Box p={4} bg="white" shadow="sm" borderWidth="1px" borderColor="gray.200" borderRadius="md" mb={4}>
         <Flex justify="space-between" align="center">
           <Box>
-            <Text fontSize="sm" color="gray.600">TOTAL BALANCE</Text>
+            <Text fontSize="sm" color="gray.600">TOTAL MERCHANDISE VALUE</Text>
             <Text fontSize="2xl" fontWeight="bold">€ {totalMerchandiseValue.toLocaleString()}</Text>
             <Text fontSize="sm" color="green.500">
               16.50% <Icon as={FiArrowUp} color="green.500" />
             </Text>
           </Box>
           <Flex>
-            <IconButton aria-label="Add" icon={<Text fontSize="lg">+</Text>} size="sm" mr={2} bg="green.500" color="white" borderRadius="full" />
+            <IconButton aria-label="Add" icon={<Text fontSize="lg">+</Text>} size="sm" mr={2} bg="white" color="gray.800" borderWidth="1px" borderColor="gray.200" borderRadius="full" />
             <IconButton aria-label="More" icon={<FiMoreVertical />} size="sm" bg="gray.600" color="white" borderRadius="full" />
           </Flex>
         </Flex>
       </Box>
-
       {/* Sales Chart with High/Low Points */}
       <Box mb={4}>
         <Box bg="white" shadow="sm" borderWidth="1px" borderColor="gray.200" borderRadius="md">
@@ -211,22 +210,22 @@ function Dashboard() {
                 height={150}
               />
             </Box>
-            <Box flex="1" ml={4} bg="white" shadow="sm" borderWidth="1px" borderColor="gray.200" borderRadius="md" p={3}>
-              <Box mb={4}>
-                <Text fontSize="sm" color="gray.600">Highest Point</Text>
-                <Text fontSize="md" fontWeight="bold">€ {increaseValue}</Text>
-                <Text fontSize="xs" color="green.500">
-                  45.00% <Icon as={FiArrowUp} color="green.500" />
-                </Text>
-              </Box>
-              <Box>
-                <Text fontSize="sm" color="gray.600">Lowest Point</Text>
-                <Text fontSize="md" fontWeight="bold">€ {dropValue}</Text>
-                <Text fontSize="xs" color="red.500">
-                  12.50% <Icon as={FiArrowDown} color="red.500" />
-                </Text>
-              </Box>
-            </Box>
+          <Box flex="1" ml={4} bg="white" shadow="sm" borderWidth="1px" borderColor="gray.200" borderRadius="md" p={3}>
+          <Box mb={4}>
+            <Text fontSize="sm" color="gray.600">Peak Value</Text>
+            <Text fontSize="xl" fontWeight="bold">€ {highestPoint}</Text>
+            <Text fontSize="xs" color="green.500">
+              45.00% <Icon as={FiArrowUp} color="green.500" />
+            </Text>
+          </Box>
+          <Box>
+            <Text fontSize="sm" color="gray.600">Lowest Value</Text>
+            <Text fontSize="xl" fontWeight="bold">€ {lowestPoint}</Text>
+            <Text fontSize="xs" color="red.500">
+              12.50% <Icon as={FiArrowDown} color="red.500" />
+            </Text>
+          </Box>
+        </Box>
           </Flex>
         </Box>
       </Box>
