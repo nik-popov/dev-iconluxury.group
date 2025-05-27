@@ -17,6 +17,7 @@ import {
   TabList,
   Tab,
   IconButton,
+  Avatar, // Added for avatars
 } from "@chakra-ui/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Bar } from "react-chartjs-2";
@@ -144,13 +145,14 @@ function Dashboard() {
   const totalCustomersCount = customers.length;
   const totalOpenOrders = 14376.16;
 
-  // Sales data
-  const dates = cashFlow.map(item => item.date);
-  const amounts = cashFlow.map(item => item.amount);
-  const highestPoint = Math.max(...amounts);
-  const lowestPoint = Math.min(...amounts);
+  // Filter out negative values for the sales chart
+  const filteredCashFlow = cashFlow.filter(item => item.amount >= 0);
+  const dates = filteredCashFlow.map(item => item.date);
+  const amounts = filteredCashFlow.map(item => item.amount);
+  const highestPoint = amounts.length > 0 ? Math.max(...amounts) : 0;
+  const lowestPoint = amounts.length > 0 ? Math.min(...amounts) : 0;
   const increaseValue = highestPoint > 0 ? `${highestPoint} on ${dates[amounts.indexOf(highestPoint)]}` : "N/A";
-  const dropValue = lowestPoint < 0 ? `${lowestPoint} on ${dates[amounts.indexOf(lowestPoint)]}` : "N/A";
+  const dropValue = lowestPoint > 0 ? `${lowestPoint} on ${dates[amounts.indexOf(lowestPoint)]}` : "N/A";
 
   // Map activity types to icons
   const activityIcons = {
@@ -191,6 +193,7 @@ function Dashboard() {
           </Flex>
         </Flex>
       </Box>
+
       {/* Sales Chart with High/Low Points */}
       <Box mb={4}>
         <Box bg="white" shadow="sm" borderWidth="1px" borderColor="gray.200" borderRadius="md">
@@ -217,8 +220,8 @@ function Dashboard() {
                     {
                       label: "Sales",
                       data: amounts,
-                      backgroundColor: amounts.map(amount => amount >= 0 ? "rgba(75, 192, 192, 0.6)" : "rgba(255, 99, 132, 0.6)"),
-                      borderColor: amounts.map(amount => amount >= 0 ? "rgba(75, 192, 192, 1)" : "rgba(255, 99, 132, 1)"),
+                      backgroundColor: "rgba(75, 192, 192, 0.6)", // Single color since negatives are removed
+                      borderColor: "rgba(75, 192, 192, 1)",
                       borderWidth: 1,
                     },
                   ],
@@ -238,22 +241,22 @@ function Dashboard() {
                 height={150}
               />
             </Box>
-          <Box flex="1" ml={4} bg="white" shadow="sm" borderWidth="1px" borderColor="gray.200" borderRadius="md" p={3}>
-          <Box mb={4}>
-            <Text fontSize="sm" color="gray.600">Peak Value</Text>
-            <Text fontSize="xl" fontWeight="bold">€ {highestPoint}</Text>
-            <Text fontSize="xs" color="green.500">
-              45.00% <Icon as={FiArrowUp} color="green.500" />
-            </Text>
-          </Box>
-          <Box>
-            <Text fontSize="sm" color="gray.600">Lowest Value</Text>
-            <Text fontSize="xl" fontWeight="bold">€ {lowestPoint}</Text>
-            <Text fontSize="xs" color="red.500">
-              12.50% <Icon as={FiArrowDown} color="red.500" />
-            </Text>
-          </Box>
-        </Box>
+            <Box flex="1" ml={4} bg="white" shadow="sm" borderWidth="1px" borderColor="gray.200" borderRadius="md" p={3}>
+              <Box mb={4}>
+                <Text fontSize="sm" color="gray.600">Peak Value</Text>
+                <Text fontSize="xl" fontWeight="bold">€ {highestPoint}</Text>
+                <Text fontSize="xs" color="green.500">
+                  45.00% <Icon as={FiArrowUp} color="green.500" />
+                </Text>
+              </Box>
+              <Box>
+                <Text fontSize="sm" color="gray.600">Lowest Value</Text>
+                <Text fontSize="xl" fontWeight="bold">€ {lowestPoint}</Text>
+                <Text fontSize="xs" color="red.500">
+                  12.50% <Icon as={FiArrowDown} color="red.500" />
+                </Text>
+              </Box>
+            </Box>
           </Flex>
         </Box>
       </Box>
@@ -343,11 +346,19 @@ function Dashboard() {
               ) : (
                 messages.map((msg, index) => (
                   <Box key={index} p={3} shadow="sm" borderWidth="1px" borderRadius="md" bg="white" borderColor="gray.200">
-                    <Flex justify="space-between">
-                      <Box>
-                        <Text fontSize="sm" fontWeight="medium" color="gray.800">{msg.customer}</Text>
-                        <Text fontSize="xs" color="gray.600">{msg.message}</Text>
-                      </Box>
+                    <Flex justify="space-between" align="center">
+                      <Flex align="center">
+                        <Avatar
+                          size="sm"
+                          name={msg.customer}
+                          src="https://via.placeholder.com/40" // Placeholder avatar URL
+                          mr={3}
+                        />
+                        <Box>
+                          <Text fontSize="sm" fontWeight="medium" color="gray.800">{msg.customer}</Text>
+                          <Text fontSize="xs" color="gray.600">{msg.message}</Text>
+                        </Box>
+                      </Flex>
                       <Text fontSize="xs" color="gray.600">{msg.date}</Text>
                     </Flex>
                   </Box>
