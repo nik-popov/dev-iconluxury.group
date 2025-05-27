@@ -1,6 +1,6 @@
 import { Box, Flex, Icon, Text, Tooltip, Avatar } from "@chakra-ui/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import {
   FiHome,
   FiUsers,
@@ -15,6 +15,7 @@ import {
   FiSearch,
   FiArchive,
   FiEye,
+  FiBrain,
   FiGlobe as FiGoogleSerp,
 } from "react-icons/fi";
 import type { UserPublic } from "../../client";
@@ -39,7 +40,7 @@ const sidebarStructure: SidebarItem[] = [
       { title: "Jobs", path: "/scraping-api/explore", icon: FiSearch },
       { title: "Archive", path: "/scraping-api/explore-assets", icon: FiArchive },
       { title: "Vision", path: "/scraping-api/vision", icon: FiEye },
-      { title: "Reasoning", path: "/scraping-api/language-model", icon: FiGlobe },
+      { title: "Reasoning", path: "/scraping-api/language-model", icon: FiBrain },
       { title: "Google SERP", path: "/scraping-api/google-serp", icon: FiGoogleSerp },
     ],
   },
@@ -62,6 +63,7 @@ interface SidebarItemsProps {
 const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const queryClient = useQueryClient();
   const { logout } = useAuth();
+  const location = useLocation();
   const textColor = "gray.800";
   const disabledColor = "ui.dim";
   const hoverColor = "ui.main";
@@ -69,13 +71,11 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const activeTextColor = "gray.800";
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
 
-  // Hardcoded avatar options (using placeholder avatars from pravatar.cc)
   const avatarOptions = [
     "https://i.pravatar.cc/150?img=1",
     "https://i.pravatar.cc/150?img=2",
     "https://i.pravatar.cc/150?img=3",
   ];
-  // Pick a random avatar (or you can hardcode a specific one)
   const hardcodedAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
 
   const finalSidebarStructure = [...sidebarStructure];
@@ -100,6 +100,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
         return null;
       }
       const showAdminLabel = ["VPN", "Admin"].includes(title);
+      const isActive = path === location.pathname || (path === "/" && location.pathname === "");
       return (
         <Box key={title} mb={2}>
           {path ? (
@@ -109,14 +110,12 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
               w="100%"
               p={2}
               borderRadius="md"
-              activeProps={{
-                style: {
-                  background: bgActive,
-                  boxShadow: "card",
-                  color: activeTextColor,
-                  borderRadius: "md",
-                },
-              }}
+              style={isActive ? {
+                background: bgActive,
+                boxShadow: "card",
+                color: activeTextColor,
+                borderRadius: "md",
+              } : {}}
               color={textColor}
               _hover={{ color: hoverColor }}
               onClick={onClose}
@@ -124,7 +123,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
               justify="space-between"
             >
               <Flex align="center">
-                {icon && <Icon as={icon} mr={2} />}
+                {icon && <Icon as={icon} mr={2} color={isActive ? activeTextColor : textColor} />}
                 <Text>{title}</Text>
               </Flex>
               {showAdminLabel && (
@@ -179,7 +178,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
           p={2}
           mt={4}
           borderRadius="md"
-          bg="ui.light"
+          bg="gray.100"
           boxShadow="card"
           color={textColor}
           _hover={{ color: hoverColor, bg: "gray.50" }}
@@ -189,7 +188,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
           <Avatar
             size="sm"
             name={currentUser.full_name || "User"}
-            src={hardcodedAvatar} // Hardcoded avatar source
+            src={hardcodedAvatar}
             mr={2}
             filter="grayscale(100%)"
             border="2px solid"
@@ -200,9 +199,11 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
             }}
             transition="all 0.2s ease"
           />
-          <Box>
+          <Box flex="1">
             <Text fontWeight="medium">{currentUser.full_name || "User"}</Text>
-            <Text fontSize="xs" color="ui.dim">{currentUser.email || "email@example.com"}</Text>
+            <Text fontSize="xs" color="ui.dim" isTruncated={false} whiteSpace="normal">
+              {currentUser.email || "email@example.com"}
+            </Text>
           </Box>
         </Flex>
       )}
