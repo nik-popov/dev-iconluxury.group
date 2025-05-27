@@ -11,13 +11,11 @@ import {
   StatNumber,
   Flex,
   Input,
-  Select,
-  Button,
   Tabs,
   TabList,
   Tab,
   IconButton,
-  Avatar, // Added for avatars
+  Avatar,
 } from "@chakra-ui/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Bar } from "react-chartjs-2";
@@ -145,14 +143,13 @@ function Dashboard() {
   const totalCustomersCount = customers.length;
   const totalOpenOrders = 14376.16;
 
-  // Filter out negative values for the sales chart
-  const filteredCashFlow = cashFlow.filter(item => item.amount >= 0);
-  const dates = filteredCashFlow.map(item => item.date);
-  const amounts = filteredCashFlow.map(item => item.amount);
+  // Use all cash flow data (no filtering)
+  const dates = cashFlow.map(item => item.date);
+  const amounts = cashFlow.map(item => item.amount);
   const highestPoint = amounts.length > 0 ? Math.max(...amounts) : 0;
   const lowestPoint = amounts.length > 0 ? Math.min(...amounts) : 0;
   const increaseValue = highestPoint > 0 ? `${highestPoint} on ${dates[amounts.indexOf(highestPoint)]}` : "N/A";
-  const dropValue = lowestPoint > 0 ? `${lowestPoint} on ${dates[amounts.indexOf(lowestPoint)]}` : "N/A";
+  const dropValue = lowestPoint < 0 ? `${lowestPoint} on ${dates[amounts.indexOf(lowestPoint)]}` : "N/A";
 
   // Map activity types to icons
   const activityIcons = {
@@ -164,16 +161,18 @@ function Dashboard() {
 
   return (
     <Container maxW="full" bg="gray.50" minH="100vh" p={4}>
-      {/* Top Bar with Search, Date Filter, and Export */}
+      {/* Top Bar with Search and Weekly/Monthly/Yearly Filter */}
       <Flex justify="space-between" align="center" mb={4}>
         <Input placeholder="Search" size="sm" mr={4} borderRadius="md" />
         <Flex align="center">
-          <Select size="sm" defaultValue="Last 30 days" w="150px" mr={4} borderRadius="md">
-            <option value="Last 30 days">Last 30 days</option>
-            <option value="Last 7 days">Last 7 days</option>
-            <option value="Last 90 days">Last 90 days</option>
-          </Select>
-          <Button size="sm" variant="outline" borderRadius="md">Export</Button>
+          <Tabs variant="soft-rounded" size="sm">
+            <TabList>
+              <Tab>Weekly</Tab>
+              <Tab>Monthly</Tab>
+              <Tab>Yearly</Tab>
+            </TabList>
+          </Tabs>
+          <Button size="sm" variant="outline" borderRadius="md" ml={4}>Export</Button>
         </Flex>
       </Flex>
 
@@ -199,17 +198,14 @@ function Dashboard() {
         <Box bg="white" shadow="sm" borderWidth="1px" borderColor="gray.200" borderRadius="md">
           <Flex justify="space-between" align="center" p={4} pb={0}>
             <Text fontSize="md" fontWeight="bold" color="gray.800">SALES</Text>
-            <Flex>
-              <Tabs variant="soft-rounded" size="sm">
-                <TabList>
-                  <Tab>Weekly</Tab>
-                  <Tab>Daily</Tab>
-                  <Tab>Monthly</Tab>
-                  <Tab>Yearly</Tab>
-                </TabList>
-              </Tabs>
-              <Button size="sm" ml={2} variant="outline" borderRadius="md">Manage</Button>
-            </Flex>
+            <Tabs variant="soft-rounded" size="sm">
+              <TabList>
+                <Tab>Weekly</Tab>
+                <Tab>Daily</Tab>
+                <Tab>Monthly</Tab>
+                <Tab>Yearly</Tab>
+              </TabList>
+            </Tabs>
           </Flex>
           <Flex p={4}>
             <Box flex="3">
@@ -220,8 +216,8 @@ function Dashboard() {
                     {
                       label: "Sales",
                       data: amounts,
-                      backgroundColor: "rgba(75, 192, 192, 0.6)", // Single color since negatives are removed
-                      borderColor: "rgba(75, 192, 192, 1)",
+                      backgroundColor: amounts.map(amount => amount >= 0 ? "rgba(75, 192, 192, 0.6)" : "rgba(255, 99, 132, 0.6)"),
+                      borderColor: amounts.map(amount => amount >= 0 ? "rgba(75, 192, 192, 1)" : "rgba(255, 99, 132, 1)"),
                       borderWidth: 1,
                     },
                   ],
