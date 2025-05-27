@@ -168,6 +168,7 @@ function Dashboard() {
         <Flex align="center">
           <Tabs variant="soft-rounded" size="sm">
             <TabList>
+              <Tab>Daily</Tab>
               <Tab>Weekly</Tab>
               <Tab>Monthly</Tab>
               <Tab>Yearly</Tab>
