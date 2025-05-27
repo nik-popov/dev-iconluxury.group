@@ -10,45 +10,47 @@ const theme = extendTheme({
   styles: {
     global: () => ({
       "html, body": {
-        fontFamily: '"42dot Sans", sans-serif',
+        fontFamily: '"Futura", "Helvetica", "Arial", sans-serif', // Updated to Futura with fallbacks
         lineHeight: "1.7",
-        bg: "gray.50", // Light background for the app
-        color: "gray.800", // Dark text for readability
+        bg: "gray.50",
+        color: "gray.800",
         padding: "20px",
       },
-      ".sidebar": { // Add a specific style for the sidebar container
-        bg: "gray.100", // Slightly darker than the app background for contrast
-        minHeight: "100vh", // Full height
-        p: 4, // Padding for content
+      ".sidebar": {
+        bg: "gray.100",
+        minHeight: "100vh",
+        p: 4,
       },
     }),
   },
   colors: {
     ui: {
-      main: "#FFD700", // Yellow as primary accent
-      secondary: "#FFF8E1", // Light yellow for secondary elements
-      success: "#38A169", // Green for success
-      danger: "#E53E3E", // Red for errors
-      light: "#FFFFFF", // White for backgrounds
-      dark: "#1A202C", // Dark background for dark mode
-      darkSlate: "#2D3748", // Darker gray for contrast
-      dim: "#A0AEC0", // Muted gray for secondary text
+      main: "#FFD700",
+      secondary: "#FFF8E1",
+      success: "#38A169",
+      danger: "#E53E3E",
+      light: "#FFFFFF",
+      dark: "#1A202C",
+      darkSlate: "#2D3748",
+      dim: "#A0AEC0",
     },
   },
   shadows: {
-    card: "0 2px 8px rgba(0, 0, 0, 0.1)", // Define a shadow for card-like elements
+    card: "0 2px 8px rgba(0, 0, 0, 0.1)",
   },
   components: {
     Heading: {
       baseStyle: (props) => ({
         color: props.colorMode === "dark" ? "gray.100" : "gray.900",
+        fontFamily: '"Futura", "Helvetica", "Arial", sans-serif', // Ensure headings use Futura
       }),
     },
     Text: {
       baseStyle: (props) => ({
         color: props.colorMode === "dark" ? "gray.200" : "gray.800",
-        fontSize: "sm", // Match sidebar's font size
-        fontWeight: "medium", // Match sidebar's font weight
+        fontSize: "sm",
+        fontWeight: "medium",
+        fontFamily: '"Futura", "Helvetica", "Arial", sans-serif', // Ensure text uses Futura
       }),
     },
     Code: {
@@ -64,13 +66,14 @@ const theme = extendTheme({
       baseStyle: {
         fontWeight: "bold",
         borderRadius: "md",
+        fontFamily: '"Futura", "Helvetica", "Arial", sans-serif', // Ensure buttons use Futura
       },
       variants: {
         primary: {
-          backgroundColor: "ui.main", // Yellow accent
-          color: "gray.800", // Dark text for contrast
+          backgroundColor: "ui.main",
+          color: "gray.800",
           _hover: {
-            backgroundColor: "#E6C200", // Darker yellow on hover
+            backgroundColor: "#E6C200",
           },
           _disabled: {
             backgroundColor: "ui.main",
@@ -95,13 +98,13 @@ const theme = extendTheme({
           tab: {
             color: "ui.dim",
             _selected: {
-              color: "ui.main", // Yellow for selected tab
+              color: "ui.main",
               fontWeight: "bold",
-              borderBottomColor: "ui.main", // Yellow underline
+              borderBottomColor: "ui.main",
               borderBottomWidth: "2px",
             },
             _hover: {
-              color: "ui.secondary", // Light yellow on hover
+              color: "ui.secondary",
             },
           },
         },
@@ -120,6 +123,7 @@ const theme = extendTheme({
           transform: "translateX(-50%)",
           minWidth: "300px",
           maxWidth: "90%",
+          fontFamily: '"Futura", "Helvetica", "Arial", sans-serif', // Ensure toasts use Futura
         },
       },
       variants: {
