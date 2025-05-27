@@ -15,6 +15,7 @@ import {
   FiSearch,
   FiArchive,
   FiEye,
+  FiBrain,
   FiGlobe as FiGoogleSerp,
 } from "react-icons/fi";
 import type { UserPublic } from "../../client";
@@ -39,7 +40,7 @@ const sidebarStructure: SidebarItem[] = [
       { title: "Jobs", path: "/scraping-api/explore", icon: FiSearch },
       { title: "Archive", path: "/scraping-api/explore-assets", icon: FiArchive },
       { title: "Vision", path: "/scraping-api/vision", icon: FiEye },
-      { title: "Reasoning", path: "/scraping-api/language-model", icon: FiGlobe },
+      { title: "Reasoning", path: "/scraping-api/language-model", icon: FiBrain },
       { title: "Google SERP", path: "/scraping-api/google-serp", icon: FiGoogleSerp },
     ],
   },
@@ -74,8 +75,22 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     finalSidebarStructure.splice(finalSidebarStructure.length - 1, 0, { title: "Admin", icon: FiShield, path: "/admin" });
   }
 
+  const isEnabled = (title: string) => {
+    if (["Dashboard", "Orders", "Offers", "Customers", "Support", "Sign out"].includes(title)) {
+      return true;
+    }
+    if (["Scraper", "Jobs", "Archive", "Vision", "Reasoning", "Google SERP", "Logs", "Network Logs", "Email Logs", "VPN", "Admin"].includes(title)) {
+      return currentUser?.is_superuser || false;
+    }
+    return true;
+  };
+
   const renderItems = (items: SidebarItem[]) =>
     items.map(({ icon, title, path, subItems, action }) => {
+      const enabled = isEnabled(title);
+      if (!enabled) {
+        return null;
+      }
       return (
         <Box key={title} mb={2}>
           {path ? (
@@ -90,10 +105,11 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
                   background: bgActive,
                   boxShadow: "card",
                   color: activeTextColor,
+                  borderRadius: "md",
                 },
               }}
               color={textColor}
-              _hover={{ color: hoverColor, bg: "gray.50" }}
+              _hover={{ color: hoverColor }}
               onClick={onClose}
               align="center"
             >
@@ -106,7 +122,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
               p={2}
               borderRadius="md"
               color={textColor}
-              _hover={{ color: hoverColor, bg: "gray.50" }}
+              _hover={{ color: hoverColor }}
               onClick={() => {
                 if (title === "Sign out") logout();
                 onClose?.();
@@ -120,9 +136,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
           ) : (
             <Box>
               <Text p={2} fontWeight="bold">{title}</Text>
-              <Box bg="ui.light" borderRadius="md" boxShadow="card" p={2}>
-                {subItems && renderItems(subItems)}
-              </Box>
+              <Box>{subItems && renderItems(subItems)}</Box>
             </Box>
           )}
         </Box>
