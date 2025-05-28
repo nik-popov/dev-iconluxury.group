@@ -5,30 +5,74 @@ import {
   Box,
   Container,
   Text,
-  VStack,
-  Button,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableContainer,
   Divider,
-  Flex,
-  HStack,
+  Badge,
   Input,
-  Select,
+  Flex,
+  VStack,
+  HStack,
+  Button,
+  Image,
   useToast,
   Textarea,
   Tooltip,
   IconButton,
 } from "@chakra-ui/react";
 import { FiCopy, FiEye, FiEyeOff } from "react-icons/fi";
-import PromoSERP from "../../../components/ComingSoon"; 
+import PromoSERP from "../../../components/ComingSoon";
 import ApiStatusManagement from "../../../components/UserSettings/ApiStatusManagement";
 
-interface SupplierOffer {
+interface OfferSummary {
   id: number;
-  title: string;
-  status: "active" | "inactive" | "pending";
-  supplier: string;
-  price: number;
-  quantity: number;
-  description?: string; // Optional field for preview
+  fileName: string;
+  fileLocationUrl: string;
+  userEmail?: string;
+  createTime?: string;
+  recordCount: number;
+  nikOfferCount: number;
+}
+
+interface RecordItem {
+  entryId: number;
+  excelRowId: number;
+  productModel?: string;
+  productBrand?: string;
+  productColor?: string;
+  productCategory?: string;
+  excelRowImageRef?: string;
+}
+
+interface NikOfferItem {
+  fileId: number;
+  f0?: string;
+  f1?: string;
+  f2?: string;
+  f3?: string;
+  f4?: string;
+  f5?: string;
+  f6?: string;
+  f7?: string;
+  f8?: string;
+  f9?: string;
+}
+
+interface OfferDetails {
+  id: number;
+  fileName: string;
+  fileLocationUrl: string;
+  userEmail?: string;
+  createTime?: string;
+  recordCount: number;
+  nikOfferCount: number;
+  sampleRecords: RecordItem[];
+  sampleNikOffers: NikOfferItem[];
 }
 
 interface SubscriptionStatus {
@@ -43,7 +87,7 @@ const getAuthToken = (): string | null => {
 
 async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
   const token = getAuthToken();
-  const response = await fetch("https://api.iconluxury.group/api/v1/subscription-status/serp", {
+  const response = await fetch("https://api.iconluxury.group/api/v1/subscription-status/supplier", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -59,9 +103,9 @@ async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
   return response.json();
 }
 
-async function fetchOffers(page: number): Promise<SupplierOffer[]> {
+async function fetchOffers(page: number): Promise<OfferSummary[]> {
   const token = getAuthToken();
-  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers?page=${page}&page_size=10`, {
+  const response = await fetch(`https://api.iconluxury.group/api/luxurymarket/supplier/offers?page=${page}&page_size=10`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -72,18 +116,17 @@ async function fetchOffers(page: number): Promise<SupplierOffer[]> {
   return response.json();
 }
 
-async function fetchOfferContent(offerId: number): Promise<string> {
+async function fetchOfferDetails(offerId: number): Promise<OfferDetails> {
   const token = getAuthToken();
-  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers/${offerId}`, {
+  const response = await fetch(`https://api.iconluxury.group/api/luxurymarket/supplier/offers/${offerId}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
     },
   });
-  if (!response.ok) throw new Error(`Failed to fetch offer content: ${response.status}`);
-  const data = await response.json();
-  return data.description || "No detailed description available.";
+  if (!response.ok) throw new Error(`Failed to fetch offer details: ${response.status}`);
+  return response.json();
 }
 
 const ResizeHandle = ({ onResize }: { onResize: (newWidth: number) => void }) => {
@@ -129,52 +172,78 @@ const ResizeHandle = ({ onResize }: { onResize: (newWidth: number) => void }) =>
 };
 
 interface PreviewPanelProps {
-  selectedOffer: SupplierOffer | null;
-  previewContent: string;
+  selectedOffer: OfferSummary | null;
+  offerDetails: OfferDetails | null;
   onCopyContent: (content: string) => void;
 }
 
-const PreviewPanel: React.FC<PreviewPanelProps> = ({ selectedOffer, previewContent, onCopyContent }) => {
-  if (!selectedOffer) {
+const PreviewPanel: React.FC<PreviewPanelProps> = ({ selectedOffer, offerDetails, onCopyContent }) => {
+  if (!selectedOffer || !offerDetails) {
     return <Text fontSize="sm" color="gray.500">Select an offer to preview</Text>;
   }
+
+  const previewContent = JSON.stringify(
+    {
+      sampleRecords: offerDetails.sampleRecords,
+      sampleNikOffers: offerDetails.sampleNikOffers,
+    },
+    null,
+    2
+  );
 
   return (
     <VStack align="stretch" spacing={2}>
       <Text fontWeight="bold">Offer Details</Text>
       <VStack align="start" spacing={1}>
-        <Text><strong>ID:</strong> {selectedOffer.id}</Text>
-        <Text><strong>Title:</strong> {selectedOffer.title}</Text>
-        <Text><strong>Status:</strong> {selectedOffer.status}</Text>
-        <Text><strong>Supplier:</strong> {selectedOffer.supplier}</Text>
-        <Text><strong>Price:</strong> ${selectedOffer.price.toFixed(2)}</Text>
-        <Text><strong>Quantity:</strong> {selectedOffer.quantity}</Text>
+        <Text><strong>ID:</strong> {offerDetails.id}</Text>
+        <Text><strong>File Name:</strong> {offerDetails.fileName}</Text>
+        <Text><strong>User Email:</strong> {offerDetails.userEmail || "Unknown"}</Text>
+        <Text><strong>Created:</strong> {offerDetails.createTime ? new Date(offerDetails.createTime).toLocaleString() : "N/A"}</Text>
+        <Text><strong>Records:</strong> {offerDetails.recordCount}</Text>
+        <Text><strong>Nik Offers:</strong> {offerDetails.nikOfferCount}</Text>
       </VStack>
-      {previewContent && (
+      {offerDetails.sampleRecords.length > 0 && (
         <>
-          <Text fontWeight="bold" mt={4}>Description Preview</Text>
-          <Textarea
-            value={previewContent}
-            isReadOnly
-            resize="none"
-            h="40vh"
-            fontFamily="mono"
-            fontSize="sm"
-          />
-          <HStack justify="flex-end">
-            <Tooltip label="Copy Preview Content">
-              <Button
-                size="sm"
-                colorScheme="gray"
-                leftIcon={<FiCopy />}
-                onClick={() => onCopyContent(previewContent)}
-              >
-                Copy
-              </Button>
-            </Tooltip>
-          </HStack>
+          <Text fontWeight="bold" mt={4}>Sample Record</Text>
+          {offerDetails.sampleRecords[0].excelRowImageRef && (
+            <Image
+              src={offerDetails.sampleRecords[0].excelRowImageRef}
+              alt="Record Image"
+              maxW="100%"
+              maxH="20vh"
+              objectFit="contain"
+              borderRadius="md"
+            />
+          )}
+          <VStack align="start" spacing={1}>
+            <Text><strong>Product Model:</strong> {offerDetails.sampleRecords[0].productModel || "N/A"}</Text>
+            <Text><strong>Brand:</strong> {offerDetails.sampleRecords[0].productBrand || "N/A"}</Text>
+            <Text><strong>Color:</strong> {offerDetails.sampleRecords[0].productColor || "N/A"}</Text>
+            <Text><strong>Category:</strong> {offerDetails.sampleRecords[0].productCategory || "N/A"}</Text>
+          </VStack>
         </>
       )}
+      <Text fontWeight="bold" mt={4}>Data Preview</Text>
+      <Textarea
+        value={previewContent}
+        isReadOnly
+        resize="none"
+        h="40vh"
+        fontFamily="mono"
+        fontSize="sm"
+      />
+      <HStack justify="flex-end">
+        <Tooltip label="Copy Preview Content">
+          <Button
+            size="sm"
+            colorScheme="gray"
+            leftIcon={<FiCopy />}
+            onClick={() => onCopyContent(previewContent)}
+          >
+            Copy
+          </Button>
+        </Tooltip>
+      </HStack>
     </VStack>
   );
 };
@@ -183,11 +252,10 @@ function SupplierOffers() {
   const navigate = useNavigate();
   const toast = useToast();
   const [page, setPage] = useState(1);
-  const [offers, setOffers] = useState<SupplierOffer[]>([]);
+  const [offers, setOffers] = useState<OfferSummary[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "pending">("all");
-  const [selectedOffer, setSelectedOffer] = useState<SupplierOffer | null>(null);
-  const [previewContent, setPreviewContent] = useState("");
+  const [selectedOffer, setSelectedOffer] = useState<OfferSummary | null>(null);
+  const [offerDetails, setOfferDetails] = useState<OfferDetails | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(true);
   const [previewWidth, setPreviewWidth] = useState(400);
 
@@ -214,15 +282,11 @@ function SupplierOffers() {
     }
   }, [freshOffers, page]);
 
-  const handleOfferClick = async (offer: SupplierOffer) => {
+  const handleOfferClick = async (offer: OfferSummary) => {
     setSelectedOffer(offer);
     try {
-      if (offer.status === "active") {
-        const content = await fetchOfferContent(offer.id);
-        setPreviewContent(content);
-      } else {
-        setPreviewContent("");
-      }
+      const details = await fetchOfferDetails(offer.id);
+      setOfferDetails(details);
     } catch (error: any) {
       toast({
         title: "Preview Failed",
@@ -231,7 +295,7 @@ function SupplierOffers() {
         duration: 5000,
         isClosable: true,
       });
-      setPreviewContent("");
+      setOfferDetails(null);
     }
   };
 
@@ -256,15 +320,16 @@ function SupplierOffers() {
     }
   };
 
-  const filteredOffers = offers.filter((offer) => {
-    const matchesSearch = offer.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === offer.status);
-    return matchesSearch && matchesStatus;
-  });
+  const filteredOffers = offers.filter((offer) =>
+    offer.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleLoadMore = () => setPage((prev) => prev + 1);
+
+  // Map status to badge color (based on OffersPage)
+  const getStatusColor = (recordCount: number) => {
+    return recordCount > 0 ? "green" : "yellow";
+  };
 
   if (isSubLoading) {
     return (
@@ -300,10 +365,10 @@ function SupplierOffers() {
   const isFullyDeactivated = isDeactivated && !hasSubscription;
 
   return (
-    <Container maxW="full" bg="white" color="gray.800">
+    <Container maxW="full" bg="gray.50" minH="100vh" p={4}>
       <Flex align="center" justify="space-between" py={6} flexWrap="wrap" gap={4}>
         <Box textAlign="left" flex="1">
-          <Text fontSize="xl" fontWeight="bold" color="black">Supplier Offers</Text>
+          <Text fontSize="xl" fontWeight="bold" color="gray.800">Supplier Offers</Text>
           <Text fontSize="sm" color="gray.600">View and manage supplier offers</Text>
         </Box>
         <HStack>
@@ -335,7 +400,7 @@ function SupplierOffers() {
           <Box flex="1" minW={{ base: "100%", md: "65%" }} maxH="70vh" overflowY="auto">
             <Flex direction={{ base: "column", md: "row" }} gap={4} mb={4}>
               <Input
-                placeholder="Search Offers by Title..."
+                placeholder="Search Offers by File Name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 w={{ base: "100%", md: "250px" }}
@@ -347,96 +412,99 @@ function SupplierOffers() {
                 _placeholder={{ color: "gray.500" }}
                 borderRadius="md"
               />
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive" | "pending")}
-                w={{ base: "100%", md: "200px" }}
-                borderColor="green.300"
-                _focus={{ borderColor: "green.500", boxShadow: "0 0 0 1px green.500" }}
-                _hover={{ borderColor: "green.400" }}
-                bg="white"
-                color="gray.700"
-                borderRadius="md"
-                sx={{
-                  "& option": {
-                    color: "gray.700",
-                    backgroundColor: "white",
-                    _hover: { backgroundColor: "green.50" },
-                  },
-                }}
-              >
-                <option value="all">All</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="pending">Pending</option>
-              </Select>
             </Flex>
-            <VStack spacing={4} align="stretch">
-              {filteredOffers.map((offer) => (
-                <Box
-                  key={offer.id}
-                  p="4"
-                  borderWidth="1px"
-                  borderRadius="lg"
-                  borderColor={selectedOffer?.id === offer.id ? "green.500" : "gray.200"}
-                  bg={selectedOffer?.id === offer.id ? "green.50" : "white"}
-                  cursor="pointer"
-                  _hover={{
-                    bg: selectedOffer?.id === offer.id ? "green.50" : "gray.50",
-                  }}
-                  onClick={() => handleOfferClick(offer)}
+            <Box>
+              <Text fontSize="md" fontWeight="bold" color="gray.800" mb={2}>
+                All Offers
+              </Text>
+              <TableContainer
+                p={3}
+                shadow="sm"
+                borderWidth="1px"
+                borderRadius="md"
+                bg="white"
+                borderColor="gray.200"
+              >
+                <Table variant="simple">
+                  <Thead>
+                    <Tr>
+                      <Th>Offer ID</Th>
+                      <Th>File Name</Th>
+                      <Th>User Email</Th>
+                      <Th>Created</Th>
+                      <Th>Records</Th>
+                      <Th>Nik Offers</Th>
+                      <Th>Status</Th>
+                      <Th>Actions</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {isFetching && page === 1 ? (
+                      <Tr>
+                        <Td colSpan={8} textAlign="center">
+                          <Text fontSize="sm" color="gray.600">Loading...</Text>
+                        </Td>
+                      </Tr>
+                    ) : filteredOffers.length === 0 ? (
+                      <Tr>
+                        <Td colSpan={8} textAlign="center">
+                          <Text fontSize="sm" color="gray.600">No offers found.</Text>
+                        </Td>
+                      </Tr>
+                    ) : (
+                      filteredOffers.map((offer) => (
+                        <Tr
+                          key={offer.id}
+                          cursor="pointer"
+                          _hover={{ bg: "gray.50" }}
+                          onClick={() => handleOfferClick(offer)}
+                          bg={selectedOffer?.id === offer.id ? "green.50" : "white"}
+                        >
+                          <Td>{offer.id}</Td>
+                          <Td>{offer.fileName}</Td>
+                          <Td>{offer.userEmail || "Unknown"}</Td>
+                          <Td>{offer.createTime ? new Date(offer.createTime).toLocaleString() : "N/A"}</Td>
+                          <Td>{offer.recordCount}</Td>
+                          <Td>{offer.nikOfferCount}</Td>
+                          <Td>
+                            <Badge colorScheme={getStatusColor(offer.recordCount)}>
+                              {offer.recordCount > 0 ? "Active" : "Pending"}
+                            </Badge>
+                          </Td>
+                          <Td>
+                            <Button
+                              size="sm"
+                              colorScheme="green"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate({
+                                  to: "/supplier/offers/$offerId",
+                                  params: { offerId: offer.id.toString() },
+                                });
+                              }}
+                            >
+                              View Details
+                            </Button>
+                          </Td>
+                        </Tr>
+                      ))
+                    )}
+                  </Tbody>
+                </Table>
+              </TableContainer>
+              {filteredOffers.length > 0 && (
+                <Button
+                  colorScheme="green"
+                  size="sm"
+                  onClick={handleLoadMore}
+                  mt={4}
+                  alignSelf="center"
+                  isLoading={isFetching}
                 >
-                  <Flex justify="space-between" align="center">
-                    <Box>
-                      <Text fontSize="sm" fontWeight="bold" color="gray.600">
-                        Offer ID: {offer.id}
-                      </Text>
-                      <Text fontWeight="medium" color="gray.800">{offer.title}</Text>
-                      <Text fontSize="sm" color="gray.500">
-                        Supplier: {offer.supplier}
-                      </Text>
-                      <Text fontSize="sm" color="gray.500">
-                        Price: ${offer.price.toFixed(2)}, Quantity: {offer.quantity}
-                      </Text>
-                      <Text fontSize="sm" color={offer.status === "active" ? "green.500" : offer.status === "pending" ? "yellow.500" : "red.500"}>
-                        Status: {offer.status}
-                      </Text>
-                    </Box>
-                    <Button
-                      size="sm"
-                      colorScheme="green"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate({
-                          to: "/supplier/offers/$offerId",
-                          params: { offerId: offer.id.toString() },
-                        });
-                      }}
-                    >
-                      View Details
-                    </Button>
-                  </Flex>
-                </Box>
-              ))}
-              {filteredOffers.length === 0 && !isFetching && (
-                <Text fontSize="sm" color="gray.500">No offers match your criteria</Text>
+                  Load More
+                </Button>
               )}
-              {isFetching ? (
-                <Text fontSize="sm" color="gray.500">Loading more...</Text>
-              ) : (
-                filteredOffers.length > 0 && (
-                  <Button
-                    colorScheme="green"
-                    size="sm"
-                    onClick={handleLoadMore}
-                    mt={4}
-                    alignSelf="center"
-                  >
-                    Load More
-                  </Button>
-                )
-              )}
-            </VStack>
+            </Box>
           </Box>
 
           {isPreviewOpen && (
@@ -456,7 +524,7 @@ function SupplierOffers() {
               <Text fontWeight="bold" mb={2}>Preview</Text>
               <PreviewPanel
                 selectedOffer={selectedOffer}
-                previewContent={previewContent}
+                offerDetails={offerDetails}
                 onCopyContent={handleCopyContent}
               />
             </Box>
