@@ -255,14 +255,14 @@ function SupplierOffers() {
     }
   };
 
-  const filteredOffers = offers.filter((offer) => {
-    const matchesSearch = offer.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const filteredOffers = offers.filter((offer) => {
+    const matchesSearch = offer.title
+        ? offer.title.toLowerCase().includes(searchQuery.toLowerCase())
+        : false;
     const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === offer.status);
+        statusFilter === "all" || statusFilter === offer.status;
     return matchesSearch && matchesStatus;
-  });
-
+    });
   const handleLoadMore = () => setPage((prev) => prev + 1);
 
   if (isSubLoading) {
