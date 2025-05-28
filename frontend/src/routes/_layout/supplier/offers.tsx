@@ -18,7 +18,7 @@ import {
   IconButton,
 } from "@chakra-ui/react";
 import { FiCopy, FiEye, FiEyeOff } from "react-icons/fi";
-import PromoSERP from "../../../components/ComingSoon";
+import PromoSERP from "../../../components/ComingSoon"; 
 import ApiStatusManagement from "../../../components/UserSettings/ApiStatusManagement";
 
 interface SupplierOffer {
@@ -26,8 +26,8 @@ interface SupplierOffer {
   title: string;
   status: "active" | "inactive" | "pending";
   supplier: string;
-  price?: number | null; // Made optional to handle missing/invalid values
-  quantity?: number | null; // Made optional to handle missing/invalid values
+  price: number;
+  quantity: number;
   description?: string; // Optional field for preview
 }
 
@@ -43,7 +43,7 @@ const getAuthToken = (): string | null => {
 
 async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
   const token = getAuthToken();
-  const response = await fetch("https://api.iconluxury.group/api/v1/subscription-status/serp", {
+  const response = await fetch("https://api.iconluxury.group/api/v1/subscription-status/supplier", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -61,7 +61,7 @@ async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
 
 async function fetchOffers(page: number): Promise<SupplierOffer[]> {
   const token = getAuthToken();
-  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers?page=${page}&page_size=10`, {
+  const response = await fetch(`https://backend-dev.iconluxury.group/api/supplier/offers?page=${page}&page_size=10`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -74,7 +74,7 @@ async function fetchOffers(page: number): Promise<SupplierOffer[]> {
 
 async function fetchOfferContent(offerId: number): Promise<string> {
   const token = getAuthToken();
-  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers/${offerId}`, {
+  const response = await fetch(`https://backend-dev.iconluxury.group/api/supplier/offers/${offerId}/details`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -147,8 +147,8 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ selectedOffer, previewConte
         <Text><strong>Title:</strong> {selectedOffer.title}</Text>
         <Text><strong>Status:</strong> {selectedOffer.status}</Text>
         <Text><strong>Supplier:</strong> {selectedOffer.supplier}</Text>
-        <Text><strong>Price:</strong> ${typeof selectedOffer.price === 'number' ? selectedOffer.price.toFixed(2) : 'N/A'}</Text>
-        <Text><strong>Quantity:</strong> {selectedOffer.quantity ?? 'N/A'}</Text>
+        <Text><strong>Price:</strong> ${selectedOffer.price.toFixed(2)}</Text>
+        <Text><strong>Quantity:</strong> {selectedOffer.quantity}</Text>
       </VStack>
       {previewContent && (
         <>
@@ -257,11 +257,10 @@ function SupplierOffers() {
   };
 
   const filteredOffers = offers.filter((offer) => {
-    const matchesSearch = searchQuery
-      ? offer.title?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false
-      : true;
+    const matchesSearch = offer.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus =
-      statusFilter === "all" || statusFilter === offer.status;
+      statusFilter === "all" ||
+      (statusFilter === offer.status);
     return matchesSearch && matchesStatus;
   });
 
@@ -397,7 +396,7 @@ function SupplierOffers() {
                         Supplier: {offer.supplier}
                       </Text>
                       <Text fontSize="sm" color="gray.500">
-                        Price: ${typeof offer.price === 'number' ? offer.price.toFixed(2) : 'N/A'}, Quantity: {offer.quantity ?? 'N/A'}
+                        Price: ${offer.price.toFixed(2)}, Quantity: {offer.quantity}
                       </Text>
                       <Text fontSize="sm" color={offer.status === "active" ? "green.500" : offer.status === "pending" ? "yellow.500" : "red.500"}>
                         Status: {offer.status}
