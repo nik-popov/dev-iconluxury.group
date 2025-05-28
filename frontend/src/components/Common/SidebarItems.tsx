@@ -30,8 +30,8 @@ interface SidebarItem {
 
 const sidebarStructure: SidebarItem[] = [
   { title: "Dashboard", icon: FiHome, path: "/" },
-  { title: "Orders", icon: FiLayers, path: "/orders" },
   { title: "Offers", icon: FiCalendar, path: "/offers" },
+  { title: "Orders", icon: FiLayers, path: "/orders" },
   { title: "Customers", icon: FiUsers, path: "/customers" },
   {
     title: "Scraper",

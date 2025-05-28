@@ -24,7 +24,7 @@ import {
 import { createFileRoute } from '@tanstack/react-router';
 import * as XLSX from 'xlsx';
 
-// Mock custom hook for toast (since useCustomToast is not provided)
+// Mock custom hook for toast
 const useCustomToast = () => {
   return (title: string, description: string, status: 'error' | 'warning' | 'success') => {
     alert(`${title}: ${description} (${status})`);
@@ -47,7 +47,7 @@ const ExcelDataTable = ({ excelData, columnMapping, onColumnClick }: { excelData
 
 // Constants
 const REQUIRED_COLUMNS = ['style', 'brand'] as const;
-const OPTIONAL_COLUMNS = ['category', 'colorName', 'imageAdd', 'readImage'] as const;
+const OPTIONAL_COLUMNS = ['category', 'colorName', 'readImage'] as const;
 const ALL_COLUMNS = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS] as const;
 const SERVER_URL = 'https://backend-dev.iconluxury.group';
 const MAX_ROWS = 1000;
@@ -55,7 +55,7 @@ const MAX_ROWS = 1000;
 // Types
 type ToastFunction = (title: string, description: string, status: 'error' | 'warning' | 'success') => void;
 type ExcelData = { headers: string[]; rows: { row: (string | number | boolean | null)[] }[] };
-type ColumnMapping = { style: number | null; brand: number | null; category: number | null; colorName: number | null; imageAdd: number | null; readImage: number | null };
+type ColumnMapping = { style: number | null; brand: number | null; category: number | null; colorName: number | null; readImage: number | null };
 
 // Helper Functions
 const getDisplayValue = (
@@ -104,7 +104,6 @@ const OfferUploadForm: React.FC = () => {
     brand: null,
     category: null,
     colorName: null,
-    imageAdd: null,
     readImage: null,
   });
   const [manualBrand, setManualBrand] = useState<string>('');
@@ -126,7 +125,7 @@ const OfferUploadForm: React.FC = () => {
 
     setFile(selectedFile);
     setExcelData({ headers: [], rows: [] });
-    setColumnMapping({ style: null, brand: null, category: null, colorName: null, imageAdd: null, readImage: null });
+    setColumnMapping({ style: null, brand: null, category: null, colorName: null, readImage: null });
     setManualBrand('');
     setIsLoadingFile(true);
 
@@ -210,16 +209,14 @@ const OfferUploadForm: React.FC = () => {
       brand: null,
       category: null,
       colorName: null,
-      imageAdd: null,
       readImage: null,
     };
 
     const patterns = {
       style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))$/i,
-      brand: /^(brand|brand\s*name|manufacturer|label)$/i,
+      brand: /^(brand|brand\s*name|label)$/i,
       category: /^(category|type|product\s*type|group)$/i,
-      colorName: /^(color|colour|color\s*name|shade)$/i,
-      imageAdd: /^(image|image\s*add|photo|picture)$/i,
+      colorName: /^(color|color\s*name|shade)$/i,
       readImage: /^(read\s*image|image\s*url|image\s*link)$/i,
     };
 
@@ -240,9 +237,6 @@ const OfferUploadForm: React.FC = () => {
         matchedColumns.add(index);
       } else if (patterns.colorName.test(normalizedHeader) && mapping.colorName === null && !matchedColumns.has(index)) {
         mapping.colorName = index;
-        matchedColumns.add(index);
-      } else if (patterns.imageAdd.test(normalizedHeader) && mapping.imageAdd === null && !matchedColumns.has(index)) {
-        mapping.imageAdd = index;
         matchedColumns.add(index);
       } else if (patterns.readImage.test(normalizedHeader) && mapping.readImage === null && !matchedColumns.has(index)) {
         mapping.readImage = index;
@@ -361,13 +355,11 @@ const OfferUploadForm: React.FC = () => {
 
     const styleCol = mappingToColumn('style', 'A');
     const brandCol = mappingToColumn('brand', 'B');
-    const imageAddCol = mappingToColumn('imageAdd', '');
     const readImageCol = mappingToColumn('readImage', '');
     const colorCol = mappingToColumn('colorName', '');
     const categoryCol = mappingToColumn('category', '');
 
-    const imageColumnImage = readImageCol || imageAddCol;
-    if (imageColumnImage) formData.append('imageColumnImage', imageColumnImage);
+    if (readImageCol) formData.append('imageColumnImage', readImageCol);
     formData.append('searchColImage', styleCol);
 
     if (manualBrand && manualBrand.trim() !== '') {
@@ -426,7 +418,6 @@ const OfferUploadForm: React.FC = () => {
     if (columnMapping.brand === null) return 'brand';
     if (columnMapping.category === null) return 'category';
     if (columnMapping.colorName === null) return 'colorName';
-    if (columnMapping.imageAdd === null) return 'imageAdd';
     if (columnMapping.readImage === null) return 'readImage';
     return '';
   };
@@ -524,7 +515,7 @@ const ControlSection: React.FC<ControlSectionProps> = ({
         color="black"
         borderColor="gray.300"
         _hover={{ borderColor: 'blue.500' }}
-        _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px blue.200' }}
+        _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px rgba(66, 153, 225, 0.6)' }}
         aria-label="Upload Excel file"
       />
     </FormControl>
@@ -588,7 +579,7 @@ const ManualBrandSection: React.FC<ManualBrandSectionProps> = ({
             color="black"
             borderColor="gray.300"
             _hover={{ borderColor: 'blue.500' }}
-            _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px blue.200' }}
+            _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px rgba(66, 153, 225, 0.6)' }}
             aria-label="Enter manual brand"
           />
         </FormControl>
@@ -677,7 +668,7 @@ const MappingModal: React.FC<MappingModalProps> = ({
           color="black"
           borderColor="gray.300"
           _hover={{ borderColor: 'blue.500' }}
-          _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px blue.200' }}
+          _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px rgba(66, 153, 225, 0.6)' }}
           aria-label="Select column mapping"
         >
           <option value="">None</option>
