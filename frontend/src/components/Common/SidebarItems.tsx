@@ -50,8 +50,8 @@ const sidebarStructure: SidebarItem[] = [
       { title: "Email Logs", path: "/support/email", icon: FiMessageSquare },
     ],
   },
-  { title: "VPN", icon: FiShield, path: "/support/vpn" },
   { title: "Support", icon: FiHelpCircle, path: "/support" },
+  { title: "VPN", icon: FiShield, path: "/support/vpn" },
   { title: "Sign out", icon: FiLogOut, action: () => {} },
 ];
 
