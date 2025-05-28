@@ -78,6 +78,7 @@ function OffersPage() {
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [allOffers, setAllOffers] = useState<OfferSummary[]>([]);
+  const [hasMore, setHasMore] = useState(true); // Track if more data is available
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -94,7 +95,9 @@ function OffersPage() {
   const { data: offers = [], isLoading: offersLoading, isFetching } = useQuery({
     queryKey: ["offers", page],
     queryFn: () => fetchOffers(page),
-    enabled: !!subscriptionStatus?.hasSubscription || !!subscriptionStatus?.isTrial,
+    enabled: (!!subscriptionStatus?.hasSubscription || !!subscriptionStatus?.isTrial) && hasMore,
+    staleTime: 5 * 60 * 1000, // Prevent frequent re-fetching
+    keepPreviousData: true, // Smooth transitions between pages
   });
 
   // Append new offers to the existing list
@@ -105,12 +108,18 @@ function OffersPage() {
         // Remove duplicates based on offer ID
         return Array.from(new Map(newOffers.map((offer) => [offer.id, offer])).values());
       });
+      // If fewer than page_size offers are returned, assume no more data
+      if (offers.length < 10) {
+        setHasMore(false);
+      }
+    } else if (offers && offers.length === 0) {
+      setHasMore(false); // No data returned, stop fetching
     }
   }, [offers]);
 
   // Set up infinite scroll observer
   useEffect(() => {
-    if (isFetching || offersLoading || !loadMoreRef.current) return;
+    if (isFetching || offersLoading || !loadMoreRef.current || !hasMore) return;
 
     observerRef.current = new IntersectionObserver(
       (entries) => {
@@ -118,7 +127,7 @@ function OffersPage() {
           setPage((prev) => prev + 1);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, rootMargin: "100px" } // Trigger 100px before reaching the element
     );
 
     observerRef.current.observe(loadMoreRef.current);
@@ -128,7 +137,7 @@ function OffersPage() {
         observerRef.current.unobserve(loadMoreRef.current);
       }
     };
-  }, [isFetching, offersLoading]);
+  }, [isFetching, offersLoading, hasMore]);
 
   const filteredOffers = searchQuery
     ? allOffers.filter((offer) =>
@@ -285,7 +294,16 @@ function OffersPage() {
               </Tbody>
             </Table>
           </TableContainer>
-          <Box ref={loadMoreRef} h="20px" />
+          {hasMore && (
+            <Box ref={loadMoreRef} h="20px" textAlign="center">
+              {isFetching && <Text fontSize="sm" color="gray.600">Loading more...</Text>}
+            </Box>
+          )}
+          {!hasMore && filteredOffers.length > 0 && (
+            <Box h="20px" textAlign="center">
+              <Text fontSize="sm" color="gray.600">No more offers to load</Text>
+            </Box>
+          )}
         </Box>
       )}
     </Container>
