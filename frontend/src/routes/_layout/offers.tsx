@@ -151,7 +151,7 @@ function OffersPage() {
 
   const handleRowClick = (offerId: number) => {
     navigate({
-      to: "/supplier/offers/$offerId",
+      to: "/supplier/offer/$offerId",
       params: { offerId: offerId.toString() },
     });
   };
