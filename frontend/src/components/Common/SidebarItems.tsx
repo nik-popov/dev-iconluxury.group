@@ -33,14 +33,15 @@ const sidebarStructure: SidebarItem[] = [
   { title: "Offers", icon: FiCalendar, path: "/offers" },
   { title: "Orders", icon: FiLayers, path: "/orders" },
   { title: "Customers", icon: FiUsers, path: "/customers" },
+  { title: "Archive", path: "/explore", icon: FiArchive },
   {
     title: "Scraper",
     subItems: [
       { title: "Jobs", path: "/scraping-api/explore", icon: FiSearch },
-      { title: "Archive", path: "/scraping-api/explore-assets", icon: FiArchive },
       { title: "Vision", path: "/scraping-api/vision", icon: FiEye },
       { title: "Reasoning", path: "/scraping-api/language-model", icon: FiGlobe },
       { title: "Google SERP", path: "/scraping-api/google-serp", icon: FiGoogleSerp },
+      { title: "User Agents", path: "/scraping-api/user-agents", icon: FiGoogleSerp },
     ],
   },
   {
@@ -51,7 +52,7 @@ const sidebarStructure: SidebarItem[] = [
     ],
   },
   { title: "Support", icon: FiHelpCircle, path: "/support" },
-  { title: "VPN", icon: FiShield, path: "/support/vpn" },
+  { title: "VPN", icon: FiShield, path: "/vpn" },
   { title: "Sign out", icon: FiLogOut, action: () => {} },
 ];
 
