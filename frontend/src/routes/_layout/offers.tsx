@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Box,
@@ -13,10 +13,9 @@ import {
   TableContainer,
   Divider,
   Badge,
-  Button,
   Input,
   Flex,
-  useToast,
+  Button,
 } from "@chakra-ui/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
@@ -76,9 +75,11 @@ async function fetchOffers(page: number): Promise<OfferSummary[]> {
 
 function OffersPage() {
   const navigate = useNavigate();
-  const toast = useToast();
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [allOffers, setAllOffers] = useState<OfferSummary[]>([]);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const { data: subscriptionStatus, isLoading: isSubLoading, error: subError } = useQuery({
     queryKey: ["subscriptionStatus", "offers"],
@@ -96,18 +97,56 @@ function OffersPage() {
     enabled: !!subscriptionStatus?.hasSubscription || !!subscriptionStatus?.isTrial,
   });
 
+  // Append new offers to the existing list
+  useEffect(() => {
+    if (offers && offers.length > 0) {
+      setAllOffers((prev) => {
+        const newOffers = [...prev, ...offers];
+        // Remove duplicates based on offer ID
+        return Array.from(new Map(newOffers.map((offer) => [offer.id, offer])).values());
+      });
+    }
+  }, [offers]);
+
+  // Set up infinite scroll observer
+  useEffect(() => {
+    if (isFetching || offersLoading || !loadMoreRef.current) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isFetching) {
+          setPage((prev) => prev + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observerRef.current.observe(loadMoreRef.current);
+
+    return () => {
+      if (observerRef.current && loadMoreRef.current) {
+        observerRef.current.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [isFetching, offersLoading]);
+
   const filteredOffers = searchQuery
-    ? offers.filter((offer) =>
+    ? allOffers.filter((offer) =>
         offer.fileName
           ? offer.fileName.toLowerCase().includes(searchQuery.toLowerCase())
           : true
       )
-    : offers;
-
-  const handleLoadMore = () => setPage((prev) => prev + 1);
+    : allOffers;
 
   const getStatusColor = (recordCount: number) => {
     return recordCount > 0 ? "green" : "yellow";
+  };
+
+  const handleRowClick = (offerId: number) => {
+    navigate({
+      to: "/supplier/offers/$offerId",
+      params: { offerId: offerId.toString() },
+    });
   };
 
   if (isSubLoading) {
@@ -204,25 +243,29 @@ function OffersPage() {
                   <Th>Records</Th>
                   <Th>Nik Offers</Th>
                   <Th>Status</Th>
-                  <Th>Actions</Th>
                 </Tr>
               </Thead>
               <Tbody>
                 {offersLoading || (isFetching && page === 1) ? (
                   <Tr>
-                    <Td colSpan={8} textAlign="center">
+                    <Td colSpan={7} textAlign="center">
                       <Text fontSize="sm" color="gray.600">Loading...</Text>
                     </Td>
                   </Tr>
                 ) : filteredOffers.length === 0 ? (
                   <Tr>
-                    <Td colSpan={8} textAlign="center">
+                    <Td colSpan={7} textAlign="center">
                       <Text fontSize="sm" color="gray.600">No offers found.</Text>
                     </Td>
                   </Tr>
                 ) : (
                   filteredOffers.map((offer) => (
-                    <Tr key={offer.id}>
+                    <Tr
+                      key={offer.id}
+                      onClick={() => handleRowClick(offer.id)}
+                      cursor="pointer"
+                      _hover={{ bg: "gray.50" }}
+                    >
                       <Td>{offer.id}</Td>
                       <Td>{offer.fileName || "N/A"}</Td>
                       <Td>{offer.userEmail || "Unknown"}</Td>
@@ -236,38 +279,13 @@ function OffersPage() {
                           {offer.recordCount > 0 ? "Active" : "Pending"}
                         </Badge>
                       </Td>
-                      <Td>
-                        <Button
-                          size="sm"
-                          colorScheme="green"
-                          onClick={() =>
-                            navigate({
-                              to: "/supplier/offers/$offerId",
-                              params: { offerId: offer.id.toString() },
-                            })
-                          }
-                        >
-                          View Details
-                        </Button>
-                      </Td>
                     </Tr>
                   ))
                 )}
               </Tbody>
             </Table>
           </TableContainer>
-          {filteredOffers.length > 0 && (
-            <Button
-              colorScheme="green"
-              size="sm"
-              onClick={handleLoadMore}
-              mt={4}
-              alignSelf="center"
-              isLoading={isFetching}
-            >
-              Load More
-            </Button>
-          )}
+          <Box ref={loadMoreRef} h="20px" />
         </Box>
       )}
     </Container>
