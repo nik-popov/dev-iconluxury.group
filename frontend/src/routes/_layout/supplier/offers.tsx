@@ -26,8 +26,8 @@ interface SupplierOffer {
   title: string;
   status: "active" | "inactive" | "pending";
   supplier: string;
-  price: number;
-  quantity: number;
+  price?: number | null; // Made optional to handle missing/invalid values
+  quantity?: number | null; // Made optional to handle missing/invalid values
   description?: string; // Optional field for preview
 }
 
@@ -58,6 +58,7 @@ async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
   }
   return response.json();
 }
+
 async function fetchOffers(page: number): Promise<SupplierOffer[]> {
   const token = getAuthToken();
   const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers?page=${page}&page_size=10`, {
@@ -146,8 +147,8 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ selectedOffer, previewConte
         <Text><strong>Title:</strong> {selectedOffer.title}</Text>
         <Text><strong>Status:</strong> {selectedOffer.status}</Text>
         <Text><strong>Supplier:</strong> {selectedOffer.supplier}</Text>
-        <Text><strong>Price:</strong> ${selectedOffer.price.toFixed(2)}</Text>
-        <Text><strong>Quantity:</strong> {selectedOffer.quantity}</Text>
+        <Text><strong>Price:</strong> ${typeof selectedOffer.price === 'number' ? selectedOffer.price.toFixed(2) : 'N/A'}</Text>
+        <Text><strong>Quantity:</strong> {selectedOffer.quantity ?? 'N/A'}</Text>
       </VStack>
       {previewContent && (
         <>
@@ -237,7 +238,7 @@ function SupplierOffers() {
   const handleCopyContent = async (content: string) => {
     try {
       await navigator.clipboard.writeText(content);
-        toast({
+      toast({
         title: "Content Copied",
         description: "Preview content copied to clipboard",
         status: "success",
@@ -255,14 +256,15 @@ function SupplierOffers() {
     }
   };
 
-   const filteredOffers = offers.filter((offer) => {
-  const matchesSearch = searchQuery
-    ? offer.title?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false
-    : true;
-  const matchesStatus =
-    statusFilter === "all" || statusFilter === offer.status;
-  return matchesSearch && matchesStatus;
-});
+  const filteredOffers = offers.filter((offer) => {
+    const matchesSearch = searchQuery
+      ? offer.title?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false
+      : true;
+    const matchesStatus =
+      statusFilter === "all" || statusFilter === offer.status;
+    return matchesSearch && matchesStatus;
+  });
+
   const handleLoadMore = () => setPage((prev) => prev + 1);
 
   if (isSubLoading) {
@@ -395,7 +397,7 @@ function SupplierOffers() {
                         Supplier: {offer.supplier}
                       </Text>
                       <Text fontSize="sm" color="gray.500">
-                        Price: ${offer.price.toFixed(2)}, Quantity: {offer.quantity}
+                        Price: ${typeof offer.price === 'number' ? offer.price.toFixed(2) : 'N/A'}, Quantity: {offer.quantity ?? 'N/A'}
                       </Text>
                       <Text fontSize="sm" color={offer.status === "active" ? "green.500" : offer.status === "pending" ? "yellow.500" : "red.500"}>
                         Status: {offer.status}
