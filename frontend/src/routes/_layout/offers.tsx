@@ -78,7 +78,7 @@ function OffersPage() {
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [allOffers, setAllOffers] = useState<OfferSummary[]>([]);
-  const [hasMore, setHasMore] = useState(true); // Track if more data is available
+  const [hasMore, setHasMore] = useState(true);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -96,28 +96,26 @@ function OffersPage() {
     queryKey: ["offers", page],
     queryFn: () => fetchOffers(page),
     enabled: (!!subscriptionStatus?.hasSubscription || !!subscriptionStatus?.isTrial) && hasMore,
-    staleTime: 5 * 60 * 1000, // Prevent frequent re-fetching
-    keepPreviousData: true, // Smooth transitions between pages
+    staleTime: 5 * 60 * 1000,
+    keepPreviousData: true,
   });
 
-  // Append new offers to the existing list
+  // Append new offers
   useEffect(() => {
     if (offers && offers.length > 0) {
       setAllOffers((prev) => {
         const newOffers = [...prev, ...offers];
-        // Remove duplicates based on offer ID
         return Array.from(new Map(newOffers.map((offer) => [offer.id, offer])).values());
       });
-      // If fewer than page_size offers are returned, assume no more data
       if (offers.length < 10) {
         setHasMore(false);
       }
-    } else if (offers && offers.length === 0) {
-      setHasMore(false); // No data returned, stop fetching
+    } else if (offers && offers.length === 0 && page > 1) {
+      setHasMore(false);
     }
-  }, [offers]);
+  }, [offers, page]);
 
-  // Set up infinite scroll observer
+  // Set up infinite scroll
   useEffect(() => {
     if (isFetching || offersLoading || !loadMoreRef.current || !hasMore) return;
 
@@ -127,7 +125,7 @@ function OffersPage() {
           setPage((prev) => prev + 1);
         }
       },
-      { threshold: 0.1, rootMargin: "100px" } // Trigger 100px before reaching the element
+      { threshold: 0.1, rootMargin: "200px" }
     );
 
     observerRef.current.observe(loadMoreRef.current);
@@ -193,7 +191,6 @@ function OffersPage() {
 
   return (
     <Container maxW="full" bg="gray.50" minH="100vh" p={4}>
-      {/* Header */}
       <Box mb={4}>
         <Text fontSize="xl" fontWeight="bold" color="gray.800">
           Offers
@@ -241,6 +238,7 @@ function OffersPage() {
             borderRadius="md"
             bg="white"
             borderColor="gray.200"
+            minH="100vh"
           >
             <Table variant="simple">
               <Thead>
