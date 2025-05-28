@@ -31,7 +31,7 @@ import ApiStatusManagement from "../../../components/UserSettings/ApiStatusManag
 
 interface OfferSummary {
   id: number;
-  fileName: string;
+  fileName?: string; // Made optional to reflect missing name allowance
   fileLocationUrl: string;
   userEmail?: string;
   createTime?: string;
@@ -65,7 +65,7 @@ interface NikOfferItem {
 
 interface OfferDetails {
   id: number;
-  fileName: string;
+  fileName?: string; // Made optional for consistency
   fileLocationUrl: string;
   userEmail?: string;
   createTime?: string;
@@ -155,6 +155,17 @@ const ResizeHandle = ({ onResize }: { onResize: (newWidth: number) => void }) =>
     document.addEventListener("mouseup", handleMouseUp);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      const delta = e.key === "ArrowRight" ? 10 : -10;
+      const currentWidth = handleRef.current?.parentElement?.offsetWidth || 400;
+      const minWidth = 200;
+      const maxWidth = window.innerWidth * 0.8;
+      const newWidth = Math.max(minWidth, Math.min(maxWidth, currentWidth + delta));
+      onResize(newWidth);
+    }
+  };
+
   return (
     <Box
       ref={handleRef}
@@ -163,6 +174,8 @@ const ResizeHandle = ({ onResize }: { onResize: (newWidth: number) => void }) =>
       cursor="col-resize"
       _hover={{ bg: "gray.400" }}
       onMouseDown={handleMouseDown}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
       position="absolute"
       top="0"
       bottom="0"
@@ -174,10 +187,15 @@ const ResizeHandle = ({ onResize }: { onResize: (newWidth: number) => void }) =>
 interface PreviewPanelProps {
   selectedOffer: OfferSummary | null;
   offerDetails: OfferDetails | null;
+  isDetailsLoading: boolean;
   onCopyContent: (content: string) => void;
 }
 
-const PreviewPanel: React.FC<PreviewPanelProps> = ({ selectedOffer, offerDetails, onCopyContent }) => {
+const PreviewPanel: React.FC<PreviewPanelProps> = ({ selectedOffer, offerDetails, isDetailsLoading, onCopyContent }) => {
+  if (isDetailsLoading) {
+    return <Text fontSize="sm" color="gray.500">Loading offer details...</Text>;
+  }
+
   if (!selectedOffer || !offerDetails) {
     return <Text fontSize="sm" color="gray.500">Select an offer to preview</Text>;
   }
@@ -196,7 +214,7 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ selectedOffer, offerDetails
       <Text fontWeight="bold">Offer Details</Text>
       <VStack align="start" spacing={1}>
         <Text><strong>ID:</strong> {offerDetails.id}</Text>
-        <Text><strong>File Name:</strong> {offerDetails.fileName}</Text>
+        <Text><strong>File Name:</strong> {offerDetails.fileName || "N/A"}</Text>
         <Text><strong>User Email:</strong> {offerDetails.userEmail || "Unknown"}</Text>
         <Text><strong>Created:</strong> {offerDetails.createTime ? new Date(offerDetails.createTime).toLocaleString() : "N/A"}</Text>
         <Text><strong>Records:</strong> {offerDetails.recordCount}</Text>
@@ -227,8 +245,9 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ selectedOffer, offerDetails
       <Textarea
         value={previewContent}
         isReadOnly
-        resize="none"
-        h="40vh"
+        resize="vertical"
+        minH="20vh"
+        maxH="60vh"
         fontFamily="mono"
         fontSize="sm"
       />
@@ -256,6 +275,7 @@ function SupplierOffers() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOffer, setSelectedOffer] = useState<OfferSummary | null>(null);
   const [offerDetails, setOfferDetails] = useState<OfferDetails | null>(null);
+  const [isDetailsLoading, setIsDetailsLoading] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(true);
   const [previewWidth, setPreviewWidth] = useState(400);
 
@@ -278,12 +298,19 @@ function SupplierOffers() {
 
   useEffect(() => {
     if (freshOffers) {
-      setOffers((prev) => (page === 1 ? freshOffers : [...prev, ...freshOffers]));
+      setOffers((prev) => {
+        const newOffers = page === 1 ? freshOffers : [...prev, ...freshOffers];
+        const uniqueOffers = Array.from(
+          new Map(newOffers.map((offer) => [offer.id, offer])).values()
+        );
+        return uniqueOffers;
+      });
     }
   }, [freshOffers, page]);
 
   const handleOfferClick = async (offer: OfferSummary) => {
     setSelectedOffer(offer);
+    setIsDetailsLoading(true);
     try {
       const details = await fetchOfferDetails(offer.id);
       setOfferDetails(details);
@@ -296,6 +323,8 @@ function SupplierOffers() {
         isClosable: true,
       });
       setOfferDetails(null);
+    } finally {
+      setIsDetailsLoading(false);
     }
   };
 
@@ -320,15 +349,16 @@ function SupplierOffers() {
     }
   };
 
-  const filteredOffers = offers.filter((offer) =>
-  offer.fileName
-    ? offer.fileName.toLowerCase().includes(searchQuery.toLowerCase())
-    : true
-);
+  const filteredOffers = searchQuery
+    ? offers.filter((offer) =>
+        offer.fileName
+          ? offer.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+          : true
+      )
+    : offers;
 
   const handleLoadMore = () => setPage((prev) => prev + 1);
 
-  // Map status to badge color (based on OffersPage)
   const getStatusColor = (recordCount: number) => {
     return recordCount > 0 ? "green" : "yellow";
   };
@@ -463,7 +493,7 @@ function SupplierOffers() {
                           bg={selectedOffer?.id === offer.id ? "green.50" : "white"}
                         >
                           <Td>{offer.id}</Td>
-                          <Td>{offer.fileName}</Td>
+                          <Td>{offer.fileName || "N/A"}</Td>
                           <Td>{offer.userEmail || "Unknown"}</Td>
                           <Td>{offer.createTime ? new Date(offer.createTime).toLocaleString() : "N/A"}</Td>
                           <Td>{offer.recordCount}</Td>
@@ -527,6 +557,7 @@ function SupplierOffers() {
               <PreviewPanel
                 selectedOffer={selectedOffer}
                 offerDetails={offerDetails}
+                isDetailsLoading={isDetailsLoading}
                 onCopyContent={handleCopyContent}
               />
             </Box>
