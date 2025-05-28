@@ -400,7 +400,7 @@ function SupplierOffers() {
     <Container maxW="full" bg="gray.50" minH="100vh" p={4}>
       <Flex align="center" justify="space-between" py={6} flexWrap="wrap" gap={4}>
         <Box textAlign="left" flex="1">
-          <Text fontSize="xl" fontWeight="bold" color="gray.800">Supplier Offers</Text>
+          <Text fontSize="xl" fontWeight="bold" color="gray.800">Supplier File Explorer</Text>
           <Text fontSize="sm" color="gray.600">View and manage supplier offers</Text>
         </Box>
         <HStack>
@@ -568,7 +568,7 @@ function SupplierOffers() {
   );
 }
 
-export const Route = createFileRoute("/_layout/supplier/offers")({
+export const Route = createFileRoute("/_layout/supplier/explore")({
   component: SupplierOffers,
 });
 
