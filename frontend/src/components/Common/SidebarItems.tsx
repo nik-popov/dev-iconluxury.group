@@ -72,9 +72,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"]);
 
   const avatarOptions = [
-    "https://i.pravatar.cc/150?img=1",
-    "https://i.pravatar.cc/150?img=2",
-    "https://i.pravatar.cc/150?img=3",
+    "https://i.pravatar.cc/150",
   ];
   const hardcodedAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
 
