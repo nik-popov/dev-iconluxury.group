@@ -105,7 +105,7 @@ async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
 
 async function fetchOffers(page: number): Promise<OfferSummary[]> {
   const token = getAuthToken();
-  const response = await fetch(`https://api.iconluxury.group/api/luxurymarket/supplier/offers?page=${page}&page_size=10`, {
+  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers?page=${page}&page_size=10`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -118,7 +118,7 @@ async function fetchOffers(page: number): Promise<OfferSummary[]> {
 
 async function fetchOfferDetails(offerId: number): Promise<OfferDetails> {
   const token = getAuthToken();
-  const response = await fetch(`https://api.iconluxury.group/api/luxurymarket/supplier/offers/${offerId}`, {
+  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers/${offerId}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
