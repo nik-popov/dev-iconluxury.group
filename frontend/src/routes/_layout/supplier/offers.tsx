@@ -73,7 +73,7 @@ async function fetchOffers(page: number): Promise<SupplierOffer[]> {
 
 async function fetchOfferContent(offerId: number): Promise<string> {
   const token = getAuthToken();
-  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers${offerId}`, {
+  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers/${offerId}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
