@@ -1,56 +1,25 @@
 /* src/styles/global.css */
-@font-face {
-  font-family: 'Futura';
-  src: url('/fonts/Futura/Futura-Condensed-Light.otf') format('opentype'); /* OpenType for Regular */
-  font-weight: 300; 
-  font-style: normal;
-  font-display: swap; /* Optimize loading */
-}
-
-@font-face {
-  font-family: 'Futura';
-  src: url('/fonts/Futura/futura-regular.ttf') format('truetype'); /* TrueType for Medium */
-  font-weight: 400; /* Medium */
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Futura';
-  src: url('/fonts/Futura/Futura-Bold.ttf') format('truetype'); /* TrueType for Bold */
-  font-weight: 500; /* Bold */
-  font-style: normal;
-  font-display: swap;
-}
-
+@import url('https://fonts.googleapis.com/css2?family=42dot+Sans:wght@300..800&display=swap');
 :root {
   --chakra-vh: 98dvh !important; /* Fallback to standard vh */
-  --font-primary: 'Futura', 'Helvetica', 'Arial', sans-serif; /* Use Futura with fallbacks */
 }
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
+* { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: var(--font-primary);  }
 
 .chakra-alert {
   display: flex;
   top: 20px;
   position: relative;
-  background: var(--chakra-colors-white); 
+  background: var(--chakra-colors-white); /* Bright white background */
   padding-inline-start: var(--chakra-space-4);
   padding-inline-end: var(--chakra-space-8);
   padding-top: var(--chakra-space-3);
   padding-bottom: var(--chakra-space-3);
   color: var(--alert-fg);
-  --alert-fg: var(--chakra-colors-gray-900);
+  --alert-fg: var(--chakra-colors-gray-900); /* Black-ish text */
   align-items: center;
   border-radius: var(--chakra-radii-md);
   box-shadow: var(--chakra-shadows-lg);
   text-align: start;
   width: auto;
-  font-family: var(--font-primary); /* Ensure Futura for alerts */
 }
