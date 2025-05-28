@@ -40,13 +40,13 @@ body { font-family: var(--font-primary);  }
   display: flex;
   top: 20px;
   position: relative;
-  background: var(--chakra-colors-white); /* Bright white background */
+  background: var(--chakra-colors-white); 
   padding-inline-start: var(--chakra-space-4);
   padding-inline-end: var(--chakra-space-8);
   padding-top: var(--chakra-space-3);
   padding-bottom: var(--chakra-space-3);
   color: var(--alert-fg);
-  --alert-fg: var(--chakra-colors-gray-900); /* Black-ish text */
+  --alert-fg: var(--chakra-colors-gray-900);
   align-items: center;
   border-radius: var(--chakra-radii-md);
   box-shadow: var(--chakra-shadows-lg);
