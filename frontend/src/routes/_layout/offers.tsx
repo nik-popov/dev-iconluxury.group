@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import {
   Box,
   Container,
@@ -97,7 +97,7 @@ function OffersPage() {
     queryFn: () => fetchOffers(page),
     enabled: (!!subscriptionStatus?.hasSubscription || !!subscriptionStatus?.isTrial) && hasMore,
     staleTime: 5 * 60 * 1000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
   // Append new offers
