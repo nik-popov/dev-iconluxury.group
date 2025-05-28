@@ -39,7 +39,7 @@ const UserAgentDashboard = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        "https://api.thedataproxy.com/api/v1/user-agents/?skip=0&limit=100",
+        "https://api.thedataproxy.com/api/v2/user-agents/?skip=0&limit=100",
         { method: "GET", headers: { accept: "application/json" } }
       );
       if (!response.ok) throw new Error("Failed to fetch user agents");

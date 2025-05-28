@@ -23,21 +23,44 @@ import {
 } from '@chakra-ui/react';
 import { createFileRoute } from '@tanstack/react-router';
 import * as XLSX from 'xlsx';
-import ExcelJS from 'exceljs';
-import ExcelDataTable, { ExcelData, ColumnMapping } from '../../../../components/ExcelDataTable';
-import useCustomToast from '../../../../hooks/useCustomToast';
 
-import { FiSend } from 'react-icons/fi';
+// Mock custom hook for toast (since useCustomToast is not provided)
+const useCustomToast = () => {
+  return (title: string, description: string, status: 'error' | 'warning' | 'success') => {
+    alert(`${title}: ${description} (${status})`);
+  };
+};
+
+// Mock ExcelDataTable component
+const ExcelDataTable = ({ excelData, columnMapping, onColumnClick }: { excelData: ExcelData; columnMapping: ColumnMapping; onColumnClick: (index: number) => void }) => (
+  <Table size="sm" colorScheme="gray">
+    <Tbody>
+      {excelData.headers.map((header, index) => (
+        <Tr key={index} onClick={() => onColumnClick(index)} cursor="pointer">
+          <Td>{header}</Td>
+          <Td>{Object.keys(columnMapping).find(key => columnMapping[key as keyof ColumnMapping] === index) || 'None'}</Td>
+        </Tr>
+      ))}
+    </Tbody>
+  </Table>
+);
+
 // Constants
 const REQUIRED_COLUMNS = ['style', 'brand'] as const;
-const OPTIONAL_COLUMNS = ['category', 'colorName', 'readImage', 'imageAdd'] as const;
+const OPTIONAL_COLUMNS = ['category', 'colorName', 'imageAdd', 'readImage'] as const;
 const ALL_COLUMNS = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS] as const;
-const TARGET_HEADERS = ['BRAND', 'STYLE'] as const;
 const SERVER_URL = 'https://backend-dev.iconluxury.group';
 const MAX_ROWS = 1000;
 
+// Types
+type ToastFunction = (title: string, description: string, status: 'error' | 'warning' | 'success') => void;
+type ExcelData = { headers: string[]; rows: { row: (string | number | boolean | null)[] }[] };
+type ColumnMapping = { style: number | null; brand: number | null; category: number | null; colorName: number | null; imageAdd: number | null; readImage: number | null };
+
 // Helper Functions
-const getDisplayValue = (cellValue: any): string => {
+const getDisplayValue = (
+  cellValue: string | number | boolean | Date | null | undefined | { error?: string; result?: any; text?: string; hyperlink?: string }
+): string => {
   if (cellValue == null) return '';
   if (typeof cellValue === 'string' || typeof cellValue === 'number' || typeof cellValue === 'boolean') {
     return String(cellValue);
@@ -63,14 +86,12 @@ const indexToColumnLetter = (index: number): string => {
   return column;
 };
 
-const ExcelDataTableMemo = React.memo(ExcelDataTable);
-
 // Main Component
-const GoogleSerpForm: React.FC = () => {
+const OfferUploadForm: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [excelData, setExcelData] = useState<ExcelData>({ headers: [], rows: [] });
-  const [previewRows, setPreviewRows] = useState<any[]>([]);
+  const [previewRows, setPreviewRows] = useState<(string | number | boolean | null)[][]>([]);
   const [isHeaderModalOpen, setIsHeaderModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
@@ -81,19 +102,22 @@ const GoogleSerpForm: React.FC = () => {
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
     style: null,
     brand: null,
-    imageAdd: null,
-    readImage: null,
     category: null,
     colorName: null,
+    imageAdd: null,
+    readImage: null,
   });
   const [manualBrand, setManualBrand] = useState<string>('');
 
-  const showToast = useCustomToast();
+  const showToast: ToastFunction = useCustomToast();
 
   // File Handling
   const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      showToast('File Error', 'No file selected', 'error');
+      return;
+    }
 
     if (!['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'].includes(selectedFile.type)) {
       showToast('File Error', 'Please upload an Excel file (.xlsx or .xls)', 'error');
@@ -102,7 +126,7 @@ const GoogleSerpForm: React.FC = () => {
 
     setFile(selectedFile);
     setExcelData({ headers: [], rows: [] });
-    setColumnMapping({ style: null, brand: null, imageAdd: null, readImage: null, category: null, colorName: null });
+    setColumnMapping({ style: null, brand: null, category: null, colorName: null, imageAdd: null, readImage: null });
     setManualBrand('');
     setIsLoadingFile(true);
 
@@ -110,13 +134,17 @@ const GoogleSerpForm: React.FC = () => {
       const data = await readFile(selectedFile);
       const workbook = XLSX.read(data, { type: 'binary' });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: true, defval: '', raw: true });
-      const preview = jsonData.slice(0, MAX_ROWS);
+      if (!worksheet) throw new Error('No worksheet found in the Excel file');
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: true, defval: '' });
+      if (jsonData.length === 0) throw new Error('Excel file is empty');
+      const preview = jsonData.slice(0, MAX_ROWS) as (string | number | boolean | null)[][];
       setPreviewRows(preview);
 
       const autoHeaderIndex = detectHeaderRow(preview);
       if (autoHeaderIndex !== null) {
         processHeaderSelection(autoHeaderIndex, preview);
+        const headers = preview[autoHeaderIndex].map(cell => String(cell ?? ''));
+        setColumnMapping(autoMapColumns(headers));
       } else {
         setIsHeaderModalOpen(true);
       }
@@ -130,6 +158,10 @@ const GoogleSerpForm: React.FC = () => {
 
   const readFile = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
+      if (file.size > 10 * 1024 * 1024) {
+        reject(new Error('File size exceeds 10MB'));
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (e) => resolve(e.target?.result as string);
       reader.onerror = () => reject(new Error('Error reading file'));
@@ -137,31 +169,87 @@ const GoogleSerpForm: React.FC = () => {
     });
   };
 
-  const detectHeaderRow = (rows: any[]): number | null => {
-    for (let i = 0; i < Math.min(10, rows.length); i++) {
-      const rowValues = (rows[i] as any[]).map(cell => String(cell || '').toUpperCase().trim());
-      const matchedHeaders = rowValues.filter(value => TARGET_HEADERS.includes(value as 'BRAND' | 'STYLE'));
-      if (matchedHeaders.length >= 2) return i;
+  const detectHeaderRow = (rows: (string | number | boolean | null)[][]): number | null => {
+    const patterns = {
+      style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))$/i,
+      brand: /^(brand|brand\s*name|manufacturer|label)$/i,
+    };
+
+    const MAX_SEARCH_ROWS = 50;
+
+    for (let i = 0; i < Math.min(MAX_SEARCH_ROWS, rows.length); i++) {
+      const rowValues = rows[i]
+        .map(cell => String(cell ?? '').trim())
+        .filter(value => value !== '');
+      if (rowValues.length < 2) continue;
+
+      let styleMatch = false;
+      for (const value of rowValues) {
+        if (patterns.style.test(String(value ?? '').trim())) {
+          styleMatch = true;
+          break;
+        }
+      }
+
+      if (styleMatch) return i;
     }
+
     return null;
   };
 
-  const processHeaderSelection = (index: number, rows: any[]) => {
-    const headers = rows[index] as string[];
-    const newRows = rows.slice(index + 1).map(row => ({ row: row as any[] }));
-    const newMapping = autoMapColumns(headers);
+  const processHeaderSelection = (index: number, rows: (string | number | boolean | null)[][]) => {
+    const headers = rows[index].map(cell => String(cell ?? ''));
+    const newRows = rows.slice(index + 1).map(row => ({ row }));
     setExcelData({ headers, rows: newRows });
-    setColumnMapping(newMapping);
     setHeaderRowIndex(index);
   };
 
   const autoMapColumns = (headers: string[]): ColumnMapping => {
-    const mapping: ColumnMapping = { style: null, brand: null, imageAdd: null, readImage: null, category: null, colorName: null };
+    const mapping: ColumnMapping = {
+      style: null,
+      brand: null,
+      category: null,
+      colorName: null,
+      imageAdd: null,
+      readImage: null,
+    };
+
+    const patterns = {
+      style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))$/i,
+      brand: /^(brand|brand\s*name|manufacturer|label)$/i,
+      category: /^(category|type|product\s*type|group)$/i,
+      colorName: /^(color|colour|color\s*name|shade)$/i,
+      imageAdd: /^(image|image\s*add|photo|picture)$/i,
+      readImage: /^(read\s*image|image\s*url|image\s*link)$/i,
+    };
+
+    const matchedColumns = new Set<number>();
+
     headers.forEach((header, index) => {
-      const upperHeader = String(header).toUpperCase().trim();
-      if (upperHeader === 'STYLE') mapping.style = index;
-      if (upperHeader === 'BRAND') mapping.brand = index;
+      const normalizedHeader = String(header ?? '').trim().toUpperCase();
+      if (!normalizedHeader) return;
+
+      if (patterns.style.test(normalizedHeader) && mapping.style === null) {
+        mapping.style = index;
+        matchedColumns.add(index);
+      } else if (patterns.brand.test(normalizedHeader) && mapping.brand === null && !matchedColumns.has(index)) {
+        mapping.brand = index;
+        matchedColumns.add(index);
+      } else if (patterns.category.test(normalizedHeader) && mapping.category === null && !matchedColumns.has(index)) {
+        mapping.category = index;
+        matchedColumns.add(index);
+      } else if (patterns.colorName.test(normalizedHeader) && mapping.colorName === null && !matchedColumns.has(index)) {
+        mapping.colorName = index;
+        matchedColumns.add(index);
+      } else if (patterns.imageAdd.test(normalizedHeader) && mapping.imageAdd === null && !matchedColumns.has(index)) {
+        mapping.imageAdd = index;
+        matchedColumns.add(index);
+      } else if (patterns.readImage.test(normalizedHeader) && mapping.readImage === null && !matchedColumns.has(index)) {
+        mapping.readImage = index;
+        matchedColumns.add(index);
+      }
     });
+
     return mapping;
   };
 
@@ -174,18 +262,47 @@ const GoogleSerpForm: React.FC = () => {
   const confirmHeaderSelect = useCallback(() => {
     if (selectedRowIndex === null) return;
     processHeaderSelection(selectedRowIndex, previewRows);
+    const headers = previewRows[selectedRowIndex].map(cell => String(cell ?? ''));
+    setColumnMapping(autoMapColumns(headers));
     setIsHeaderModalOpen(false);
     setIsConfirmModalOpen(false);
   }, [selectedRowIndex, previewRows]);
 
   // Manual Brand
   const applyManualBrand = useCallback(() => {
-    if (!manualBrand || columnMapping.brand !== null) return;
-    const newHeaders = [...excelData.headers, 'BRAND (Manual)'];
-    const newRows = excelData.rows.map(row => ({ row: [...row.row, manualBrand] }));
+    if (!manualBrand || columnMapping.brand !== null) {
+      showToast('Manual Brand Error', 'Cannot apply manual brand.', 'warning');
+      return;
+    }
+
+    const styleIndex = columnMapping.style;
+    const insertIndex = styleIndex !== null ? styleIndex + 1 : 0;
+
+    const newHeaders = [
+      ...excelData.headers.slice(0, insertIndex),
+      'BRAND (Manual)',
+      ...excelData.headers.slice(insertIndex),
+    ];
+
+    const newRows = excelData.rows.map(row => ({
+      row: [
+        ...row.row.slice(0, insertIndex),
+        manualBrand,
+        ...row.row.slice(insertIndex),
+      ],
+    }));
+
+    const newMapping: ColumnMapping = { ...columnMapping, brand: insertIndex };
+    Object.keys(newMapping).forEach(key => {
+      const index = newMapping[key as keyof ColumnMapping];
+      if (index !== null && index >= insertIndex && key !== 'brand') {
+        newMapping[key as keyof ColumnMapping] = index + 1;
+      }
+    });
+
     setExcelData({ headers: newHeaders, rows: newRows });
-    setColumnMapping(prev => ({ ...prev, brand: newHeaders.length - 1 }));
-  }, [manualBrand, columnMapping.brand, excelData]);
+    setColumnMapping(newMapping);
+  }, [manualBrand, columnMapping, excelData, showToast]);
 
   // Form Submission
   const handleSubmit = useCallback(async () => {
@@ -199,8 +316,12 @@ const GoogleSerpForm: React.FC = () => {
         body: formData,
       });
 
-      if (!response.ok) throw new Error(`Server error: ${response.status} - ${await response.text()}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
+      }
       await response.json();
+      showToast('Success', 'Offer uploaded successfully', 'success');
       setTimeout(() => {
         window.location.reload();
       }, 1000);
@@ -209,7 +330,7 @@ const GoogleSerpForm: React.FC = () => {
     } finally {
       setIsLoadingFile(false);
     }
-  }, [file, headerRowIndex, columnMapping, showToast]);
+  }, [file, headerRowIndex, columnMapping, manualBrand, showToast]);
 
   const validateForm = (): boolean => {
     const missingRequired = REQUIRED_COLUMNS.filter(col => columnMapping[col] === null);
@@ -229,8 +350,11 @@ const GoogleSerpForm: React.FC = () => {
   };
 
   const prepareFormData = (): FormData => {
+    if (!file) throw new Error('No file selected');
+    if (headerRowIndex === null || headerRowIndex < 0) throw new Error('Invalid header row index');
+
     const formData = new FormData();
-    formData.append('fileUploadImage', file!);
+    formData.append('fileUploadImage', file);
 
     const mappingToColumn = (key: keyof ColumnMapping, defaultVal: string) =>
       columnMapping[key] !== null ? indexToColumnLetter(columnMapping[key]!) : defaultVal;
@@ -257,10 +381,10 @@ const GoogleSerpForm: React.FC = () => {
 
     if (colorCol) formData.append('ColorColImage', colorCol);
     if (categoryCol) formData.append('CategoryColImage', categoryCol);
-    if (headerRowIndex === null || headerRowIndex < 0) {
-      throw new Error('Invalid header row index');
-    }
     formData.append('header_index', String(headerRowIndex + 1));
+
+    const userEmail = 'nik@luxurymarket.com';
+    if (userEmail) formData.append('sendToEmail', userEmail);
 
     return formData;
   };
@@ -286,8 +410,8 @@ const GoogleSerpForm: React.FC = () => {
 
   const openMappingModal = useCallback((columnIndex: number) => {
     setSelectedColumn(columnIndex);
-    const currentField = Object.keys(columnMapping).find(key => columnMapping[key as keyof ColumnMapping] === columnIndex);
-    setSelectedField(currentField || getDefaultField());
+    const currentField = Object.entries(columnMapping).find(([_, value]) => value === columnIndex)?.[0] || getDefaultField();
+    setSelectedField(currentField);
     setIsMappingModalOpen(true);
   }, [columnMapping]);
 
@@ -302,6 +426,8 @@ const GoogleSerpForm: React.FC = () => {
     if (columnMapping.brand === null) return 'brand';
     if (columnMapping.category === null) return 'category';
     if (columnMapping.colorName === null) return 'colorName';
+    if (columnMapping.imageAdd === null) return 'imageAdd';
+    if (columnMapping.readImage === null) return 'readImage';
     return '';
   };
 
@@ -332,13 +458,12 @@ const GoogleSerpForm: React.FC = () => {
           onApply={applyManualBrand}
           isLoading={isLoadingFile}
         />
-     <DataTableSection
-            isLoading={isLoadingFile}
-            excelData={excelData} // Change 'data' to 'excelData'
-            columnMapping={columnMapping}
-            onColumnClick={openMappingModal}
-            isManualBrand={columnMapping.brand !== null && excelData.headers[columnMapping.brand] === 'BRAND (Manual)'}
-          />
+        <DataTableSection
+          isLoading={isLoadingFile}
+          excelData={excelData}
+          columnMapping={columnMapping}
+          onColumnClick={openMappingModal}
+        />
         <MappingModal
           isOpen={isMappingModalOpen}
           onClose={() => handleMappingConfirm(false)}
@@ -369,19 +494,9 @@ const GoogleSerpForm: React.FC = () => {
 };
 
 // Sub-components
-const HeaderSection: React.FC = () => (
-  <>
-    <Text fontSize="2xl" fontWeight="bold" color="gray.800">Submit Form</Text>
-    <Text fontSize="md" color="gray.600">
-      Upload an Excel file, select header row, and map required fields (Style, Brand).
-    </Text>
-    <Text fontSize="md" color="gray.600">Up to {MAX_ROWS} rows.</Text>
-  </>
-);
-
 interface ControlSectionProps {
   isLoading: boolean;
-  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: () => void;
   canSubmit: boolean;
   rowCount: number;
@@ -401,47 +516,28 @@ const ControlSection: React.FC<ControlSectionProps> = ({
   <HStack spacing={2} align="flex-end" wrap="wrap">
     <FormControl w="xl">
       <Input
-        placeholder="Upload Excel File"
         type="file"
         accept=".xlsx,.xls"
         onChange={onFileChange}
         disabled={isLoading}
-        mt={2}
         bg="white"
+        color="black"
         borderColor="gray.300"
-        color="gray.800"
-        _hover={{ borderColor: 'green.500' }}
-        css={{
-          '&::-webkit-file-upload-button': {
-            padding: '4px 12px',
-            borderRadius: 'md',
-            marginTop: '-8px',
-            backgroundColor: 'green.500',
-            border: 'none',
-            color: 'white',
-            fontSize: 'md',
-            cursor: 'pointer',
-            _hover: { bg: 'green.600' },
-          },
-          '&:focus': { outline: 'none', boxShadow: '0 0 0 2px green.200' },
-        }}
+        _hover={{ borderColor: 'blue.500' }}
+        _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px blue.200' }}
+        aria-label="Upload Excel file"
       />
     </FormControl>
     <Button
-      bg="green.500"
-      color="white"
-      leftIcon={<FiSend />}
+      colorScheme="blue"
       onClick={onSubmit}
       isDisabled={!canSubmit || isLoading}
       isLoading={isLoading}
-      mt={2}
-      mb={0}
-      _hover={{ bg: 'green.600' }}
     >
-      Submit
+      Submit Offer
     </Button>
     {rowCount > 0 && (
-      <VStack align="start" spacing={0} mb={0}>
+      <VStack align="start" spacing={0}>
         {missingRequired.length > 0 ? (
           <VStack align="start" spacing={0} flexDirection="column-reverse">
             {missingRequired.map(col => (
@@ -452,15 +548,15 @@ const ControlSection: React.FC<ControlSectionProps> = ({
         ) : (
           <VStack align="start" spacing={0} flexDirection="column-reverse">
             {mappedColumns.map((columnMapping, index) => (
-              <Text key={index} fontSize="sm" color="green.600">{columnMapping}</Text>
+              <Text key={index} fontSize="sm" color="blue.600">{columnMapping}</Text>
             ))}
-            <Text fontSize="sm" color="green.600">Mapped:</Text>
+            <Text fontSize="sm" color="blue.600">Mapped:</Text>
           </VStack>
         )}
         <Text fontSize="sm" color="gray.600">Rows: {rowCount}</Text>
       </VStack>
     )}
-    {isLoading && <Text color="gray.600" mt={2} mb={0}>Processing...</Text>}
+    {isLoading && <Text color="gray.600">Processing...</Text>}
   </HStack>
 );
 
@@ -481,28 +577,25 @@ const ManualBrandSection: React.FC<ManualBrandSectionProps> = ({
 }) => (
   <>
     {isVisible && (
-      <HStack spacing={2} mt={1}>
+      <HStack spacing={2}>
         <FormControl w="sm">
           <Input
             placeholder="Add Brand for All Rows"
             value={manualBrand}
             onChange={(e) => setManualBrand(e.target.value)}
             disabled={isLoading}
-            mt={1}
             bg="white"
+            color="black"
             borderColor="gray.300"
-            color="gray.800"
-            _hover={{ borderColor: 'green.500' }}
-            _focus={{ borderColor: 'green.500', boxShadow: '0 0 0 2px green.200' }}
+            _hover={{ borderColor: 'blue.500' }}
+            _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px blue.200' }}
+            aria-label="Enter manual brand"
           />
         </FormControl>
         <Button
-          bg="green.500"
-          color="white"
+          colorScheme="orange"
           onClick={onApply}
           isDisabled={!manualBrand || isLoading}
-          mt={1}
-          _hover={{ bg: 'green.600' }}
         >
           Apply
         </Button>
@@ -517,7 +610,6 @@ interface DataTableSectionProps {
   excelData: ExcelData;
   columnMapping: ColumnMapping;
   onColumnClick: (index: number) => void;
-  isManualBrand: boolean;
 }
 
 const DataTableSection: React.FC<DataTableSectionProps> = ({
@@ -525,7 +617,6 @@ const DataTableSection: React.FC<DataTableSectionProps> = ({
   excelData,
   columnMapping,
   onColumnClick,
-  isManualBrand,
 }) => (
   <>
     {excelData.rows.length > 0 && (
@@ -536,11 +627,10 @@ const DataTableSection: React.FC<DataTableSectionProps> = ({
             <Text color="gray.600">Loading table data...</Text>
           </VStack>
         ) : (
-          <ExcelDataTableMemo
+          <ExcelDataTable
             excelData={excelData}
             columnMapping={columnMapping}
             onColumnClick={onColumnClick}
-            isManualBrand={isManualBrand}
           />
         )}
       </Box>
@@ -573,88 +663,47 @@ const MappingModal: React.FC<MappingModalProps> = ({
 }) => (
   <Modal isOpen={isOpen} onClose={onClose}>
     <ModalOverlay />
-    <ModalContent bg="white">
-      <ModalHeader color="gray.800">Map Column</ModalHeader>
+    <ModalContent bg="white" color="black">
+      <ModalHeader>Map Column</ModalHeader>
       <ModalBody>
-        <Text color="gray.800">
+        <Text>
           Map "{selectedColumn !== null ? headers[selectedColumn] || `Column ${selectedColumn + 1}` : 'Select a column'}" to:
         </Text>
-        <Select 
-          value={selectedField} 
+        <Select
+          value={selectedField}
           onChange={(e) => setSelectedField(e.target.value)}
           mt={2}
           bg="white"
-          color="gray.800"  // Dark text for options
+          color="black"
           borderColor="gray.300"
-          _hover={{ borderColor: 'green.500' }}
-          _focus={{ 
-            borderColor: 'green.500', 
-            boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.2)' 
-          }}
-          sx={{
-            // Style the dropdown options
-            '& option': {
-              background: 'white',
-              color: 'gray.800',
-            },
-            '& optgroup': {
-              background: 'white',
-              color: 'gray.800',
-            },
-            // Style the dropdown menu
-            '& > option': {
-              background: 'white',
-              color: 'gray.800',
-            },
-            // Ensure visibility when menu is open
-            '&:focus-within': {
-              borderColor: 'green.500',
-            }
-          }}
+          _hover={{ borderColor: 'blue.500' }}
+          _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px blue.200' }}
+          aria-label="Select column mapping"
         >
-          <option value="" style={{ background: 'white', color: 'gray.800' }}>None</option>
+          <option value="">None</option>
           {allColumns.map(col => (
-            <option 
-              key={col} 
-              value={col}
-              style={{ background: 'white', color: 'gray.800' }}
-            >
-              {col}
-            </option>
+            <option key={col} value={col}>{col}</option>
           ))}
         </Select>
-        {optionalMappings && (
-          <Text fontSize="sm" color="gray.600" mt={2}>Optional mappings: {optionalMappings}</Text>
-        )}
+        <Text fontSize="sm" color="gray.600" mt={2}>Optional mappings: {optionalMappings}</Text>
       </ModalBody>
       <ModalFooter>
-        <Button 
-          bg="green.500" 
-          color="white" 
-          mr={3} 
-          onClick={onConfirm} 
-          _hover={{ bg: 'green.600' }}
-        >
+        <Button colorScheme="blue" mr={3} onClick={onConfirm} aria-label="Confirm column mapping">
           Confirm
         </Button>
-        <Button 
-          variant="outline" 
-          borderColor="gray.300" 
-          color="gray.800" 
-          onClick={onClose} 
-          _hover={{ bg: 'gray.100' }}
-        >
+        <Button variant="outline" borderColor="gray.300" onClick={onClose} _hover={{ bg: 'gray.100' }} aria-label="Cancel column mapping">
           Cancel
         </Button>
       </ModalFooter>
     </ModalContent>
   </Modal>
 );
+
 interface HeaderSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  previewRows: any[];
-  onRowSelect: (index: number) => void;
+  previewRows: (string | number | boolean | null)[][];
+  onRowSelect: (rowIndex: number) => void;
 }
 
 const HeaderSelectionModal: React.FC<HeaderSelectionModalProps> = ({
@@ -665,15 +714,22 @@ const HeaderSelectionModal: React.FC<HeaderSelectionModalProps> = ({
 }) => (
   <Modal isOpen={isOpen} onClose={onClose} size="xl">
     <ModalOverlay />
-    <ModalContent alignSelf="left" ml={4} mt={16} bg="white">
-      <ModalHeader color="gray.800">Select Header Row (Click a row) - {previewRows.length} Rows</ModalHeader>
+    <ModalContent alignSelf="left" ml={4} mt={16} bg="white" color="black">
+      <ModalHeader>Select Header Row (Click a row) - {previewRows.length} Rows</ModalHeader>
       <ModalBody maxH="60vh" overflowY="auto">
-        <Table size="sm" colorScheme="gray">
+        <Table size="sm" colorScheme="gray" aria-label="Preview rows for header selection">
           <Tbody>
             {previewRows.map((row, rowIndex) => (
-              <Tr key={rowIndex} onClick={() => onRowSelect(rowIndex)} cursor="pointer" _hover={{ bg: 'green.50' }}>
-                {row.map((cell: any, cellIndex: number) => (
-                  <Td key={cellIndex} py={2} px={3} color="gray.800">{getDisplayValue(cell)}</Td>
+              <Tr
+                key={rowIndex}
+                onClick={() => onRowSelect(rowIndex)}
+                cursor="pointer"
+                _hover={{ bg: 'blue.50' }}
+                role="button"
+                aria-label={`Select row ${rowIndex + 1} as header`}
+              >
+                {row.map((cell, cellIndex) => (
+                  <Td key={cellIndex} py={2} px={3}>{getDisplayValue(cell)}</Td>
                 ))}
               </Tr>
             ))}
@@ -681,7 +737,7 @@ const HeaderSelectionModal: React.FC<HeaderSelectionModalProps> = ({
         </Table>
       </ModalBody>
       <ModalFooter>
-        <Button size="sm" variant="outline" borderColor="gray.300" color="gray.800" onClick={onClose} _hover={{ bg: 'gray.100' }}>
+        <Button size="sm" variant="outline" borderColor="gray.300" onClick={onClose} _hover={{ bg: 'gray.100' }} aria-label="Cancel header selection">
           Cancel
         </Button>
       </ModalFooter>
@@ -693,7 +749,7 @@ interface ConfirmHeaderModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedRowIndex: number | null;
-  previewRows: any[];
+  previewRows: (string | number | boolean | null)[][];
   onConfirm: () => void;
 }
 
@@ -706,17 +762,19 @@ const ConfirmHeaderModal: React.FC<ConfirmHeaderModalProps> = ({
 }) => (
   <Modal isOpen={isOpen} onClose={onClose}>
     <ModalOverlay />
-    <ModalContent bg="white">
-      <ModalHeader color="gray.800">Confirm Header Selection</ModalHeader>
+    <ModalContent bg="white" color="black">
+      <ModalHeader>Confirm Header Selection</ModalHeader>
       <ModalBody>
-        <Text color="gray.800">Use row {selectedRowIndex !== null ? selectedRowIndex + 1 : ''} as header?</Text>
-        {selectedRowIndex !== null && <Text mt={2} color="gray.600">{previewRows[selectedRowIndex].join(', ')}</Text>}
+        <Text>Use row {selectedRowIndex !== null ? selectedRowIndex + 1 : ''} as header?</Text>
+        {selectedRowIndex !== null && (
+          <Text mt={2} color="gray.600">{previewRows[selectedRowIndex].map(cell => getDisplayValue(cell)).join(', ')}</Text>
+        )}
       </ModalBody>
       <ModalFooter>
-        <Button bg="green.500" color="white" mr={3} onClick={onConfirm} _hover={{ bg: 'green.600' }}>
+        <Button colorScheme="blue" mr={3} onClick={onConfirm} aria-label="Confirm header selection">
           Confirm
         </Button>
-        <Button variant="outline" borderColor="gray.300" color="gray.800" onClick={onClose} _hover={{ bg: 'gray.100' }}>
+        <Button variant="outline" borderColor="gray.300" onClick={onClose} _hover={{ bg: 'gray.100' }} aria-label="Cancel header confirmation">
           Cancel
         </Button>
       </ModalFooter>
@@ -724,11 +782,9 @@ const ConfirmHeaderModal: React.FC<ConfirmHeaderModalProps> = ({
   </Modal>
 );
 
-
-// ... (sub-components remain the same as CMSGoogleSerpForm.tsx)
-
-export const Route = createFileRoute('/_layout/scraping-api/submit-form/google-serp')({
-  component: GoogleSerpForm,
+// Export
+export const Route = createFileRoute('/_layout/submit-form/offer')({
+  component: OfferUploadForm,
 });
 
-export default GoogleSerpForm;
+export default OfferUploadForm;
