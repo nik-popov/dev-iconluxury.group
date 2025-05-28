@@ -97,7 +97,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
       if (!enabled) {
         return null;
       }
-      const showAdminLabel = ["VPN", "Admin"].includes(title);
+      const showAdminLabel = ["Archive","Scraper","VPN", "Admin"].includes(title);
       const isActive = path === location.pathname || (path === "/" && location.pathname === "");
       return (
         <Box key={title} mb={2}>
