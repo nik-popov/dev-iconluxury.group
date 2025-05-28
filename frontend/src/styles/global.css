@@ -18,7 +18,7 @@
 @font-face {
   font-family: 'Futura';
   src: url('/fonts/Futura/Futura-Bold.ttf') format('truetype'); /* TrueType for Bold */
-  font-weight: 700; /* Bold */
+  font-weight: 500; /* Bold */
   font-style: normal;
   font-display: swap;
 }
