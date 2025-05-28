@@ -206,17 +206,17 @@ const EditUser = ({ user, isOpen, onClose }: EditUserProps) => {
           <Flex direction="column" mt={4} gap={2}>
             <FormControl>
               <Checkbox {...register("has_subscription")} colorScheme="teal">
-                Has SERP Tool
+              Supplier
               </Checkbox>
             </FormControl>
             <FormControl>
               <Checkbox {...register("is_trial")} colorScheme="teal">
-                Is SERP Trial
+                Limited
               </Checkbox>
             </FormControl>
             <FormControl>
               <Checkbox {...register("is_deactivated")} colorScheme="teal">
-                Is SERP Deactivated
+              Restricted
               </Checkbox>
             </FormControl>
           </Flex>
