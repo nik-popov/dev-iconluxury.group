@@ -111,7 +111,6 @@ function Login() {
       alignItems="center"
       justifyContent="center"
       height="100vh"
-      bg="gray.900"
       gap={6}
     >
       <Link href="https://iconluxury.group" target="_blank" rel="noopener noreferrer">
