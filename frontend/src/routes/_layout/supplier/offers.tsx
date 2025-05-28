@@ -321,8 +321,10 @@ function SupplierOffers() {
   };
 
   const filteredOffers = offers.filter((offer) =>
-    offer.fileName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  offer.fileName
+    ? offer.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+    : true
+);
 
   const handleLoadMore = () => setPage((prev) => prev + 1);
 
