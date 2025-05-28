@@ -10,7 +10,7 @@ const theme = extendTheme({
   styles: {
     global: {
       "html, body": {
-        fontFamily: '"Helvetica", "Arial", sans-serif',
+        fontFamily: '"42dot Sans", "Helvetica", "Arial", sans-serif',
         lineHeight: "1.7",
         bg: "gray.50",
         color: "gray.800",
