@@ -87,7 +87,7 @@ const getAuthToken = (): string | null => {
 
 async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
   const token = getAuthToken();
-  const response = await fetch("https://api.iconluxury.group/api/v1/subscription-status/supplier", {
+  const response = await fetch("https://api.iconluxury.group/api/v1/subscription-status/serp", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
