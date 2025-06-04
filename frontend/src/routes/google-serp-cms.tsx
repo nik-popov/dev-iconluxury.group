@@ -358,25 +358,69 @@ const CMSGoogleSerpForm: React.FC = () => {
     const formData = new FormData();
     formData.append('fileUploadImage', file);
 
-    const mappingToColumn = (key: keyof ColumnMapping, defaultVal: string) =>
-      columnMapping[key] !== null ? indexToColumnLetter(columnMapping[key]!) : defaultVal;
+    const getOriginalColumnLetter = (
+      fieldKey: keyof ColumnMapping,
+      currentMapping: ColumnMapping,
+      appliedInfo: { insertIndex: number } | null
+    ): string => {
+      let mappedIdx = currentMapping[fieldKey];
 
-    const styleCol = mappingToColumn('style', 'A');
-    const brandCol = mappingToColumn('brand', 'B');
-    const imageAddCol = mappingToColumn('imageAdd', '');
-    const readImageCol = mappingToColumn('readImage', '');
-    const colorCol = mappingToColumn('colorName', '');
-    const categoryCol = mappingToColumn('category', '');
+      if (mappedIdx === null) return ''; // Field not mapped
+
+      if (appliedInfo && fieldKey !== 'brand') { // If manual brand was applied and this is not the brand field itself
+        // Un-shift the index if it was affected by the insertion
+        if (mappedIdx > appliedInfo.insertIndex) {
+          mappedIdx = mappedIdx - 1;
+        } else if (mappedIdx === appliedInfo.insertIndex) {
+          // This case means the current field was at the insertion point.
+          // Its data is effectively overwritten by the manual brand column in display.
+          // For backend, it means this field is no longer mapped from original file.
+          // Or, if this field was style, and brand inserted after, style index is fine.
+          // This needs careful thought: if a field was originally at insertIndex, it's now "gone"
+          // unless it was style and insertion was after style.
+          // For simplicity, if a column was at insertIndex and it wasn't style (if style determined insertIndex),
+          // it's effectively unmapped. However, the current logic in applyManualBrand shifts it right.
+          // So, mappedIdx > appliedInfo.insertIndex covers the shifted columns.
+          // Columns before or at insertIndex (if not style that determined insertion) are fine.
+          // The crucial part is: mappedIdx is the *display* index.
+          // If display index > insertion index, original was display index - 1.
+          // If display index <= insertion index, original was display index.
+        }
+      }
+      return indexToColumnLetter(mappedIdx);
+    };
+    
+    // Determine the original style column index for context if needed for un-shifting logic
+    // This is tricky because columnMapping.style itself might be shifted if brand inserted before it.
+    // However, manualBrandInfo.insertIndex is the key.
+
+    const styleCol = columnMapping.style !== null ? getOriginalColumnLetter('style', columnMapping, manualBrandInfo) : 'A';
+    // imageAdd, readImage, colorName, category also need to use getOriginalColumnLetter
+    const imageAddCol = columnMapping.imageAdd !== null ? getOriginalColumnLetter('imageAdd', columnMapping, manualBrandInfo) : '';
+    const readImageCol = columnMapping.readImage !== null ? getOriginalColumnLetter('readImage', columnMapping, manualBrandInfo) : '';
+    const colorCol = columnMapping.colorName !== null ? getOriginalColumnLetter('colorName', columnMapping, manualBrandInfo) : '';
+    const categoryCol = columnMapping.category !== null ? getOriginalColumnLetter('category', columnMapping, manualBrandInfo) : '';
 
     const imageColumnImage = readImageCol || imageAddCol;
     if (imageColumnImage) formData.append('imageColumnImage', imageColumnImage);
     formData.append('searchColImage', styleCol);
 
-    if (manualBrand && manualBrand.trim() !== '') {
+    if (manualBrand && manualBrand.trim() !== '') { // manualBrand is the state from input
       formData.append('brandColImage', 'MANUAL');
       formData.append('manualBrand', manualBrand);
     } else if (columnMapping.brand !== null) {
-      formData.append('brandColImage', brandCol);
+      // If manual brand was applied, columnMapping.brand points to the *display* index of "BRAND (Manual)".
+      // This column doesn't exist in the original file. So this path shouldn't be taken if manualBrandInfo is set.
+      // The condition `manualBrand && manualBrand.trim() !== ''` should handle it.
+      // If manualBrand input is cleared *after* applying, then manualBrandInfo might be set, but input is empty.
+      // This case needs to be handled: if manualBrandInfo is set, always use 'MANUAL'.
+      if (manualBrandInfo) { // If applyManualBrand ran and set up info
+          formData.append('brandColImage', 'MANUAL');
+          formData.append('manualBrand', manualBrandInfo.value); // Use the value stored at time of apply
+      } else { // Manual brand not applied, use mapped column
+          const brandColLetter = getOriginalColumnLetter('brand', columnMapping, null); // No un-shifting for brand itself if not manual
+          formData.append('brandColImage', brandColLetter);
+      }
     } else {
       throw new Error('Brand column must be mapped or manual brand provided');
     }
@@ -390,7 +434,6 @@ const CMSGoogleSerpForm: React.FC = () => {
 
     return formData;
   };
-
   // Column Mapping
   const handleMappingConfirm = useCallback((confirm: boolean) => {
     if (!confirm || selectedColumn === null) {
