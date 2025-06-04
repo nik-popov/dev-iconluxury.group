@@ -8,7 +8,6 @@ import {
   Text,
   Flex,
   Tabs,
-  Icon,
   TabList,
   Input,
   TabPanels,
@@ -37,7 +36,6 @@ import {
   ModalHeader,
   ModalBody,
 } from "@chakra-ui/react";
-import { FiFileText } from "react-icons/fi";
 import useCustomToast from "../../../../hooks/useCustomToast";
 
 interface OfferDetails {
@@ -110,6 +108,18 @@ async function fetchOfferDetails(fileId: string): Promise<OfferDetails> {
   return response.json();
 }
 
+async function submitForReview(fileId: string): Promise<void> {
+  const token = getAuthToken();
+  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers/${fileId}/submit`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!response.ok) throw new Error(`Failed to submit for review: ${response.status}`);
+}
+
 // DetailsModal Component
 const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, data }) => {
   const capitalizeKey = (key: string) => key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()).trim();
@@ -160,36 +170,48 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, dat
 
 // OverviewTab Component
 const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
-  const [isFileModalOpen, setIsFileModalOpen] = useState(false);
-
   return (
     <Box p={4} bg="white">
-      <Flex justify="flex-end" mb={4}>
-        <Button size="sm" onClick={() => setIsFileModalOpen(true)}>
-          Offer Metadata
-        </Button>
-      </Flex>
+      <Text fontSize="lg" fontWeight="bold" mb={4}>Metadata</Text>
+      <Table variant="simple" size="md" colorScheme="gray" mb={6}>
+        <Tbody>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">ID</Td>
+            <Td>{offer.id}</Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">File Name</Td>
+            <Td><Link href={offer.fileLocationUrl} isExternal color="green.300">{offer.fileName || "N/A"}</Link></Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">File Location URL</Td>
+            <Td><Link href={offer.fileLocationUrl} color="blue.500" isExternal>{offer.fileLocationUrl}</Link></Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">User Email</Td>
+            <Td>{offer.userEmail || "N/A"}</Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">Create Time</Td>
+            <Td>{offer.createTime ? new Date(offer.createTime).toLocaleString() : "N/A"}</Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">Record Count</Td>
+            <Td>{offer.recordCount}</Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">Nik Offer Count</Td>
+            <Td>{offer.nikOfferCount}</Td>
+          </Tr>
+        </Tbody>
+      </Table>
       <Box mb={6}>
-        <Stat mt={4}>
-          <StatLabel color="gray.600">File Name</StatLabel>
-          <StatHelpText wordBreak="break-all">
-            <Link href={offer.fileLocationUrl} isExternal color="green.300">
-              {offer.fileName || "N/A"}
-            </Link>
-          </StatHelpText>
-        </Stat>
         <Stat mt={4}>
           <StatLabel color="gray.600">Status</StatLabel>
           <StatNumber>
             <Badge colorScheme={offer.recordCount > 0 ? "green" : "yellow"}>
               {offer.recordCount > 0 ? "Active" : "Pending"}
             </Badge>
-          </StatNumber>
-        </Stat>
-        <Stat mt={4}>
-          <StatLabel color="gray.600">Created</StatLabel>
-          <StatNumber color="gray.800">
-            {offer.createTime ? new Date(offer.createTime).toLocaleString() : "N/A"}
           </StatNumber>
         </Stat>
         <Stat mt={4}>
@@ -201,20 +223,6 @@ const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
           <StatNumber color="gray.800">{offer.nikOfferCount}</StatNumber>
         </Stat>
       </Box>
-      <DetailsModal
-        isOpen={isFileModalOpen}
-        onClose={() => setIsFileModalOpen(false)}
-        title={`Offer ${offer.id}`}
-        data={{
-          ID: offer.id,
-          FileName: offer.fileName,
-          FileLocationUrl: offer.fileLocationUrl,
-          UserEmail: offer.userEmail,
-          CreateTime: offer.createTime,
-          RecordCount: offer.recordCount,
-          NikOfferCount: offer.nikOfferCount,
-        }}
-      />
     </Box>
   );
 };
@@ -473,6 +481,27 @@ const NikOffersTab: React.FC<NikOffersTabProps> = ({ offer, searchQuery }) => {
                 <Th w="120px" onClick={() => handleSort("f2")} cursor="pointer" color="gray.800">
                   Field 2 {sortConfig?.key === "f2" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
                 </Th>
+                <Th w="120px" onClick={() => handleSort("f3")} cursor="pointer" color="gray.800">
+                  Field 3 {sortConfig?.key === "f3" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f4")} cursor="pointer" color="gray.800">
+                  Field 4 {sortConfig?.key === "f4" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f5")} cursor="pointer" color="gray.800">
+                  Field 5 {sortConfig?.key === "f5" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f6")} cursor="pointer" color="gray.800">
+                  Field 6 {sortConfig?.key === "f6" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f7")} cursor="pointer" color="gray.800">
+                  Field 7 {sortConfig?.key === "f7" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f8")} cursor="pointer" color="gray.800">
+                  Field 8 {sortConfig?.key === "f8" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f9")} cursor="pointer" color="gray.800">
+                  Field 9 {sortConfig?.key === "f9" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
                 <Th w="80px" color="gray.800">Actions</Th>
               </Tr>
             </Thead>
@@ -483,6 +512,13 @@ const NikOffersTab: React.FC<NikOffersTabProps> = ({ offer, searchQuery }) => {
                   <Td w="120px" color="gray.800">{nikOffer.f0 || "N/A"}</Td>
                   <Td w="120px" color="gray.800">{nikOffer.f1 || "N/A"}</Td>
                   <Td w="120px" color="gray.800">{nikOffer.f2 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{nikOffer.f3 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{nikOffer.f4 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{nikOffer.f5 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{nikOffer.f6 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{nikOffer.f7 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{nikOffer.f8 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{nikOffer.f9 || "N/A"}</Td>
                   <Td w="80px">
                     <Button size="xs" onClick={() => { setSelectedNikOffer(nikOffer); setIsNikOfferModalOpen(true); }}>
                       View Details
@@ -492,7 +528,7 @@ const NikOffersTab: React.FC<NikOffersTabProps> = ({ offer, searchQuery }) => {
               ))}
               {displayedNikOffers.length === 0 && (
                 <Tr>
-                  <Td colSpan={5} textAlign="center" color="gray.600">No Nik offers match your search query.</Td>
+                  <Td colSpan={12} textAlign="center" color="gray.600">No Nik offers match your search query.</Td>
                 </Tr>
               )}
             </Tbody>
@@ -540,6 +576,15 @@ const OfferDetailPage = () => {
     placeholderData: keepPreviousData,
   });
 
+  const handleSubmitForReview = async () => {
+    try {
+      await submitForReview(fileId);
+      showToast("Success", "Offer submitted for review", "success");
+    } catch (error) {
+      showToast("Error", "Failed to submit offer for review", "error");
+    }
+  };
+
   if (isLoading) {
     return (
       <Container maxW="full" py={6} bg="white">
@@ -569,6 +614,7 @@ const OfferDetailPage = () => {
           <Text fontSize="xl" fontWeight="bold" color="gray.800">Offer: {fileId}</Text>
           <Text fontSize="sm" color="gray.600">Details for supplier offer {offerData.fileName || "ID " + offerData.id}.</Text>
         </Box>
+        <Button colorScheme="blue" onClick={handleSubmitForReview}>Submit for Review</Button>
       </Flex>
       <Tabs variant="enclosed" isLazy index={activeTab} onChange={(index) => setActiveTab(index)} colorScheme="blue">
         <TabList borderBottom="2px solid" borderColor="green.200">
