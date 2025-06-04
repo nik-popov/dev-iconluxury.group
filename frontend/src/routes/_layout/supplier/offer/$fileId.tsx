@@ -1,7 +1,8 @@
+//supplier/offer/$fileId.tsx
 import React, { useState, useEffect, useRef } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { createFileRoute, useParams } from "@tanstack/react-router";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, keepPreviousData, useMutation, useQueryClient } from "@tanstack/react-query"; // Added useMutation and useQueryClient
 import {
   Container,
   Box,
@@ -40,6 +41,8 @@ interface OfferDetails {
   recordCount: number;
   nikOfferCount: number;
   sampleNikOffers: NikOfferItem[];
+  // Add a status field if your API returns it, e.g., for the badge
+  status?: string; // Example: "Pending Review", "Approved", "Uploaded"
 }
 
 interface NikOfferItem {
@@ -78,28 +81,59 @@ async function fetchOfferDetails(fileId: string): Promise<OfferDetails> {
   return response.json();
 }
 
-async function submitForReview(fileId: string): Promise<void> {
+// Updated function to submit to the new 'offersubmit' endpoint
+async function submitOfferForReviewApi(fileId: string): Promise<{ message: string }> { // Expecting a message on success
   const token = getAuthToken();
-  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers/${fileId}/submit`, {
+  const payload = { fileId: parseInt(fileId, 10) }; // API likely expects integer fileId
+
+  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offersubmit`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
     },
+    body: JSON.stringify(payload),
   });
-  if (!response.ok) throw new Error(`Failed to submit for review: ${response.status}`);
+
+  const responseBody = await response.json(); // Try to parse JSON for both success and error
+
+  if (!response.ok) {
+    const errorMessage = responseBody?.message || responseBody?.detail || `Failed to submit: ${response.status}`;
+    throw new Error(errorMessage);
+  }
+  return responseBody; // Assuming success returns something like { message: "Successfully submitted" }
 }
 
 // OverviewTab Component
 const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
+  // Determine badge color and text based on offer status or record count
+  let badgeColorScheme = "yellow";
+  let badgeText = offer.status || "Pending Data"; // Use API status if available
+
+  if (!offer.status) { // Fallback logic if status is not in API response
+    if (offer.recordCount > 0 && offer.nikOfferCount > 0) {
+        badgeColorScheme = "blue";
+        badgeText = "Processed";
+    } else if (offer.recordCount > 0) {
+        badgeColorScheme = "orange";
+        badgeText = "Partially Processed";
+    }
+  } else {
+     // Map API status to badge colors if needed
+     if (offer.status === "Submitted for Review") badgeColorScheme = "purple";
+     else if (offer.status === "Approved") badgeColorScheme = "green";
+     // Add more status mappings as needed
+  }
+
+
   return (
     <Box p={4} bg="white">
       <Box mb={6}>
         <Stat mt={4}>
           <StatLabel color="gray.600">Status</StatLabel>
           <StatNumber>
-            <Badge colorScheme={offer.recordCount > 0 ? "green" : "yellow"}>
-              {offer.recordCount > 0 ? "Active" : "Pending"}
+            <Badge colorScheme={badgeColorScheme} px={2} py={1} borderRadius="md">
+              {badgeText}
             </Badge>
           </StatNumber>
         </Stat>
@@ -114,7 +148,7 @@ const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
           <Tr>
             <Td fontWeight="semibold" color="gray.700">File Name</Td>
             <Td>
-              <Link href={offer.fileLocationUrl} isExternal color="green.300">
+              <Link href={offer.fileLocationUrl} isExternal color="blue.500" _hover={{ textDecoration: "underline" }}>
                 {offer.fileName || "N/A"}
               </Link>
             </Td>
@@ -122,8 +156,8 @@ const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
           <Tr>
             <Td fontWeight="semibold" color="gray.700">File Location URL</Td>
             <Td>
-              <Link href={offer.fileLocationUrl} color="blue.500" isExternal>
-                {offer.fileLocationUrl}
+              <Link href={offer.fileLocationUrl} color="blue.500" isExternal _hover={{ textDecoration: "underline" }}>
+                View File
               </Link>
             </Td>
           </Tr>
@@ -136,11 +170,11 @@ const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
             <Td>{offer.createTime ? new Date(offer.createTime).toLocaleString() : "N/A"}</Td>
           </Tr>
           <Tr>
-            <Td fontWeight="semibold" color="gray.700">Record Count</Td>
+            <Td fontWeight="semibold" color="gray.700">ImageScraperRecords Count</Td>
             <Td>{offer.recordCount}</Td>
           </Tr>
           <Tr>
-            <Td fontWeight="semibold" color="gray.700">Records</Td>
+            <Td fontWeight="semibold" color="gray.700">NikOfferLoadInitial Count</Td>
             <Td>{offer.nikOfferCount}</Td>
           </Tr>
         </Tbody>
@@ -149,7 +183,7 @@ const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
   );
 };
 
-// RecordsTab Component
+// RecordsTab Component (NikOffer Records)
 const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null);
   const [displayCount, setDisplayCount] = useState(50);
@@ -161,7 +195,7 @@ const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
     Object.values(record).some((value) => value?.toString().toLowerCase().includes(query))
   );
 
-  const handleSort = (key: string) => {
+  const handleSort = (key: keyof NikOfferItem) => { // Typed key
     setSortConfig((prev) => {
       if (prev && prev.key === key) {
         return { key, direction: prev.direction === "ascending" ? "descending" : "ascending" };
@@ -173,8 +207,8 @@ const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
   const sortedRecords = [...filteredRecords].sort((a, b) => {
     if (sortConfig) {
       const { key, direction } = sortConfig;
-      const aValue = a[key as keyof NikOfferItem] || "";
-      const bValue = b[key as keyof NikOfferItem] || "";
+      const aValue = a[key as keyof NikOfferItem] ?? ""; // Use "?? ''" for null/undefined to string
+      const bValue = b[key as keyof NikOfferItem] ?? ""; // Use "?? ''"
       if (typeof aValue === "number" && typeof bValue === "number") {
         return direction === "ascending" ? aValue - bValue : bValue - aValue;
       }
@@ -191,102 +225,95 @@ const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
   useEffect(() => {
     if (!loadMoreRef.current || !hasMore) return;
 
+    const currentLoadMoreRef = loadMoreRef.current; // Capture ref value
+
     observerRef.current = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
           setDisplayCount((prev) => prev + 50);
         }
       },
-      { threshold: 0.1, rootMargin: "200px" }
+      { threshold: 0.1, rootMargin: "200px" } // Trigger when 200px from viewport
     );
 
-    observerRef.current.observe(loadMoreRef.current);
+    observerRef.current.observe(currentLoadMoreRef);
 
     return () => {
-      if (observerRef.current && loadMoreRef.current) {
-        observerRef.current.unobserve(loadMoreRef.current);
+      if (observerRef.current && currentLoadMoreRef) {
+        observerRef.current.unobserve(currentLoadMoreRef);
       }
     };
-  }, [hasMore]);
+  }, [hasMore, displayedRecords]); // Re-run if displayedRecords changes (ensures observer is attached after render)
+
+  const headers: { key: keyof NikOfferItem; label: string; width?: string }[] = [
+    { key: "fileId", label: "File ID", width: "80px" },
+    { key: "f0", label: "Field 0", width: "120px" },
+    { key: "f1", label: "Field 1", width: "120px" },
+    { key: "f2", label: "Field 2", width: "120px" },
+    { key: "f3", label: "Field 3", width: "120px" },
+    { key: "f4", label: "Field 4", width: "120px" },
+    { key: "f5", label: "Field 5", width: "120px" },
+    { key: "f6", label: "Field 6", width: "120px" },
+    { key: "f7", label: "Field 7", width: "120px" },
+    { key: "f8", label: "Field 8", width: "120px" },
+    { key: "f9", label: "Field 9", width: "120px" },
+  ];
 
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4}>
-        <Text fontSize="lg" fontWeight="bold" color="gray.800">Records ({sortedRecords.length})</Text>
+        <Text fontSize="lg" fontWeight="bold" color="gray.800">NikOffer Records ({sortedRecords.length})</Text>
       </Flex>
-      <Card shadow="md" borderWidth="1px" bg="white">
-        <CardBody>
-          <Table variant="simple" size="sm" colorScheme="blue">
-            <Thead bg="gray.100">
+      <Card shadow="md" borderWidth="1px" bg="white" overflowX="auto">
+        <CardBody p={0}> {/* Remove padding for full width table */}
+          <Table variant="simple" size="sm" colorScheme="gray">
+            <Thead bg="gray.50">
               <Tr>
-                <Th w="80px" onClick={() => handleSort("fileId")} cursor="pointer" color="gray.800">
-                  File ID {sortConfig?.key === "fileId" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f0")} cursor="pointer" color="gray.800">
-                  Field 0 {sortConfig?.key === "f0" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f1")} cursor="pointer" color="gray.800">
-                  Field 1 {sortConfig?.key === "f1" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f2")} cursor="pointer" color="gray.800">
-                  Field 2 {sortConfig?.key === "f2" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f3")} cursor="pointer" color="gray.800">
-                  Field 3 {sortConfig?.key === "f3" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f4")} cursor="pointer" color="gray.800">
-                  Field 4 {sortConfig?.key === "f4" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f5")} cursor="pointer" color="gray.800">
-                  Field 5 {sortConfig?.key === "f5" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f6")} cursor="pointer" color="gray.800">
-                  Field 6 {sortConfig?.key === "f6" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f7")} cursor="pointer" color="gray.800">
-                  Field 7 {sortConfig?.key === "f7" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f8")} cursor="pointer" color="gray.800">
-                  Field 8 {sortConfig?.key === "f8" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f9")} cursor="pointer" color="gray.800">
-                  Field 9 {sortConfig?.key === "f9" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
+                {headers.map(header => (
+                  <Th 
+                    key={header.key} 
+                    w={header.width} 
+                    onClick={() => handleSort(header.key)} 
+                    cursor="pointer" 
+                    color="gray.600"
+                    py={3}
+                    borderBottomWidth="2px"
+                    borderColor="gray.200"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    {header.label} {sortConfig?.key === header.key && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                  </Th>
+                ))}
               </Tr>
             </Thead>
             <Tbody>
-              {displayedRecords.map((record) => (
-                <Tr key={`${record.fileId}-${record.f0}`}>
-                  <Td w="80px" color="gray.800">{record.fileId || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f0 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f1 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f2 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f3 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f4 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f5 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f6 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f7 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f8 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f9 || "N/A"}</Td>
+              {displayedRecords.map((record, index) => (
+                <Tr key={`${record.fileId}-${record.f0}-${index}`} _hover={{ bg: "gray.50" }}>
+                  {headers.map(header => (
+                     <Td key={header.key} w={header.width} color="gray.700" borderColor="gray.200">
+                       {String(record[header.key as keyof NikOfferItem] ?? "N/A")}
+                     </Td>
+                  ))}
                 </Tr>
               ))}
               {displayedRecords.length === 0 && (
                 <Tr>
-                  <Td colSpan={11} textAlign="center" color="gray.600">
-                    No records match your search query.
+                  <Td colSpan={headers.length} textAlign="center" color="gray.600" py={10}>
+                    No records match your search query or no records available.
                   </Td>
                 </Tr>
               )}
             </Tbody>
           </Table>
           {hasMore && (
-            <Box ref={loadMoreRef} h="20px" textAlign="center">
-              <Text fontSize="sm" color="gray.600">Loading more...</Text>
+            <Box ref={loadMoreRef} h="40px" display="flex" alignItems="center" justifyContent="center">
+              <Spinner size="sm" color="blue.500" />
+              <Text fontSize="sm" color="gray.600" ml={2}>Loading more...</Text>
             </Box>
           )}
           {!hasMore && displayedRecords.length > 0 && (
-            <Box h="20px" textAlign="center">
-              <Text fontSize="sm" color="gray.600">No more records to load</Text>
+            <Box h="40px" display="flex" alignItems="center" justifyContent="center">
+              <Text fontSize="sm" color="gray.500">End of records</Text>
             </Box>
           )}
         </CardBody>
@@ -297,7 +324,7 @@ const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
 
 // OfferDetailPage Component
 const OfferDetailPage = () => {
-  const { fileId } = useParams({ from: "/_layout/supplier/offer/$fileId" });
+  const { fileId = "" } = useParams({ from: "/_layout/supplier/offer/$fileId" }); // Ensure fileId is always a string
   interface SearchParams {
     activeTab?: string;
     search?: string | string[];
@@ -310,41 +337,69 @@ const OfferDetailPage = () => {
   );
   const [searchQuery, setSearchQuery] = useState<string>(String(initialSearch));
   const showToast = useCustomToast();
+  const queryClient = useQueryClient();
 
-  const { data: offerData, isLoading, error } = useQuery({
+  const { data: offerData, isLoading, error, isFetching } = useQuery({
     queryKey: ["offerDetails", fileId],
     queryFn: () => fetchOfferDetails(fileId),
-    staleTime: 5 * 60 * 1000,
+    enabled: !!fileId, // Only run if fileId is available
+    staleTime: 5 * 60 * 1000, // 5 minutes
     retry: (failureCount, error) => {
-      if (error.message.includes("Unauthorized")) return false;
-      return failureCount < 3;
+      if (error instanceof Error && error.message.includes("Unauthorized")) return false;
+      return failureCount < 2; // Retry twice
     },
     placeholderData: keepPreviousData,
   });
 
-  const handleSubmitForReview = async () => {
-    try {
-      await submitForReview(fileId);
-      showToast("Success", "Offer submitted for review", "success");
-    } catch (error) {
-      showToast("Error", "Failed to submit offer for review", "error");
+  const mutation = useMutation({
+    mutationFn: () => submitOfferForReviewApi(fileId),
+    onSuccess: (data) => {
+      showToast("Success", data.message || "Offer submitted for review successfully.", "success");
+      // Invalidate and refetch offer details to update status
+      queryClient.invalidateQueries({ queryKey: ["offerDetails", fileId] });
+      queryClient.invalidateQueries({ queryKey: ["supplierOffers"] }); // If you have a list query
+    },
+    onError: (error) => {
+      showToast("Error", `Failed to submit: ${error.message}`, "error");
+    },
+  });
+
+  const handleSubmitForReview = () => {
+    if (!fileId) {
+        showToast("Error", "File ID is missing.", "error");
+        return;
     }
+    mutation.mutate();
   };
 
-  if (isLoading) {
+  if (isLoading && !offerData) { // Initial loading state
     return (
       <Container maxW="full" py={6} bg="white">
-        <Flex justify="center" align="center" h="200px">
-          <Spinner size="xl" color="green.300" />
+        <Flex justify="center" align="center" h="calc(100vh - 200px)">
+          <Spinner size="xl" color="blue.500" thickness="4px" />
         </Flex>
       </Container>
     );
   }
 
-  if (error || !offerData) {
+  if (error && !offerData) { // Error and no data (even placeholder)
     return (
       <Container maxW="full" py={6} bg="white">
-        <Text color="red.500">{error?.message || "Offer data not available"}</Text>
+        <Box textAlign="center" py={10}>
+            <Text fontSize="xl" color="red.500" mb={2}>Error loading offer details.</Text>
+            <Text color="gray.600">{error?.message || "An unknown error occurred."}</Text>
+            <Button mt={4} colorScheme="blue" onClick={() => queryClient.refetchQueries({ queryKey: ["offerDetails", fileId] })}>
+                Retry
+            </Button>
+        </Box>
+      </Container>
+    );
+  }
+  
+  if (!offerData) { // Should ideally be caught by isLoading or error, but as a fallback
+    return (
+      <Container maxW="full" py={6} bg="white">
+          <Text>No offer data available.</Text>
       </Container>
     );
   }
@@ -355,52 +410,85 @@ const OfferDetailPage = () => {
   ];
 
   return (
-    <Container maxW="full" bg="white">
-      <Flex align="center" justify="space-between" py={6} flexWrap="wrap" gap={4}>
-        <Box textAlign="left" flex="1">
-          <Text fontSize="xl" fontWeight="bold" color="gray.800">
-            Offer: {fileId}
-          </Text>
-          <Text fontSize="sm" color="gray.600">
-            Details for supplier offer {offerData.fileName || "ID " + offerData.id}.
-          </Text>
-        </Box>
-        <Button colorScheme="blue" onClick={handleSubmitForReview}>
-          Submit for Review
-        </Button>
-      </Flex>
+    <Container maxW="full" bg="gray.50" minH="100vh">
+      <Box bg="white" shadow="sm">
+        <Flex 
+            maxW="container.xl" 
+            mx="auto" 
+            px={{ base: 4, md: 6 }} 
+            align="center" 
+            justify="space-between" 
+            py={5} 
+            flexWrap="wrap" 
+            gap={4}
+        >
+            <Box textAlign="left" flex="1">
+            <Text fontSize={{ base: "lg", md: "xl" }} fontWeight="bold" color="gray.800" noOfLines={1}>
+                Offer: {offerData.fileName || `ID ${offerData.id}`}
+            </Text>
+            <Text fontSize="sm" color="gray.500">
+                Details for supplier offer. {(isFetching && isLoading) && <Spinner size="xs" ml={2} />}
+            </Text>
+            </Box>
+            <Button 
+                colorScheme="blue" 
+                onClick={handleSubmitForReview}
+                isLoading={mutation.isPending}
+                isDisabled={mutation.isPending}
+            >
+            Submit for Review
+            </Button>
+        </Flex>
+      </Box>
       <Tabs
-        variant="enclosed"
         isLazy
         index={activeTab}
         onChange={(index) => setActiveTab(index)}
         colorScheme="blue"
+        variant="line"
+        pt={1} 
+        bg="white"
+        maxW="container.xl" 
+        mx="auto"
+        mt={4}
+        borderRadius="md"
+        shadow="sm"
+        overflow="hidden"
       >
-        <TabList borderBottom="2px solid" borderColor="green.200">
+        <TabList borderBottomWidth="1px" borderColor="gray.200" px={{ base: 2, md: 4 }}>
           {tabsConfig.map((tab) => (
             <Tab
               key={tab.title}
-              _selected={{ bg: "white", color: "green.300", borderColor: "green.300" }}
+              fontWeight="semibold"
+              _selected={{ color: "blue.600", borderColor: "blue.600" }}
               color="gray.600"
+              py={4}
+              mr={2}
             >
               {tab.title}
             </Tab>
           ))}
-          <Input
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            width="300px"
-            borderColor="green.300"
-            _focus={{ borderColor: "green.300" }}
-            color="gray.800"
-            bg="white"
-            ml="auto"
-          />
+          {activeTab === 1 && ( // Show search only for Records tab
+            <Input
+                placeholder="Search records..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                width={{ base: "100%", md: "300px" }}
+                borderColor="gray.300"
+                _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px var(--chakra-colors-blue-500)" }}
+                color="gray.800"
+                bg="white"
+                ml="auto"
+                size="sm"
+                my={{ base: 2, md: "auto" }} // Adjust margin for mobile
+            />
+          )}
         </TabList>
         <TabPanels>
-          {tabsConfig.map((tab) => (
-            <TabPanel key={tab.title}>{tab.component()}</TabPanel>
+          {tabsConfig.map((tab, index) => (
+            <TabPanel key={tab.title} px={{ base: 2, md: 4 }} py={4}>
+                {activeTab === index && tab.component()} {/* Render only active tab content with isLazy */}
+            </TabPanel>
           ))}
         </TabPanels>
       </Tabs>
@@ -410,9 +498,9 @@ const OfferDetailPage = () => {
 
 export const Route = createFileRoute("/_layout/supplier/offer/$fileId")({
   component: OfferDetailPage,
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { activeTab?: string; search?: string | string[] } => ({ // Ensure return type matches SearchParams expectation
     activeTab: search.activeTab as string | undefined,
-    search: search.search as string | string[] | undefined,
+    search: search.search as string | string[] | undefined, // Keep as potentially string[] for flexibility
   }),
 });
 
