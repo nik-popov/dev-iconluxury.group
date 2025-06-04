@@ -262,7 +262,7 @@ const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4}>
-        <Text fontSize="lg" fontWeight="bold" color="gray.800">NikOffer Records ({sortedRecords.length})</Text>
+        <Text fontSize="lg" fontWeight="bold" color="gray.800">Records ({sortedRecords.length})</Text>
       </Flex>
       <Card shadow="md" borderWidth="1px" bg="white" overflowX="auto">
         <CardBody p={0}> {/* Remove padding for full width table */}
