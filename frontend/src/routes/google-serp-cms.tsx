@@ -676,7 +676,7 @@ const DataTableSection: React.FC<DataTableSectionProps> = ({
             excelData={excelData}
             columnMapping={columnMapping}
             onColumnClick={onColumnClick}
-            isManualBrand={isManualBrand} // Pass down the prop
+            isManualBrand={isManualBrand} 
           />
         )}
       </Box>
