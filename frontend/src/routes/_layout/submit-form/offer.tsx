@@ -34,7 +34,7 @@ import {
   NumberInput,
   NumberInputField,
 } from "@chakra-ui/react";
-import useCustomToast from "../../../../hooks/useCustomToast";
+import useCustomToast from "../../../hooks/useCustomToast";
 
 // Interfaces (unchanged)
 interface OfferDetails {
