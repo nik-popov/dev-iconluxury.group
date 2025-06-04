@@ -1,511 +1,534 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from "react";
+import { useSearch } from "@tanstack/react-router";
+import { createFileRoute, useParams } from "@tanstack/react-router";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import {
   Container,
-  Text,
-  Button,
-  VStack,
-  HStack,
   Box,
+  Text,
+  Flex,
+  Tabs,
+  TabList,
   Input,
-  FormControl,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Table,
-  Tr,
-  Td,
-  Tbody,
+  TabPanels,
+  Tab,
+  TabPanel,
   Spinner,
-} from '@chakra-ui/react';
-import { createFileRoute } from '@tanstack/react-router';
-import * as XLSX from 'xlsx';
-import useCustomToast from '../../../hooks/useCustomToast';
+  Button,
+  Card,
+  CardBody,
+  Stat,
+  StatLabel,
+  StatNumber,
+  Badge,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Link,
+  FormControl,
+  FormLabel,
+  FormErrorMessage,
+  NumberInput,
+  NumberInputField,
+} from "@chakra-ui/react";
+import useCustomToast from "../../../../hooks/useCustomToast";
 
-// Mock ExcelDataTable component (simplified for header display only)
-const ExcelDataTable = ({ excelData }: { excelData: ExcelData }) => (
-  <Table size="sm" colorScheme="gray">
-    <Tbody>
-      {excelData.headers.map((header, index) => (
-        <Tr key={index}>
-          <Td>{header || `Column ${index + 1}`}</Td>
-        </Tr>
-      ))}
-    </Tbody>
-  </Table>
-);
+// Interfaces (unchanged)
+interface OfferDetails {
+  id: number;
+  fileName?: string;
+  fileLocationUrl: string;
+  userEmail?: string;
+  createTime?: string;
+  recordCount: number;
+  nikOfferCount: number;
+  sampleNikOffers: NikOfferItem[];
+}
 
-// Constants
-const SERVER_URL = 'https://backend-dev.iconluxury.group';
-const MAX_ROWS = 1000;
+interface NikOfferItem {
+  fileId: number;
+  f0?: string;
+  f1?: string;
+  f2?: string;
+  f3?: string;
+  f4?: string;
+  f5?: string;
+  f6?: string;
+  f7?: string;
+  f8?: string;
+  f9?: string;
+}
 
-// Types
-type ToastFunction = (title: string, description: string, status: 'error' | 'warning' | 'success') => void;
-type ExcelData = { headers: string[]; rows: { row: (string | number | boolean | null)[] }[] };
+interface RecordsTabProps {
+  offer: OfferDetails;
+  searchQuery: string;
+}
 
-// Helper Functions
-const getDisplayValue = (
-  cellValue: string | number | boolean | Date | null | undefined | { error?: string; result?: any; text?: string; hyperlink?: string }
-): string => {
-  if (cellValue == null) return '';
-  if (typeof cellValue === 'string' || typeof cellValue === 'number' || typeof cellValue === 'boolean') {
-    return String(cellValue);
-  }
-  if (cellValue instanceof Date) return cellValue.toLocaleString();
-  if (typeof cellValue === 'object') {
-    if (cellValue.error) return cellValue.error;
-    if (cellValue.result !== undefined) return getDisplayValue(cellValue.result);
-    if (cellValue.text) return cellValue.text;
-    if (cellValue.hyperlink) return cellValue.text || cellValue.hyperlink;
-    return JSON.stringify(cellValue);
-  }
-  return String(cellValue);
+const getAuthToken = (): string | null => {
+  return localStorage.getItem("access_token");
 };
 
-// Main Component
-const OfferUploadForm: React.FC = () => {
-  const [file, setFile] = useState<File | null>(null);
-  const [isLoadingFile, setIsLoadingFile] = useState(false);
-  const [excelData, setExcelData] = useState<ExcelData>({ headers: [], rows: [] });
-  const [previewRows, setPreviewRows] = useState<(string | number | boolean | null)[][]>([]);
-  const [isHeaderModalOpen, setIsHeaderModalOpen] = useState(false);
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
-  const [headerRowIndex, setHeaderRowIndex] = useState<number | null>(null);
-  const [manualBrand, setManualBrand] = useState<string>('');
+// Fetch offer details (unchanged)
+async function fetchOfferDetails(fileId: string): Promise<OfferDetails> {
+  const token = getAuthToken();
+  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers/${fileId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!response.ok) throw new Error(`Failed to fetch offer details: ${response.status}`);
+  return response.json();
+}
 
-  const showToast: ToastFunction = useCustomToast();
+// New function to submit offer to /submitOffer endpoint
+async function submitOffer({ fileUrl, headerIndex, sendToEmail }: { fileUrl: string; headerIndex: number; sendToEmail?: string }): Promise<void> {
+  const token = getAuthToken();
+  const formData = new FormData();
+  formData.append("fileUrl", fileUrl);
+  formData.append("header_index", headerIndex.toString());
+  if (sendToEmail) formData.append("sendToEmail", sendToEmail);
 
-  // File Handling
-  const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (!selectedFile) {
-      showToast('File Error', 'No file selected', 'error');
-      return;
-    }
+  const response = await fetch(`https://backend-dev.iconluxury.group/submitOffer`, {
+    method: "POST",
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: formData,
+  });
 
-    if (!['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'].includes(selectedFile.type)) {
-      showToast('File Error', 'Please upload an Excel file (.xlsx or .xls)', 'error');
-      return;
-    }
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.detail || `Failed to submit offer: ${response.status}`);
+  }
+}
 
-    setFile(selectedFile);
-    setExcelData({ headers: [], rows: [] });
-    setManualBrand('');
-    setIsLoadingFile(true);
+// OverviewTab Component (unchanged)
+const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
+  return (
+    <Box p={4} bg="white">
+      <Box mb={6}>
+        <Stat mt={4}>
+          <StatLabel color="gray.600">Status</StatLabel>
+          <StatNumber>
+            <Badge colorScheme={offer.recordCount > 0 ? "green" : "yellow"}>
+              {offer.recordCount > 0 ? "Active" : "Pending"}
+            </Badge>
+          </StatNumber>
+        </Stat>
+      </Box>
+      <Text fontSize="lg" fontWeight="bold" mb={4}>Metadata</Text>
+      <Table variant="simple" size="md" colorScheme="gray" mb={6}>
+        <Tbody>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">ID</Td>
+            <Td>{offer.id}</Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">File Name</Td>
+            <Td>
+              <Link href={offer.fileLocationUrl} isExternal color="green.300">
+                {offer.fileName || "N/A"}
+              </Link>
+            </Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">File Location URL</Td>
+            <Td>
+              <Link href={offer.fileLocationUrl} color="blue.500" isExternal>
+                {offer.fileLocationUrl}
+              </Link>
+            </Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">User Email</Td>
+            <Td>{offer.userEmail || "N/A"}</Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">Create Time</Td>
+            <Td>{offer.createTime ? new Date(offer.createTime).toLocaleString() : "N/A"}</Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">Record Count</Td>
+            <Td>{offer.recordCount}</Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">Records</Td>
+            <Td>{offer.nikOfferCount}</Td>
+          </Tr>
+        </Tbody>
+      </Table>
+    </Box>
+  );
+};
 
-    try {
-      const data = await readFile(selectedFile);
-      const workbook = XLSX.read(data, { type: 'binary' });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      if (!worksheet) throw new Error('No worksheet found in the Excel file');
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: true, defval: '' });
-      if (jsonData.length === 0) throw new Error('Excel file is empty');
-      const preview = jsonData.slice(0, MAX_ROWS) as (string | number | boolean | null)[][];
-      setPreviewRows(preview);
+// RecordsTab Component (unchanged)
+const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null);
+  const [displayCount, setDisplayCount] = useState(50);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-      const autoHeaderIndex = detectHeaderRow(preview);
-      if (autoHeaderIndex !== null) {
-        processHeaderSelection(autoHeaderIndex, preview);
-      } else {
-        setIsHeaderModalOpen(true);
+  const query = (searchQuery || "").trim().toLowerCase();
+  const filteredRecords = offer.sampleNikOffers.filter((record) =>
+    Object.values(record).some((value) => value?.toString().toLowerCase().includes(query))
+  );
+
+  const handleSort = (key: string) => {
+    setSortConfig((prev) => {
+      if (prev && prev.key === key) {
+        return { key, direction: prev.direction === "ascending" ? "descending" : "ascending" };
       }
-    } catch (error) {
-      showToast('File Processing Error', error instanceof Error ? error.message : 'Unknown error', 'error');
-      setFile(null);
-    } finally {
-      setIsLoadingFile(false);
-    }
-  }, [showToast]);
-
-  const readFile = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      if (file.size > 10 * 1024 * 1024) {
-        reject(new Error('File size exceeds 10MB'));
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.onerror = () => reject(new Error('Error reading file'));
-      reader.readAsBinaryString(file);
+      return { key, direction: "ascending" };
     });
   };
 
-  const detectHeaderRow = (rows: (string | number | boolean | null)[][]): number | null => {
-    const patterns = {
-      style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))$/i,
-      brand: /^(brand|brand\s*name|manufacturer|label)$/i,
-    };
-
-    const MAX_SEARCH_ROWS = 50;
-
-    for (let i = 0; i < Math.min(MAX_SEARCH_ROWS, rows.length); i++) {
-      const rowValues = rows[i]
-        .map(cell => String(cell ?? '').trim())
-        .filter(value => value !== '');
-      if (rowValues.length < 2) continue;
-
-      let styleMatch = false;
-      for (const value of rowValues) {
-        if (patterns.style.test(String(value ?? '').trim())) {
-          styleMatch = true;
-          break;
-        }
+  const sortedRecords = [...filteredRecords].sort((a, b) => {
+    if (sortConfig) {
+      const { key, direction } = sortConfig;
+      const aValue = a[key as keyof NikOfferItem] || "";
+      const bValue = b[key as keyof NikOfferItem] || "";
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return direction === "ascending" ? aValue - bValue : bValue - aValue;
       }
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      return direction === "ascending" ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+    }
+    return 0;
+  });
 
-      if (styleMatch) return i;
+  const displayedRecords = sortedRecords.slice(0, displayCount);
+  const hasMore = displayCount < sortedRecords.length;
+
+  useEffect(() => {
+    if (!loadMoreRef.current || !hasMore) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setDisplayCount((prev) => prev + 50);
+        }
+      },
+      { threshold: 0.1, rootMargin: "200px" }
+    );
+
+    observerRef.current.observe(loadMoreRef.current);
+
+    return () => {
+      if (observerRef.current && loadMoreRef.current) {
+        observerRef.current.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [hasMore]);
+
+  return (
+    <Box p={4} bg="white">
+      <Flex justify="space-between" align="center" mb={4}>
+        <Text fontSize="lg" fontWeight="bold" color="gray.800">Records ({sortedRecords.length})</Text>
+      </Flex>
+      <Card shadow="md" borderWidth="1px" bg="white">
+        <CardBody>
+          <Table variant="simple" size="sm" colorScheme="blue">
+            <Thead bg="gray.100">
+              <Tr>
+                <Th w="80px" onClick={() => handleSort("fileId")} cursor="pointer" color="gray.800">
+                  File ID {sortConfig?.key === "fileId" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f0")} cursor="pointer" color="gray.800">
+                  Field 0 {sortConfig?.key === "f0" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f1")} cursor="pointer" color="gray.800">
+                  Field 1 {sortConfig?.key === "f1" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f2")} cursor="pointer" color="gray.800">
+                  Field 2 {sortConfig?.key === "f2" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f3")} cursor="pointer" color="gray.800">
+                  Field 3 {sortConfig?.key === "f3" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f4")} cursor="pointer" color="gray.800">
+                  Field 4 {sortConfig?.key === "f4" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f5")} cursor="pointer" color="gray.800">
+                  Field 5 {sortConfig?.key === "f5" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f6")} cursor="pointer" color="gray.800">
+                  Field 6 {sortConfig?.key === "f6" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f7")} cursor="pointer" color="gray.800">
+                  Field 7 {sortConfig?.key === "f7" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f8")} cursor="pointer" color="gray.800">
+                  Field 8 {sortConfig?.key === "f8" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+                <Th w="120px" onClick={() => handleSort("f9")} cursor="pointer" color="gray.800">
+                  Field 9 {sortConfig?.key === "f9" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {displayedRecords.map((record) => (
+                <Tr key={`${record.fileId}-${record.f0}`}>
+                  <Td w="80px" color="gray.800">{record.fileId || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{record.f0 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{record.f1 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{record.f2 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{record.f3 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{record.f4 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{record.f5 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{record.f6 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{record.f7 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{record.f8 || "N/A"}</Td>
+                  <Td w="120px" color="gray.800">{record.f9 || "N/A"}</Td>
+                </Tr>
+              ))}
+              {displayedRecords.length === 0 && (
+                <Tr>
+                  <Td colSpan={11} textAlign="center" color="gray.600">
+                    No records match your search query.
+                  </Td>
+                </Tr>
+              )}
+            </Tbody>
+          </Table>
+          {hasMore && (
+            <Box ref={loadMoreRef} h="20px" textAlign="center">
+              <Text fontSize="sm" color="gray.600">Loading more...</Text>
+            </Box>
+          )}
+          {!hasMore && displayedRecords.length > 0 && (
+            <Box h="20px" textAlign="center">
+              <Text fontSize="sm" color="gray.600">No more records to load</Text>
+            </Box>
+          )}
+        </CardBody>
+      </Card>
+    </Box>
+  );
+};
+
+// OfferDetailPage Component (updated)
+const OfferDetailPage = () => {
+  const { fileId } = useParams({ from: "/_layout/supplier/offer/$fileId" });
+  interface SearchParams {
+    activeTab?: string;
+    search?: string | string[];
+  }
+  const searchParams = useSearch({ from: "/_layout/supplier/offer/$fileId" }) as SearchParams;
+  const initialTab = searchParams.activeTab ? parseInt(searchParams.activeTab, 10) : 0;
+  const initialSearch = Array.isArray(searchParams.search) ? searchParams.search[0] : searchParams.search || "";
+  const [activeTab, setActiveTab] = useState<number>(
+    isNaN(initialTab) || initialTab < 0 || initialTab > 1 ? 0 : initialTab
+  );
+  const [searchQuery, setSearchQuery] = useState<string>(String(initialSearch));
+  const showToast = useCustomToast();
+
+  // Form state for submitting offer
+  const [fileUrl, setFileUrl] = useState<string>("");
+  const [headerIndex, setHeaderIndex] = useState<number | "">("");
+  const [sendToEmail, setSendToEmail] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [errors, setErrors] = useState<{ fileUrl?: string; headerIndex?: string; sendToEmail?: string }>({});
+
+  const { data: offerData, isLoading, error } = useQuery({
+    queryKey: ["offerDetails", fileId],
+    queryFn: () => fetchOfferDetails(fileId),
+    staleTime: 5 * 60 * 1000,
+    retry: (failureCount, error) => {
+      if (error.message.includes("Unauthorized")) return false;
+      return failureCount < 3;
+    },
+    placeholderData: keepPreviousData,
+  });
+
+  // Validate form inputs
+  const validateForm = (): boolean => {
+    const newErrors: { fileUrl?: string; headerIndex?: string; sendToEmail?: string } = {};
+
+    if (!fileUrl.trim()) {
+      newErrors.fileUrl = "File URL is required";
+    } else if (!fileUrl.match(/^https?:\/\/.+/)) {
+      newErrors.fileUrl = "Please enter a valid URL starting with http:// or https://";
     }
 
-    return null;
-  };
-
-  const processHeaderSelection = (index: number, rows: (string | number | boolean | null)[][]) => {
-    const headers = rows[index].map(cell => String(cell ?? ''));
-    const newRows = rows.slice(index + 1).map(row => ({ row }));
-    setExcelData({ headers, rows: newRows });
-    setHeaderRowIndex(index);
-  };
-
-  // Manual Brand
-  const applyManualBrand = useCallback(() => {
-    if (!manualBrand) {
-      showToast('Manual Brand Error', 'Please enter a brand name.', 'warning');
-      return;
+    if (headerIndex === "" || isNaN(Number(headerIndex))) {
+      newErrors.headerIndex = "Header index is required and must be a number";
+    } else if (Number(headerIndex) < 1) {
+      newErrors.headerIndex = "Header index must be 1 or greater";
     }
 
-    const insertIndex = excelData.headers.length ? 1 : 0; // Insert after first column or at start
-    const newHeaders = [
-      ...excelData.headers.slice(0, insertIndex),
-      'BRAND (Manual)',
-      ...excelData.headers.slice(insertIndex),
-    ];
-    const newRows = excelData.rows.map(row => ({
-      row: [
-        ...row.row.slice(0, insertIndex),
-        manualBrand,
-        ...row.row.slice(insertIndex),
-      ],
-    }));
+    if (sendToEmail && !sendToEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      newErrors.sendToEmail = "Please enter a valid email address";
+    }
 
-    setExcelData({ headers: newHeaders, rows: newRows });
-  }, [manualBrand, excelData, showToast]);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-  // Header Selection
-  const handleRowSelect = useCallback((rowIndex: number) => {
-    setSelectedRowIndex(rowIndex);
-    setIsConfirmModalOpen(true);
-  }, []);
-
-  const confirmHeaderSelect = useCallback(() => {
-    if (selectedRowIndex === null) return;
-    processHeaderSelection(selectedRowIndex, previewRows);
-    setIsHeaderModalOpen(false);
-    setIsConfirmModalOpen(false);
-  }, [selectedRowIndex, previewRows]);
-
-  // Form Submission
-  const handleSubmit = useCallback(async () => {
+  // Handle form submission
+  const handleSubmitOffer = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!validateForm()) return;
 
-    setIsLoadingFile(true);
+    setIsSubmitting(true);
     try {
-      const formData = prepareFormData();
-      const response = await fetch(`${SERVER_URL}/submitFullFile`, {
-        method: 'POST',
-        body: formData,
+      await submitOffer({
+        fileUrl,
+        headerIndex: Number(headerIndex),
+        sendToEmail: sendToEmail.trim() || undefined,
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Server error: ${response.status} - ${errorText}`);
-      }
-      await response.json();
-      showToast('Success', 'Offer uploaded successfully', 'success');
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      showToast("Success", "Offer submitted successfully", "success");
+      // Reset form
+      setFileUrl("");
+      setHeaderIndex("");
+      setSendToEmail("");
+      setErrors({});
     } catch (error) {
-      showToast('Submission Error', error instanceof Error ? error.message : 'Unknown error', 'error');
+      showToast("Error", error.message || "Failed to submit offer", "error");
     } finally {
-      setIsLoadingFile(false);
+      setIsSubmitting(false);
     }
-  }, [file, headerRowIndex, showToast]);
-
-  const validateForm = (): boolean => {
-    if (!file) {
-      showToast('Validation Error', 'No file selected', 'error');
-      return false;
-    }
-    if (headerRowIndex === null) {
-      showToast('Validation Error', 'Header row not selected', 'error');
-      return false;
-    }
-    return true;
   };
 
-  const prepareFormData = (): FormData => {
-    if (!file) throw new Error('No file selected');
-    if (headerRowIndex === null || headerRowIndex < 0) throw new Error('Invalid header row index');
+  if (isLoading) {
+    return (
+      <Container maxW="full" py={6} bg="white">
+        <Flex justify="center" align="center" h="200px">
+          <Spinner size="xl" color="green.300" />
+        </Flex>
+      </Container>
+    );
+  }
 
-    const formData = new FormData();
-    formData.append('fileUpload', file);
-    formData.append('header_index', String(headerRowIndex + 1));
+  if (error || !offerData) {
+    return (
+      <Container maxW="full" py={6} bg="white">
+        <Text color="red.500">{error?.message || "Offer data not available"}</Text>
+      </Container>
+    );
+  }
 
-    const userEmail = 'nik@luxurymarket.com';
-    if (userEmail) formData.append('sendToEmail', userEmail);
+  const tabsConfig = [
+    { title: "Overview", component: () => <OverviewTab offer={offerData} /> },
+    { title: "Records", component: () => <RecordsTab offer={offerData} searchQuery={searchQuery} /> },
+  ];
 
-    return formData;
-  };
-
-  // Computed Values
-  const canSubmit = excelData.rows.length > 0 && headerRowIndex !== null;
-
-  // Render
   return (
-    <Container maxW="container.xl" p={4} bg="white" color="black">
-      <VStack spacing={4} align="stretch">
-        <ControlSection
-          isLoading={isLoadingFile}
-          onFileChange={handleFileChange}
-          onSubmit={handleSubmit}
-          canSubmit={canSubmit}
-          rowCount={excelData.rows.length}
-        />
-        <ManualBrandSection
-          isVisible={excelData.rows.length > 0}
-          manualBrand={manualBrand}
-          setManualBrand={setManualBrand}
-          onApply={applyManualBrand}
-          isLoading={isLoadingFile}
-        />
-        <DataTableSection
-          isLoading={isLoadingFile}
-          excelData={excelData}
-        />
-        <HeaderSelectionModal
-          isOpen={isHeaderModalOpen}
-          onClose={() => setIsHeaderModalOpen(false)}
-          previewRows={previewRows}
-          onRowSelect={handleRowSelect}
-        />
-        <ConfirmHeaderModal
-          isOpen={isConfirmModalOpen}
-          onClose={() => setIsConfirmModalOpen(false)}
-          selectedRowIndex={selectedRowIndex}
-          previewRows={previewRows}
-          onConfirm={confirmHeaderSelect}
-        />
-      </VStack>
+    <Container maxW="full" bg="white">
+      <Flex align="center" justify="space-between" py={6} flexWrap="wrap" gap={4}>
+        <Box textAlign="left" flex="1">
+          <Text fontSize="xl" fontWeight="bold" color="gray.800">
+            Offer: {fileId}
+          </Text>
+          <Text fontSize="sm" color="gray.600">
+            Details for supplier offer {offerData.fileName || "ID " + offerData.id}.
+          </Text>
+        </Box>
+      </Flex>
+
+      {/* Form for submitting offer */}
+      <Card mb={6} p={4} shadow="md" borderWidth="1px">
+        <CardBody>
+          <Text fontSize="lg" fontWeight="bold" mb={4}>
+            Submit New Offer
+          </Text>
+          <form onSubmit={handleSubmitOffer}>
+            <Flex direction="column" gap={4}>
+              <FormControl isInvalid={!!errors.fileUrl}>
+                <FormLabel>File URL</FormLabel>
+                <Input
+                  value={fileUrl}
+                  onChange={(e) => setFileUrl(e.target.value)}
+                  placeholder="https://example.com/offer.xlsx"
+                  borderColor="green.300"
+                  _focus={{ borderColor: "green.300" }}
+                />
+                <FormErrorMessage>{errors.fileUrl}</FormErrorMessage>
+              </FormControl>
+
+              <FormControl isInvalid={!!errors.headerIndex}>
+                <FormLabel>Header Row Index (1-based)</FormLabel>
+                <NumberInput value={headerIndex} onChange={(_, value) => setHeaderIndex(value)} min={1}>
+                  <NumberInputField borderColor="green.300" _focus={{ borderColor: "green.300" }} />
+                </NumberInput>
+                <FormErrorMessage>{errors.headerIndex}</FormErrorMessage>
+              </FormControl>
+
+              <FormControl isInvalid={!!errors.sendToEmail}>
+                <FormLabel>Notification Email (Optional)</FormLabel>
+                <Input
+                  value={sendToEmail}
+                  onChange={(e) => setSendToEmail(e.target.value)}
+                  placeholder="email@example.com"
+                  borderColor="green.300"
+                  _focus={{ borderColor: "green.300" }}
+                />
+                <FormErrorMessage>{errors.sendToEmail}</FormErrorMessage>
+              </FormControl>
+
+              <Button
+                type="submit"
+                colorScheme="blue"
+                isLoading={isSubmitting}
+                isDisabled={isSubmitting}
+              >
+                Submit Offer
+              </Button>
+            </Flex>
+          </form>
+        </CardBody>
+      </Card>
+
+      <Tabs
+        variant="enclosed"
+        isLazy
+        index={activeTab}
+        onChange={(index) => setActiveTab(index)}
+        colorScheme="blue"
+      >
+        <TabList borderBottom="2px solid" borderColor="green.200">
+          {tabsConfig.map((tab) => (
+            <Tab
+              key={tab.title}
+              _selected={{ bg: "white", color: "green.300", borderColor: "green.300" }}
+              color="gray.600"
+            >
+              {tab.title}
+            </Tab>
+          ))}
+          <Input
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            width="300px"
+            borderColor="green.300"
+            _focus={{ borderColor: "green.300" }}
+            color="gray.800"
+            bg="white"
+            ml="auto"
+          />
+        </TabList>
+        <TabPanels>
+          {tabsConfig.map((tab) => (
+            <TabPanel key={tab.title}>{tab.component()}</TabPanel>
+          ))}
+        </TabPanels>
+      </Tabs>
     </Container>
   );
 };
 
-// Sub-components
-interface ControlSectionProps {
-  isLoading: boolean;
-  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onSubmit: () => void;
-  canSubmit: boolean;
-  rowCount: number;
-}
-
-const ControlSection: React.FC<ControlSectionProps> = ({
-  isLoading,
-  onFileChange,
-  onSubmit,
-  canSubmit,
-  rowCount,
-}) => (
-  <HStack spacing={2} align="flex-end" wrap="wrap">
-    <FormControl w="xl">
-      <Input
-        type="file"
-        accept=".xlsx,.xls"
-        onChange={onFileChange}
-        disabled={isLoading}
-        bg="white"
-        color="black"
-        borderColor="gray.300"
-        _hover={{ borderColor: 'blue.500' }}
-        _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px rgba(66, 153, 225, 0.6)' }}
-        aria-label="Upload Excel file"
-      />
-    </FormControl>
-    <Button
-      colorScheme="blue"
-      onClick={onSubmit}
-      isDisabled={!canSubmit || isLoading}
-      isLoading={isLoading}
-    >
-      Submit Offer
-    </Button>
-    {rowCount > 0 && (
-      <VStack align="start" spacing={0}>
-        <Text fontSize="sm" color="gray.600">Rows: {rowCount}</Text>
-      </VStack>
-    )}
-    {isLoading && <Text color="gray.600">Processing...</Text>}
-  </HStack>
-);
-
-interface ManualBrandSectionProps {
-  isVisible: boolean;
-  manualBrand: string;
-  setManualBrand: (value: string) => void;
-  onApply: () => void;
-  isLoading: boolean;
-}
-
-const ManualBrandSection: React.FC<ManualBrandSectionProps> = ({
-  isVisible,
-  manualBrand,
-  setManualBrand,
-  onApply,
-  isLoading,
-}) => (
-  <>
-    {isVisible && (
-      <HStack spacing={2}>
-        <FormControl w="sm">
-          <Input
-            placeholder="Add Brand for All Rows (Optional)"
-            value={manualBrand}
-            onChange={(e) => setManualBrand(e.target.value)}
-            disabled={isLoading}
-            bg="white"
-            color="black"
-            borderColor="gray.300"
-            _hover={{ borderColor: 'blue.500' }}
-            _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px rgba(66, 153, 225, 0.6)' }}
-            aria-label="Enter manual brand"
-          />
-        </FormControl>
-        <Button
-          colorScheme="orange"
-          onClick={onApply}
-          isDisabled={!manualBrand || isLoading}
-        >
-          Apply
-        </Button>
-      </HStack>
-    )}
-    <Box borderBottomWidth="1px" borderColor="gray.200" my={2} />
-  </>
-);
-
-interface DataTableSectionProps {
-  isLoading: boolean;
-  excelData: ExcelData;
-}
-
-const DataTableSection: React.FC<DataTableSectionProps> = ({
-  isLoading,
-  excelData,
-}) => (
-  <>
-    {excelData.rows.length > 0 && (
-      <Box flex="1" overflowY="auto" maxH="60vh" borderWidth="1px" borderRadius="md" p={4} borderColor="gray.200" bg="white">
-        {isLoading ? (
-          <VStack justify="center" h="full">
-            <Spinner size="lg" color="green.500" />
-            <Text color="gray.600">Loading table data...</Text>
-          </VStack>
-        ) : (
-          <ExcelDataTable excelData={excelData} />
-        )}
-      </Box>
-    )}
-  </>
-);
-
-interface HeaderSelectionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  previewRows: (string | number | boolean | null)[][];
-  onRowSelect: (rowIndex: number) => void;
-}
-
-const HeaderSelectionModal: React.FC<HeaderSelectionModalProps> = ({
-  isOpen,
-  onClose,
-  previewRows,
-  onRowSelect,
-}) => (
-  <Modal isOpen={isOpen} onClose={onClose} size="xl">
-    <ModalOverlay />
-    <ModalContent alignSelf="left" ml={4} mt={16} bg="white" color="black">
-      <ModalHeader>Select Header Row (Click a row) - {previewRows.length} Rows</ModalHeader>
-      <ModalBody maxH="60vh" overflowY="auto">
-        <Table size="sm" colorScheme="gray" aria-label="Preview rows for header selection">
-          <Tbody>
-            {previewRows.map((row, rowIndex) => (
-              <Tr
-                key={rowIndex}
-                onClick={() => onRowSelect(rowIndex)}
-                cursor="pointer"
-                _hover={{ bg: 'blue.50' }}
-                role="button"
-                aria-label={`Select row ${rowIndex + 1} as header`}
-              >
-                {row.map((cell, cellIndex) => (
-                  <Td key={cellIndex} py={2} px={3}>{getDisplayValue(cell)}</Td>
-                ))}
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </ModalBody>
-      <ModalFooter>
-        <Button size="sm" variant="outline" borderColor="gray.300" onClick={onClose} _hover={{ bg: 'gray.100' }} aria-label="Cancel header selection">
-          Cancel
-        </Button>
-      </ModalFooter>
-    </ModalContent>
-  </Modal>
-);
-
-interface ConfirmHeaderModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  selectedRowIndex: number | null;
-  previewRows: (string | number | boolean | null)[][];
-  onConfirm: () => void;
-}
-
-const ConfirmHeaderModal: React.FC<ConfirmHeaderModalProps> = ({
-  isOpen,
-  onClose,
-  selectedRowIndex,
-  previewRows,
-  onConfirm,
-}) => (
-  <Modal isOpen={isOpen} onClose={onClose}>
-    <ModalOverlay />
-    <ModalContent bg="white" color="black">
-      <ModalHeader>Confirm Header Selection</ModalHeader>
-      <ModalBody>
-        <Text>Use row {selectedRowIndex !== null ? selectedRowIndex + 1 : ''} as header?</Text>
-        {selectedRowIndex !== null && (
-          <Text mt={2} color="gray.600">{previewRows[selectedRowIndex].map(cell => getDisplayValue(cell)).join(', ')}</Text>
-        )}
-      </ModalBody>
-      <ModalFooter>
-        <Button colorScheme="blue" mr={3} onClick={onConfirm} aria-label="Confirm header selection">
-          Confirm
-        </Button>
-        <Button variant="outline" borderColor="gray.300" onClick={onClose} _hover={{ bg: 'gray.100' }} aria-label="Cancel header confirmation">
-          Cancel
-        </Button>
-      </ModalFooter>
-    </ModalContent>
-  </Modal>
-);
-
-// Export
-export const Route = createFileRoute('/_layout/submit-form/offer')({
-  component: OfferUploadForm,
+export const Route = createFileRoute("/_layout/supplier/offer/$fileId")({
+  component: OfferDetailPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    activeTab: search.activeTab as string | undefined,
+    search: search.search as string | string[] | undefined,
+  }),
 });
 
-export default OfferUploadForm;
+export default OfferDetailPage;
