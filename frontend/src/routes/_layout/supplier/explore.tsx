@@ -28,7 +28,7 @@ import {
 import { FiCopy, FiEye, FiEyeOff } from "react-icons/fi";
 import PromoSERP from "../../../components/ComingSoon";
 import ApiStatusManagement from "../../../components/UserSettings/ApiStatusManagement";
-
+import { FiUpload } from "react-icons/fi";
 interface OfferSummary {
   id: number;
   fileName?: string; // Made optional to reflect missing name allowance
@@ -398,24 +398,32 @@ function SupplierOffers() {
 
   return (
     <Container maxW="full" bg="gray.50" minH="100vh" p={4}>
-      <Flex align="center" justify="space-between" py={6} flexWrap="wrap" gap={4}>
-        <Box textAlign="left" flex="1">
-          <Text fontSize="xl" fontWeight="bold" color="gray.800">Supplier File Explorer</Text>
-          <Text fontSize="sm" color="gray.600">View and manage supplier offers</Text>
-        </Box>
-        <HStack>
-          <Tooltip label={isPreviewOpen ? "Hide Preview" : "Show Preview"}>
-            <IconButton
-              aria-label={isPreviewOpen ? "Hide Preview" : "Show Preview"}
-              icon={isPreviewOpen ? <FiEyeOff /> : <FiEye />}
-              size="sm"
-              colorScheme={isPreviewOpen ? "green" : "gray"}
-              onClick={() => setIsPreviewOpen(!isPreviewOpen)}
-            />
-          </Tooltip>
-        </HStack>
-      </Flex>
 
+    <Flex align="center" justify="space-between" py={6} flexWrap="wrap" gap={4}>
+      <Box textAlign="left" flex="1">
+        <Text fontSize="xl" fontWeight="bold" color="gray.800">Supplier File Explorer</Text>
+        <Text fontSize="sm" color="gray.600">View and manage supplier offers</Text>
+      </Box>
+      <HStack spacing={3}>
+        <Button
+          leftIcon={<FiUpload />}
+          colorScheme="green"
+          size="sm"
+          onClick={() => navigate({ to: "/submit-form/offer" })}
+        >
+          Upload Offer
+        </Button>
+        <Tooltip label={isPreviewOpen ? "Hide Preview" : "Show Preview"}>
+          <IconButton
+            aria-label={isPreviewOpen ? "Hide Preview" : "Show Preview"}
+            icon={isPreviewOpen ? <FiEyeOff /> : <FiEye />}
+            size="sm"
+            colorScheme={isPreviewOpen ? "green" : "gray"}
+            onClick={() => setIsPreviewOpen(!isPreviewOpen)}
+          />
+        </Tooltip>
+      </HStack>
+    </Flex>
       <Divider my={4} borderColor="gray.200" />
 
       {isLocked ? (
