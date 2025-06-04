@@ -90,7 +90,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     colorName: null,
   });
   const [manualBrand, setManualBrand] = useState<string>('');
-
+  const [manualBrandInfo, setManualBrandInfo] = useState<{ value: string; insertIndex: number } | null>(null);
   const showToast: ToastFunction = useCustomToast();
 
   // File Handling
@@ -301,8 +301,10 @@ const CMSGoogleSerpForm: React.FC = () => {
   });
 
   setExcelData({ headers: newHeaders, rows: newRows });
-  setColumnMapping(newMapping);
-}, [manualBrand, columnMapping, excelData, showToast]);
+  setColumnMapping(newMapping); // newMapping is the shifted one for display
+  setManualBrandInfo({ value: manualBrand, insertIndex }); // Store applied value and insertIndex
+  // setManualBrand(''); // Optionally clear the input field after applying
+}, [manualBrand, columnMapping, excelData, showToast /*, setManualBrandInfo */]);
 
   // Form Submission
   const handleSubmit = useCallback(async () => {
