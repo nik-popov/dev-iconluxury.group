@@ -298,10 +298,8 @@ function OffersPage() {
 
       {isLocked && !isEffectivelyDeactivated ? ( // Show if locked but not due to deactivation (e.g. new user, expired)
         <Box p={4} bg="yellow.50" borderRadius="md" textAlign="center">
-          <Text color="orange.700" fontWeight="medium">Access restricted. Please subscribe or start a trial to view offers.</Text>
-          <Button mt={3} colorScheme="blue" onClick={() => navigate({ to: "/proxies/pricing" })}> {/* Adjust nav target as needed */}
-            View Plans
-          </Button>
+          <Text color="orange.700" fontWeight="medium">Access restricted. Please contact support.</Text>
+    
         </Box>
       ) : isEffectivelyDeactivated ? (
         <Flex 
