@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useSearch, useNavigate } from "@tanstack/react-router";
+import { useSearch } from "@tanstack/react-router";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import {
@@ -16,7 +16,6 @@ import {
   Spinner,
   Button,
   Card,
-  Link,
   CardBody,
   Stat,
   StatLabel,
@@ -28,11 +27,6 @@ import {
   Tr,
   Th,
   Td,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
 } from "@chakra-ui/react";
 import useCustomToast from "../../../../hooks/useCustomToast";
 
@@ -59,13 +53,6 @@ interface NikOfferItem {
   f7?: string;
   f8?: string;
   f9?: string;
-}
-
-interface DetailsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  data: Record<string, any> | null;
 }
 
 interface RecordsTabProps {
@@ -102,54 +89,6 @@ async function submitForReview(fileId: string): Promise<void> {
   if (!response.ok) throw new Error(`Failed to submit for review: ${response.status}`);
 }
 
-// DetailsModal Component
-const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, data }) => {
-  const capitalizeKey = (key: string) => key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()).trim();
-
-  const renderValue = (value: any) => {
-    if (value === null || value === undefined) return <Text color="gray.400">N/A</Text>;
-    if (typeof value === "string" && /^(https?:\/\/[^\s]+)$/.test(value)) {
-      return <Link href={value} color="blue.500" isExternal>{value}</Link>;
-    }
-    return <Text>{value}</Text>;
-  };
-
-  if (!data) {
-    return (
-      <Modal isOpen={isOpen} onClose={onClose} size="full">
-        <ModalOverlay />
-        <ModalContent maxW="90vw" maxH="70vh" mx="auto" my={4}>
-          <ModalHeader fontSize="xl" fontWeight="bold">{title}</ModalHeader>
-          <ModalBody><Text fontSize="md" color="gray.600">No data available</Text></ModalBody>
-        </ModalContent>
-      </Modal>
-    );
-  }
-
-  const modalTitle = data.id ? `${title} (ID: ${data.id})` : title;
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} size="full">
-      <ModalOverlay />
-      <ModalContent maxW="90vw" maxH="80vh" mx="auto" my={4} borderRadius="md">
-        <ModalHeader fontSize="xl" fontWeight="bold" pb={2}>{modalTitle}</ModalHeader>
-        <ModalBody overflowY="auto">
-          <Table variant="simple" size="md" colorScheme="gray">
-            <Tbody>
-              {Object.entries(data).filter(([key]) => key.toLowerCase() !== "id").map(([key, value]) => (
-                <Tr key={key}>
-                  <Td fontWeight="semibold" color="gray.700" w="25%" py={3}>{capitalizeKey(key)}</Td>
-                  <Td wordBreak="break-word" color="gray.800" py={3}>{renderValue(value)}</Td>
-                </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
-  );
-};
-
 // OverviewTab Component
 const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
   return (
@@ -166,18 +105,16 @@ const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
         </Stat>
         <Stat mt={4}>
           <StatLabel color="gray.600">Records</StatLabel>
-          <StatNumber color="gray.800">{offer.nikOfferCount}</StatNumber>
+          <StatNumber color="gray._DETECTED_CHANGE:800">{offer.nikOfferCount}</StatNumber>
         </Stat>
       </Box>
     </Box>
   );
 };
 
-// RecordsTab Component (formerly NikOffersTab)
+// RecordsTab Component
 const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
   const showToast = useCustomToast();
-  const [selectedRecord, setSelectedRecord] = useState<NikOfferItem | null>(null);
-  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null);
   const [displayCount, setDisplayCount] = useState(50);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -185,9 +122,7 @@ const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
 
   const query = (searchQuery || "").trim().toLowerCase();
   const filteredRecords = offer.sampleNikOffers.filter((record) =>
-    Object.values(record).some((value) =>
-      value?.toString().toLowerCase().includes(query)
-    )
+    Object.values(record).some((value) => value?.toString().toLowerCase().includes(query))
   );
 
   const handleSort = (key: string) => {
@@ -301,7 +236,9 @@ const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
               ))}
               {displayedRecords.length === 0 && (
                 <Tr>
-                  <Td colSpan={11} textAlign="center" color="gray.600">No records match your search query.</Td>
+                  <Td colSpan={11} textAlign="center" color="gray.600">
+                    No records match your search query.
+                  </Td>
                 </Tr>
               )}
             </Tbody>
@@ -318,12 +255,6 @@ const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
           )}
         </CardBody>
       </Card>
-      <DetailsModal
-        isOpen={isRecordModalOpen}
-        onClose={() => setIsRecordModalOpen(false)}
-        title={`Record ${selectedRecord?.fileId || "Details"}`}
-        data={selectedRecord}
-      />
     </Box>
   );
 };
@@ -331,10 +262,17 @@ const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
 // OfferDetailPage Component
 const OfferDetailPage = () => {
   const { fileId } = useParams({ from: "/_layout/supplier/offer/$fileId" });
-  const { search: searchParams } = useSearch({ from: "/_layout/supplier/offer/$fileId" });
+  // Define expected search parameters
+  interface SearchParams {
+    activeTab?: string;
+    search?: string | string[];
+  }
+  const searchParams = useSearch({ from: "/_layout/supplier/offer/$fileId" }) as SearchParams;
   const initialTab = searchParams.activeTab ? parseInt(searchParams.activeTab, 10) : 0;
   const initialSearch = Array.isArray(searchParams.search) ? searchParams.search[0] : searchParams.search || "";
-  const [activeTab, setActiveTab] = useState<number>(isNaN(initialTab) || initialTab < 0 || initialTab > 1 ? 0 : initialTab);
+  const [activeTab, setActiveTab] = useState<number>(
+    isNaN(initialTab) || initialTab < 0 || initialTab > 1 ? 0 : initialTab
+  );
   const [searchQuery, setSearchQuery] = useState<string>(String(initialSearch));
   const showToast = useCustomToast();
 
@@ -361,7 +299,9 @@ const OfferDetailPage = () => {
   if (isLoading) {
     return (
       <Container maxW="full" py={6} bg="white">
-        <Flex justify="center" align="center" h="200px"><Spinner size="xl" color="green.300" /></Flex>
+        <Flex justify="center" align="center" h="200px">
+          <Spinner size="xl" color="green.300" />
+        </Flex>
       </Container>
     );
   }
@@ -383,15 +323,33 @@ const OfferDetailPage = () => {
     <Container maxW="full" bg="white">
       <Flex align="center" justify="space-between" py={6} flexWrap="wrap" gap={4}>
         <Box textAlign="left" flex="1">
-          <Text fontSize="xl" fontWeight="bold" color="gray.800">Offer: {fileId}</Text>
-          <Text fontSize="sm" color="gray.600">Details for supplier offer {offerData.fileName || "ID " + offerData.id}.</Text>
+          <Text fontSize="xl" fontWeight="bold" color="gray.800">
+            Offer: {fileId}
+          </Text>
+          <Text fontSize="sm" color="gray.600">
+            Details for supplier offer {offerData.fileName || "ID " + offerData.id}.
+          </Text>
         </Box>
-        <Button colorScheme="blue" onClick={handleSubmitForReview}>Submit for Review</Button>
+        <Button colorScheme="blue" onClick={handleSubmitForReview}>
+          Submit for Review
+        </Button>
       </Flex>
-      <Tabs variant="enclosed" isLazy index={activeTab} onChange={(index) => setActiveTab(index)} colorScheme="blue">
+      <Tabs
+        variant="enclosed"
+        isLazy
+        index={activeTab}
+        onChange={(index) => setActiveTab(index)}
+        colorScheme="blue"
+      >
         <TabList borderBottom="2px solid" borderColor="green.200">
           {tabsConfig.map((tab) => (
-            <Tab key={tab.title} _selected={{ bg: "white", color: "green.300", borderColor: "green.300" }} color="gray.600">{tab.title}</Tab>
+            <Tab
+              key={tab.title}
+              _selected={{ bg: "white", color: "green.300", borderColor: "green.300" }}
+              color="gray.600"
+            >
+              {tab.title}
+            </Tab>
           ))}
           <Input
             placeholder="Search..."
@@ -405,7 +363,11 @@ const OfferDetailPage = () => {
             ml="auto"
           />
         </TabList>
-        <TabPanels>{tabsConfig.map((tab) => <TabPanel key={tab.title}>{tab.component()}</TabPanel>)}</TabPanels>
+        <TabPanels>
+          {tabsConfig.map((tab) => (
+            <TabPanel key={tab.title}>{tab.component()}</TabPanel>
+          ))}
+        </TabPanels>
       </Tabs>
     </Container>
   );
