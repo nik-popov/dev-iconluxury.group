@@ -1,43 +1,79 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useSearch } from "@tanstack/react-router";
-import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import {
-  Container,
   Box,
+  Container,
   Text,
-  Flex,
-  Tabs,
-  TabList,
-  Input,
-  TabPanels,
-  Tab,
-  TabPanel,
-  Spinner,
-  Button,
-  Card,
-  CardBody,
-  Stat,
-  StatLabel,
-  StatNumber,
-  Badge,
   Table,
   Thead,
   Tbody,
   Tr,
   Th,
   Td,
-  Link,
-  FormControl,
-  FormLabel,
-  FormErrorMessage,
-  NumberInput,
-  NumberInputField,
+  TableContainer,
+  Divider,
+  Badge,
+  Input,
+  HStack,
+  Flex,
+  Button,
 } from "@chakra-ui/react";
-import useCustomToast from "../../../hooks/useCustomToast";
+// `Outlet` might be needed in a layout route file, not necessarily here unless this itself is a layout.
+import { createFileRoute, useNavigate } from "@tanstack/react-router"; 
+import { FiUpload } from "react-icons/fi"; // Correctly imported
 
-// Interfaces (unchanged)
-interface OfferDetails {
+// NOTE: The "invariant failed" error is often related to the router setup.
+// To resolve it, please ensure the following:
+// 1. TanStack Router CLI (`@tanstack/router-cli`) has been run, and the `routeTree.gen.ts`
+//    file (or your equivalent generated route tree) is up-to-date and correctly imported
+//    when creating the router instance.
+// 2. The main application entry point (e.g., `main.tsx` or `App.tsx`) correctly sets up
+//    `QueryClientProvider` (from React Query) and `RouterProvider` (from TanStack Router)
+//    at the root of your application. For example:
+//    ```tsx
+//    import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+//    import { RouterProvider, createRouter } from '@tanstack/react-router';
+//    import { routeTree } from './routeTree.gen'; // Assuming CLI generated this
+//
+//    const queryClient = new QueryClient();
+//    const router = createRouter({ routeTree, context: { queryClient } }); // Pass queryClient in context if using it in loaders
+//
+//    declare module '@tanstack/react-router' {
+//      interface Register { router: typeof router }
+//    }
+//
+//    ReactDOM.createRoot(document.getElementById('root')!).render(
+//      <React.StrictMode>
+//        <QueryClientProvider client={queryClient}>
+//          <RouterProvider router={router} />
+//        </QueryClientProvider>
+//      </React.StrictMode>
+//    );
+//    ```
+// 3. If this route `/_layout/offers` implies a parent layout route (e.g., a file named `_layout.tsx`
+//    in the `routes` directory), that parent layout route file must:
+//    a. Exist and be correctly defined (e.g., `export const Route = createFileRoute('/_layout')({ component: MyLayoutComponent });`).
+//    b. Its component (`MyLayoutComponent` in the example) *must* render an `<Outlet />` component
+//       (imported from `@tanstack/react-router`) where child routes like this `OffersPage` will be rendered.
+//       Example for `routes/_layout.tsx`:
+//       ```tsx
+//       import { createFileRoute, Outlet } from '@tanstack/react-router';
+//       function MyLayoutComponent() {
+//         return (
+//           <div>
+//             <header>My App Layout</header>
+//             <main>
+//               <Outlet /> {/* Child routes render here */}
+//             </main>
+//           </div>
+//         );
+//       }
+//       export const Route = createFileRoute('/_layout')({ component: MyLayoutComponent });
+//       ```
+// 4. Hooks like `useNavigate()` must be called from components rendered *within* the `RouterProvider`'s context.
+//    If `OffersPage` is somehow rendered outside this context, these hooks will fail.
+
+interface OfferSummary {
   id: number;
   fileName?: string;
   fileLocationUrl: string;
@@ -45,490 +81,366 @@ interface OfferDetails {
   createTime?: string;
   recordCount: number;
   nikOfferCount: number;
-  sampleNikOffers: NikOfferItem[];
 }
 
-interface NikOfferItem {
-  fileId: number;
-  f0?: string;
-  f1?: string;
-  f2?: string;
-  f3?: string;
-  f4?: string;
-  f5?: string;
-  f6?: string;
-  f7?: string;
-  f8?: string;
-  f9?: string;
-}
-
-interface RecordsTabProps {
-  offer: OfferDetails;
-  searchQuery: string;
+interface SubscriptionStatus {
+  hasSubscription: boolean;
+  isTrial: boolean;
+  isDeactivated: boolean;
 }
 
 const getAuthToken = (): string | null => {
   return localStorage.getItem("access_token");
 };
 
-// Fetch offer details (unchanged)
-async function fetchOfferDetails(fileId: string): Promise<OfferDetails> {
+async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
   const token = getAuthToken();
-  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers/${fileId}`, {
+  const response = await fetch("https://api.iconluxury.group/api/v1/subscription-status/serp", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
     },
   });
-  if (!response.ok) throw new Error(`Failed to fetch offer details: ${response.status}`);
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      const error = new Error("Unauthorized: Please log in again.");
+      // You could attach status to error if needed: (error as any).status = response.status;
+      throw error;
+    }
+    throw new Error(`Failed to fetch subscription status: ${response.status}`);
+  }
   return response.json();
 }
 
-// New function to submit offer to /submitOffer endpoint
-async function submitOffer({ fileUrl, headerIndex, sendToEmail }: { fileUrl: string; headerIndex: number; sendToEmail?: string }): Promise<void> {
+async function fetchOffers(page: number): Promise<OfferSummary[]> {
   const token = getAuthToken();
-  const formData = new FormData();
-  formData.append("fileUrl", fileUrl);
-  formData.append("header_index", headerIndex.toString());
-  if (sendToEmail) formData.append("sendToEmail", sendToEmail);
-
-  const response = await fetch(`https://backend-dev.iconluxury.group/submitOffer`, {
-    method: "POST",
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: formData,
-  });
-
+  const response = await fetch(
+    `https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers?page=${page}&page_size=10`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    }
+  );
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || `Failed to submit offer: ${response.status}`);
+    throw new Error(`Failed to fetch offers: ${response.status}`);
   }
+  const data = await response.json();
+  // Ensure the function always returns an array, even if API sends unexpected payload
+  return Array.isArray(data) ? data : [];
 }
 
-// OverviewTab Component (unchanged)
-const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
-  return (
-    <Box p={4} bg="white">
-      <Box mb={6}>
-        <Stat mt={4}>
-          <StatLabel color="gray.600">Status</StatLabel>
-          <StatNumber>
-            <Badge colorScheme={offer.recordCount > 0 ? "green" : "yellow"}>
-              {offer.recordCount > 0 ? "Active" : "Pending"}
-            </Badge>
-          </StatNumber>
-        </Stat>
-      </Box>
-      <Text fontSize="lg" fontWeight="bold" mb={4}>Metadata</Text>
-      <Table variant="simple" size="md" colorScheme="gray" mb={6}>
-        <Tbody>
-          <Tr>
-            <Td fontWeight="semibold" color="gray.700">ID</Td>
-            <Td>{offer.id}</Td>
-          </Tr>
-          <Tr>
-            <Td fontWeight="semibold" color="gray.700">File Name</Td>
-            <Td>
-              <Link href={offer.fileLocationUrl} isExternal color="green.300">
-                {offer.fileName || "N/A"}
-              </Link>
-            </Td>
-          </Tr>
-          <Tr>
-            <Td fontWeight="semibold" color="gray.700">File Location URL</Td>
-            <Td>
-              <Link href={offer.fileLocationUrl} color="blue.500" isExternal>
-                {offer.fileLocationUrl}
-              </Link>
-            </Td>
-          </Tr>
-          <Tr>
-            <Td fontWeight="semibold" color="gray.700">User Email</Td>
-            <Td>{offer.userEmail || "N/A"}</Td>
-          </Tr>
-          <Tr>
-            <Td fontWeight="semibold" color="gray.700">Create Time</Td>
-            <Td>{offer.createTime ? new Date(offer.createTime).toLocaleString() : "N/A"}</Td>
-          </Tr>
-          <Tr>
-            <Td fontWeight="semibold" color="gray.700">Record Count</Td>
-            <Td>{offer.recordCount}</Td>
-          </Tr>
-          <Tr>
-            <Td fontWeight="semibold" color="gray.700">Records</Td>
-            <Td>{offer.nikOfferCount}</Td>
-          </Tr>
-        </Tbody>
-      </Table>
-    </Box>
-  );
-};
-
-// RecordsTab Component (unchanged)
-const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null);
-  const [displayCount, setDisplayCount] = useState(50);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+function OffersPage() {
+  const navigate = useNavigate();
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [allOffers, setAllOffers] = useState<OfferSummary[]>([]);
+  const [hasMore, setHasMore] = useState(true);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const query = (searchQuery || "").trim().toLowerCase();
-  const filteredRecords = offer.sampleNikOffers.filter((record) =>
-    Object.values(record).some((value) => value?.toString().toLowerCase().includes(query))
-  );
-
-  const handleSort = (key: string) => {
-    setSortConfig((prev) => {
-      if (prev && prev.key === key) {
-        return { key, direction: prev.direction === "ascending" ? "descending" : "ascending" };
-      }
-      return { key, direction: "ascending" };
-    });
-  };
-
-  const sortedRecords = [...filteredRecords].sort((a, b) => {
-    if (sortConfig) {
-      const { key, direction } = sortConfig;
-      const aValue = a[key as keyof NikOfferItem] || "";
-      const bValue = b[key as keyof NikOfferItem] || "";
-      if (typeof aValue === "number" && typeof bValue === "number") {
-        return direction === "ascending" ? aValue - bValue : bValue - aValue;
-      }
-      const aStr = String(aValue).toLowerCase();
-      const bStr = String(bValue).toLowerCase();
-      return direction === "ascending" ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
-    }
-    return 0;
-  });
-
-  const displayedRecords = sortedRecords.slice(0, displayCount);
-  const hasMore = displayCount < sortedRecords.length;
-
-  useEffect(() => {
-    if (!loadMoreRef.current || !hasMore) return;
-
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setDisplayCount((prev) => prev + 50);
-        }
-      },
-      { threshold: 0.1, rootMargin: "200px" }
-    );
-
-    observerRef.current.observe(loadMoreRef.current);
-
-    return () => {
-      if (observerRef.current && loadMoreRef.current) {
-        observerRef.current.unobserve(loadMoreRef.current);
-      }
-    };
-  }, [hasMore]);
-
-  return (
-    <Box p={4} bg="white">
-      <Flex justify="space-between" align="center" mb={4}>
-        <Text fontSize="lg" fontWeight="bold" color="gray.800">Records ({sortedRecords.length})</Text>
-      </Flex>
-      <Card shadow="md" borderWidth="1px" bg="white">
-        <CardBody>
-          <Table variant="simple" size="sm" colorScheme="blue">
-            <Thead bg="gray.100">
-              <Tr>
-                <Th w="80px" onClick={() => handleSort("fileId")} cursor="pointer" color="gray.800">
-                  File ID {sortConfig?.key === "fileId" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f0")} cursor="pointer" color="gray.800">
-                  Field 0 {sortConfig?.key === "f0" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f1")} cursor="pointer" color="gray.800">
-                  Field 1 {sortConfig?.key === "f1" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f2")} cursor="pointer" color="gray.800">
-                  Field 2 {sortConfig?.key === "f2" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f3")} cursor="pointer" color="gray.800">
-                  Field 3 {sortConfig?.key === "f3" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f4")} cursor="pointer" color="gray.800">
-                  Field 4 {sortConfig?.key === "f4" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f5")} cursor="pointer" color="gray.800">
-                  Field 5 {sortConfig?.key === "f5" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f6")} cursor="pointer" color="gray.800">
-                  Field 6 {sortConfig?.key === "f6" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f7")} cursor="pointer" color="gray.800">
-                  Field 7 {sortConfig?.key === "f7" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f8")} cursor="pointer" color="gray.800">
-                  Field 8 {sortConfig?.key === "f8" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-                <Th w="120px" onClick={() => handleSort("f9")} cursor="pointer" color="gray.800">
-                  Field 9 {sortConfig?.key === "f9" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
-                </Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {displayedRecords.map((record) => (
-                <Tr key={`${record.fileId}-${record.f0}`}>
-                  <Td w="80px" color="gray.800">{record.fileId || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f0 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f1 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f2 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f3 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f4 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f5 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f6 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f7 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f8 || "N/A"}</Td>
-                  <Td w="120px" color="gray.800">{record.f9 || "N/A"}</Td>
-                </Tr>
-              ))}
-              {displayedRecords.length === 0 && (
-                <Tr>
-                  <Td colSpan={11} textAlign="center" color="gray.600">
-                    No records match your search query.
-                  </Td>
-                </Tr>
-              )}
-            </Tbody>
-          </Table>
-          {hasMore && (
-            <Box ref={loadMoreRef} h="20px" textAlign="center">
-              <Text fontSize="sm" color="gray.600">Loading more...</Text>
-            </Box>
-          )}
-          {!hasMore && displayedRecords.length > 0 && (
-            <Box h="20px" textAlign="center">
-              <Text fontSize="sm" color="gray.600">No more records to load</Text>
-            </Box>
-          )}
-        </CardBody>
-      </Card>
-    </Box>
-  );
-};
-
-// OfferDetailPage Component (updated)
-const OfferDetailPage = () => {
-  const { fileId } = useParams({ from: "/_layout/supplier/offer/$fileId" });
-  interface SearchParams {
-    activeTab?: string;
-    search?: string | string[];
-  }
-  const searchParams = useSearch({ from: "/_layout/supplier/offer/$fileId" }) as SearchParams;
-  const initialTab = searchParams.activeTab ? parseInt(searchParams.activeTab, 10) : 0;
-  const initialSearch = Array.isArray(searchParams.search) ? searchParams.search[0] : searchParams.search || "";
-  const [activeTab, setActiveTab] = useState<number>(
-    isNaN(initialTab) || initialTab < 0 || initialTab > 1 ? 0 : initialTab
-  );
-  const [searchQuery, setSearchQuery] = useState<string>(String(initialSearch));
-  const showToast = useCustomToast();
-
-  // Form state for submitting offer
-  const [fileUrl, setFileUrl] = useState<string>("");
-  const [headerIndex, setHeaderIndex] = useState<number | "">("");
-  const [sendToEmail, setSendToEmail] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [errors, setErrors] = useState<{ fileUrl?: string; headerIndex?: string; sendToEmail?: string }>({});
-
-  const { data: offerData, isLoading, error } = useQuery({
-    queryKey: ["offerDetails", fileId],
-    queryFn: () => fetchOfferDetails(fileId),
-    staleTime: 5 * 60 * 1000,
+  const { data: subscriptionStatus, isLoading: isSubLoading, error: subErrorObj } = useQuery({
+    queryKey: ["subscriptionStatus", "supplierOffers"], // More specific query key
+    queryFn: fetchSubscriptionStatus,
+    staleTime: 5 * 60 * 1000, // 5 minutes
     retry: (failureCount, error) => {
-      if (error.message.includes("Unauthorized")) return false;
+      if (error instanceof Error && error.message.includes("Unauthorized")) return false;
       return failureCount < 3;
     },
+  });
+  
+  const subError = subErrorObj as Error | null; // Type assertion for error object
+
+  const { data: offersData, isLoading: offersLoading, isFetching } = useQuery({
+    queryKey: ["offers", page],
+    queryFn: () => fetchOffers(page),
+    // Enable only if subscription is active/trial, there's more data, and no subscription error
+    enabled: (!!subscriptionStatus?.hasSubscription || !!subscriptionStatus?.isTrial) && hasMore && !subError,
+    staleTime: 5 * 60 * 1000,
     placeholderData: keepPreviousData,
   });
 
-  // Validate form inputs
-  const validateForm = (): boolean => {
-    const newErrors: { fileUrl?: string; headerIndex?: string; sendToEmail?: string } = {};
+  const offers = offersData || []; // Default to empty array if offersData is undefined
 
-    if (!fileUrl.trim()) {
-      newErrors.fileUrl = "File URL is required";
-    } else if (!fileUrl.match(/^https?:\/\/.+/)) {
-      newErrors.fileUrl = "Please enter a valid URL starting with http:// or https://";
-    }
-
-    if (headerIndex === "" || isNaN(Number(headerIndex))) {
-      newErrors.headerIndex = "Header index is required and must be a number";
-    } else if (Number(headerIndex) < 1) {
-      newErrors.headerIndex = "Header index must be 1 or greater";
-    }
-
-    if (sendToEmail && !sendToEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      newErrors.sendToEmail = "Please enter a valid email address";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Handle form submission
-  const handleSubmitOffer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    setIsSubmitting(true);
-    try {
-      await submitOffer({
-        fileUrl,
-        headerIndex: Number(headerIndex),
-        sendToEmail: sendToEmail.trim() || undefined,
+  // Append new offers when `offersData` (from the current page query) changes
+  useEffect(() => {
+    if (offersData && offersData.length > 0) {
+      setAllOffers((prevOffers) => {
+        const combinedOffers = [...prevOffers, ...offersData];
+        // Deduplicate offers by ID, keeping the latest occurrence
+        return Array.from(new Map(combinedOffers.map((offer) => [offer.id, offer])).values());
       });
-      showToast("Success", "Offer submitted successfully", "success");
-      // Reset form
-      setFileUrl("");
-      setHeaderIndex("");
-      setSendToEmail("");
-      setErrors({});
-    } catch (error) {
-      showToast("Error", error.message || "Failed to submit offer", "error");
-    } finally {
-      setIsSubmitting(false);
+      if (offersData.length < 10) { // 10 is the page_size
+        setHasMore(false);
+      }
+    } else if (offersData && offersData.length === 0 && page > 1) {
+      // Current page fetch returned no new items (and it's not the first page)
+      setHasMore(false);
     }
+  }, [offersData, page]);
+
+  // Set up IntersectionObserver for infinite scroll
+  useEffect(() => {
+    // Don't set up observer if fetching, initial loading, no more items, or ref not available
+    if (isFetching || offersLoading || !hasMore || !loadMoreRef.current) {
+      return;
+    }
+
+    const observedElement = loadMoreRef.current; // Capture the DOM element
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Trigger next page fetch if element is intersecting and not already fetching
+        if (entries[0].isIntersecting && !isFetching) {
+          setPage((prevPage) => prevPage + 1);
+        }
+      },
+      { threshold: 0.1, rootMargin: "200px" } // Load 200px before element is visible
+    );
+
+    observer.observe(observedElement);
+
+    return () => {
+      observer.unobserve(observedElement); // Clean up by unobserving the captured element
+    };
+  }, [isFetching, offersLoading, hasMore]); // Rerun if these states change
+
+  const filteredOffers = searchQuery
+    ? allOffers.filter((offer) =>
+        offer.fileName // Check if fileName is defined
+          ? offer.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+          : false // Offers without a fileName don't match if searching
+      )
+    : allOffers;
+
+  const getStatusColor = (recordCount: number) => {
+    return recordCount > 0 ? "green" : "yellow";
   };
 
-  if (isLoading) {
+  const handleRowClick = (offerId: number) => {
+    navigate({
+      to: "/supplier/offer/$offerId",
+      params: { offerId: offerId.toString() }, // Path params must be strings
+    });
+  };
+
+  if (isSubLoading) {
     return (
-      <Container maxW="full" py={6} bg="white">
-        <Flex justify="center" align="center" h="200px">
-          <Spinner size="xl" color="green.300" />
-        </Flex>
+      <Container maxW="full" bg="white" color="gray.800" p={4} textAlign="center">
+        <Text>Loading your data...</Text>
       </Container>
     );
   }
 
-  if (error || !offerData) {
+  if (subError) {
     return (
-      <Container maxW="full" py={6} bg="white">
-        <Text color="red.500">{error?.message || "Offer data not available"}</Text>
+      <Container maxW="full" bg="white" color="gray.800" p={4} textAlign="center">
+        <Text color="red.500" mb={4}>
+          {subError.message === "Unauthorized: Please log in again."
+            ? "Session expired. Please log in again."
+            : `Error loading subscription status: ${subError.message}. Please try again later.`}
+        </Text>
+        {subError.message.includes("Unauthorized") && (
+          <Button colorScheme="blue" onClick={() => navigate({ to: "/login" })}>
+            Log In
+          </Button>
+        )}
       </Container>
     );
   }
+  
+  const currentSubscriptionStatus = subscriptionStatus || {
+    hasSubscription: false, isTrial: false, isDeactivated: false,
+  };
 
-  const tabsConfig = [
-    { title: "Overview", component: () => <OverviewTab offer={offerData} /> },
-    { title: "Records", component: () => <RecordsTab offer={offerData} searchQuery={searchQuery} /> },
-  ];
+  const isLocked = !currentSubscriptionStatus.hasSubscription && !currentSubscriptionStatus.isTrial;
+  // User is considered fully deactivated if their account is marked as deactivated AND they don't have an active subscription or trial.
+  const isEffectivelyDeactivated = currentSubscriptionStatus.isDeactivated && isLocked;
 
+  // The comment `// Modify the header Flex component inside the SupplierOffers function`
+  // might be outdated or for a different context. The header Flex below is functional.
+  // Small responsive adjustments have been made.
   return (
-    <Container maxW="full" bg="white">
-      <Flex align="center" justify="space-between" py={6} flexWrap="wrap" gap={4}>
-        <Box textAlign="left" flex="1">
-          <Text fontSize="xl" fontWeight="bold" color="gray.800">
-            Offer: {fileId}
-          </Text>
-          <Text fontSize="sm" color="gray.600">
-            Details for supplier offer {offerData.fileName || "ID " + offerData.id}.
-          </Text>
-        </Box>
-      </Flex>
-
-      {/* Form for submitting offer */}
-      <Card mb={6} p={4} shadow="md" borderWidth="1px">
-        <CardBody>
-          <Text fontSize="lg" fontWeight="bold" mb={4}>
-            Submit New Offer
-          </Text>
-          <form onSubmit={handleSubmitOffer}>
-            <Flex direction="column" gap={4}>
-              <FormControl isInvalid={!!errors.fileUrl}>
-                <FormLabel>File URL</FormLabel>
-                <Input
-                  value={fileUrl}
-                  onChange={(e) => setFileUrl(e.target.value)}
-                  placeholder="https://example.com/offer.xlsx"
-                  borderColor="green.300"
-                  _focus={{ borderColor: "green.300" }}
-                />
-                <FormErrorMessage>{errors.fileUrl}</FormErrorMessage>
-              </FormControl>
-
-              <FormControl isInvalid={!!errors.headerIndex}>
-                <FormLabel>Header Row Index (1-based)</FormLabel>
-                <NumberInput value={headerIndex} onChange={(_, value) => setHeaderIndex(value)} min={1}>
-                  <NumberInputField borderColor="green.300" _focus={{ borderColor: "green.300" }} />
-                </NumberInput>
-                <FormErrorMessage>{errors.headerIndex}</FormErrorMessage>
-              </FormControl>
-
-              <FormControl isInvalid={!!errors.sendToEmail}>
-                <FormLabel>Notification Email (Optional)</FormLabel>
-                <Input
-                  value={sendToEmail}
-                  onChange={(e) => setSendToEmail(e.target.value)}
-                  placeholder="email@example.com"
-                  borderColor="green.300"
-                  _focus={{ borderColor: "green.300" }}
-                />
-                <FormErrorMessage>{errors.sendToEmail}</FormErrorMessage>
-              </FormControl>
-
-              <Button
-                type="submit"
-                colorScheme="blue"
-                isLoading={isSubmitting}
-                isDisabled={isSubmitting}
-              >
-                Submit Offer
-              </Button>
-            </Flex>
-          </form>
-        </CardBody>
-      </Card>
-
-      <Tabs
-        variant="enclosed"
-        isLazy
-        index={activeTab}
-        onChange={(index) => setActiveTab(index)}
-        colorScheme="blue"
-      >
-        <TabList borderBottom="2px solid" borderColor="green.200">
-          {tabsConfig.map((tab) => (
-            <Tab
-              key={tab.title}
-              _selected={{ bg: "white", color: "green.300", borderColor: "green.300" }}
-              color="gray.600"
+    <Container maxW="full" bg="gray.50" minH="100vh" p={{ base: 2, md: 4 }}>
+        <Flex 
+          direction={{ base: "column", sm: "row" }}
+          align="center" 
+          justify="space-between" 
+          py={{ base: 4, md: 6 }}
+          px={{ base: 2, md: 0 }}
+          flexWrap="wrap"
+          gap={4}
+        >
+          <Box textAlign={{ base: "center", sm: "left" }} flex="1" minW={{ base: "auto", sm: "300px" }}>
+            <Text fontSize="xl" fontWeight="bold" color="gray.800">Supplier File Explorer</Text>
+            <Text fontSize="sm" color="gray.600">View and manage supplier offers</Text>
+          </Box>
+          <HStack 
+            spacing={3} 
+            justifyContent={{ base: "center", sm: "flex-end"}} 
+            width={{ base: "100%", sm: "auto" }}
+            mt={{ base: 4, sm: 0 }}
+          >
+            <Button
+              leftIcon={<FiUpload />}
+              colorScheme="green"
+              size="sm"
+              onClick={() => navigate({ to: "/submit-form/offer" })}
             >
-              {tab.title}
-            </Tab>
-          ))}
-          <Input
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            width="300px"
-            borderColor="green.300"
-            _focus={{ borderColor: "green.300" }}
-            color="gray.800"
+              Upload Offer
+            </Button>
+          </HStack>
+        </Flex>
+
+      <Divider my={3} borderColor="gray.200" />
+
+      {isLocked && !isEffectivelyDeactivated ? ( // Show if locked but not due to deactivation (e.g. new user, expired)
+        <Box p={4} bg="yellow.50" borderRadius="md" textAlign="center">
+          <Text color="orange.700" fontWeight="medium">Access restricted. Please subscribe or start a trial to view offers.</Text>
+          <Button mt={3} colorScheme="blue" onClick={() => navigate({ to: "/proxies/pricing" })}> {/* Adjust nav target as needed */}
+            View Plans
+          </Button>
+        </Box>
+      ) : isEffectivelyDeactivated ? (
+        <Flex 
+          direction={{ base: "column", sm: "row" }}
+          justify="space-between" 
+          align="center" 
+          w="full" p={4} 
+          bg="red.50" 
+          borderRadius="md"
+          gap={3}
+        >
+          <Text color="red.700" fontWeight="medium" textAlign={{ base: "center", sm: "left" }}>
+            Your tools have been deactivated.
+          </Text>
+          <Button 
+            colorScheme="red" 
+            size="sm"
+            onClick={() => navigate({ to: "/proxies/pricing" })} /* Adjust nav target */
+          >
+            Reactivate Now
+          </Button>
+        </Flex>
+      ) : (
+        <Box>
+          <Flex direction={{ base: "column", md: "row" }} gap={4} mb={4}>
+            <Input
+              placeholder="Search Offers by File Name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              w={{ base: "100%", md: "300px" }}
+              borderColor="green.300"
+              _focus={{ borderColor: "green.500", boxShadow: "0 0 0 1px green.500" }}
+              _hover={{ borderColor: "green.400" }}
+              bg="white"
+              color="gray.800"
+              _placeholder={{ color: "gray.500" }}
+              borderRadius="md"
+              size="sm"
+            />
+          </Flex>
+          <Text fontSize="md" fontWeight="bold" color="gray.800" mb={2}>
+            All Offers
+          </Text>
+          <TableContainer
+            p={3}
+            shadow="sm"
+            borderWidth="1px"
+            borderRadius="md"
             bg="white"
-            ml="auto"
-          />
-        </TabList>
-        <TabPanels>
-          {tabsConfig.map((tab) => (
-            <TabPanel key={tab.title}>{tab.component()}</TabPanel>
-          ))}
-        </TabPanels>
-      </Tabs>
+            borderColor="gray.200"
+            overflowX="auto" // For horizontal scroll on small screens
+          >
+            <Table variant="simple" size={{ base: "xs", md: "sm" }}> {/* Responsive table size */}
+              <Thead>
+                <Tr>
+                  <Th>ID</Th>
+                  <Th>File Name</Th>
+                  <Th>User</Th>
+                  <Th>Created</Th>
+                  <Th>Records</Th>
+                  <Th>NIK Offers</Th>
+                  <Th>Status</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {(offersLoading || (isFetching && page === 1 && allOffers.length === 0)) ? (
+                  <Tr>
+                    <Td colSpan={7} textAlign="center" py={10}>
+                      <Text fontSize="sm" color="gray.600">Loading offers...</Text>
+                    </Td>
+                  </Tr>
+                ) : filteredOffers.length === 0 ? (
+                  <Tr>
+                    <Td colSpan={7} textAlign="center" py={10}>
+                      <Text fontSize="sm" color="gray.600">
+                        {searchQuery 
+                          ? `No offers found matching "${searchQuery}".` 
+                          : allOffers.length > 0 && searchQuery === "" // Search cleared but still no match (unlikely with current filter logic)
+                            ? "No offers match your current filter." // This case might be rare
+                            : "No offers available at the moment."} 
+                      </Text>
+                    </Td>
+                  </Tr>
+                ) : (
+                  filteredOffers.map((offer) => (
+                    <Tr
+                      key={offer.id}
+                      onClick={() => handleRowClick(offer.id)}
+                      cursor="pointer"
+                      _hover={{ bg: "gray.50" }}
+                    >
+                      <Td isNumeric>{offer.id}</Td>
+                      <Td maxW="200px" overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" title={offer.fileName}>
+                        {offer.fileName || "N/A"}
+                      </Td>
+                      <Td maxW="150px" overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" title={offer.userEmail}>
+                        {offer.userEmail || "Unknown"}
+                      </Td>
+                      <Td>
+                        {offer.createTime ? new Date(offer.createTime).toLocaleDateString() : "N/A"}
+                      </Td>
+                      <Td isNumeric>{offer.recordCount}</Td>
+                      <Td isNumeric>{offer.nikOfferCount}</Td>
+                      <Td>
+                        <Badge variant="subtle" colorScheme={getStatusColor(offer.recordCount)} size="sm">
+                          {offer.recordCount > 0 ? "Active" : "Pending"}
+                        </Badge>
+                      </Td>
+                    </Tr>
+                  ))
+                )}
+              </Tbody>
+            </Table>
+          </TableContainer>
+          
+          {hasMore && ( // Only show loading indicator / trigger if there are more items
+            <Box ref={loadMoreRef} h="60px" display="flex" alignItems="center" justifyContent="center">
+              {isFetching && <Text fontSize="sm" color="gray.600">Loading more offers...</Text>}
+            </Box>
+          )}
+          {!hasMore && allOffers.length > 0 && ( // Show "no more" message only if some offers were loaded
+             <Box h="60px" display="flex" alignItems="center" justifyContent="center">
+              <Text fontSize="sm" color="gray.600">You've reached the end of the list.</Text>
+            </Box>
+          )}
+        </Box>
+      )}
     </Container>
   );
-};
+}
 
-export const Route = createFileRoute("/_layout/supplier/offer/$fileId")({
-  component: OfferDetailPage,
-  validateSearch: (search: Record<string, unknown>) => ({
-    activeTab: search.activeTab as string | undefined,
-    search: search.search as string | string[] | undefined,
-  }),
+export const Route = createFileRoute("/_layout/offers")({
+  component: OffersPage,
+  // Optional: Add loaders for server-side data fetching or pre-fetching
+  // loader: async ({ context }) => { /* context.queryClient can be used here if passed to createRouter */ },
+  // Optional: Add a component for handling errors specific to this route
+  // errorComponent: ({ error }) => <ErrorDisplay error={error} />, 
 });
 
-export default OfferDetailPage;
+// Default export is not strictly necessary for TanStack Router's file-based routing
+// but can be useful for other import scenarios or testing.
+export default OffersPage;
