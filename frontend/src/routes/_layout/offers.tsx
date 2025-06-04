@@ -18,7 +18,10 @@ import {
   Button,
 } from "@chakra-ui/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-
+    // Add this import at the top with other imports
+import { FiUpload } from "react-icons/fi";
+    
+        // Modify the header Flex component inside the SupplierOffers function
 interface OfferSummary {
   id: number;
   fileName?: string;
@@ -191,14 +194,32 @@ function OffersPage() {
 
   return (
     <Container maxW="full" bg="gray.50" minH="100vh" p={4}>
-      <Box mb={4}>
-        <Text fontSize="xl" fontWeight="bold" color="gray.800">
-          Offers
-        </Text>
-        <Text fontSize="sm" color="gray.600">
-          View and manage supplier offers
-        </Text>
-      </Box>
+
+        <Flex align="center" justify="space-between" py={6} flexWrap="wrap" gap={4}>
+          <Box textAlign="left" flex="1">
+            <Text fontSize="xl" fontWeight="bold" color="gray.800">Supplier File Explorer</Text>
+            <Text fontSize="sm" color="gray.600">View and manage supplier offers</Text>
+          </Box>
+          <HStack spacing={3}>
+            <Button
+              leftIcon={<FiUpload />}
+              colorScheme="green"
+              size="sm"
+              onClick={() => navigate({ to: "/submit-form/offer" })}
+            >
+              Upload Offer
+            </Button>
+            <Tooltip label={isPreviewOpen ? "Hide Preview" : "Show Preview"}>
+              <IconButton
+                aria-label={isPreviewOpen ? "Hide Preview" : "Show Preview"}
+                icon={isPreviewOpen ? <FiEyeOff /> : <FiEye />}
+                size="sm"
+                colorScheme={isPreviewOpen ? "green" : "gray"}
+                onClick={() => setIsPreviewOpen(!isPreviewOpen)}
+              />
+            </Tooltip>
+          </HStack>
+        </Flex>
 
       <Divider my={3} borderColor="gray.200" />
 
