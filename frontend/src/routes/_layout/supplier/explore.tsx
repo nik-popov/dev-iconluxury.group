@@ -398,10 +398,6 @@ function SupplierOffers() {
 
   return (
     <Container maxW="full" bg="gray.50" minH="100vh" p={4}>
-    // Add this import at the top with other imports
-    import { FiUpload } from "react-icons/fi";
-
-    // Modify the header Flex component inside the SupplierOffers function
     <Flex align="center" justify="space-between" py={6} flexWrap="wrap" gap={4}>
       <Box textAlign="left" flex="1">
         <Text fontSize="xl" fontWeight="bold" color="gray.800">Supplier File Explorer</Text>
