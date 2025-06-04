@@ -86,7 +86,7 @@ async function submitOfferForReviewApi(fileId: string): Promise<{ message: strin
   const token = getAuthToken();
   const payload = { fileId: parseInt(fileId, 10) }; // API likely expects integer fileId
 
-  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offersubmit`, {
+  const response = await fetch(`https://backend-dev.iconluxury.group/submitOffer`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
