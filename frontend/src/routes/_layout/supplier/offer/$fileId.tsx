@@ -89,7 +89,6 @@ async function submitOfferForReviewApi(fileId: string): Promise<{ message: strin
   const response = await fetch(`https://backend-dev.iconluxury.group/submitOffer`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
     },
     body: JSON.stringify(payload),
