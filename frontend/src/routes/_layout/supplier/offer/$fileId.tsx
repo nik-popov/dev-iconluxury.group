@@ -27,6 +27,7 @@ import {
   Tr,
   Th,
   Td,
+  Link,
 } from "@chakra-ui/react";
 import useCustomToast from "../../../../hooks/useCustomToast";
 
@@ -94,6 +95,46 @@ const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
   return (
     <Box p={4} bg="white">
       <Text fontSize="lg" fontWeight="bold" mb={4}>Metadata</Text>
+      <Table variant="simple" size="md" colorScheme="gray" mb={6}>
+        <Tbody>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">ID</Td>
+            <Td>{offer.id}</Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">File Name</Td>
+            <Td>
+              <Link href={offer.fileLocationUrl} isExternal color="green.300">
+                {offer.fileName || "N/A"}
+              </Link>
+            </Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">File Location URL</Td>
+            <Td>
+              <Link href={offer.fileLocationUrl} color="blue.500" isExternal>
+                {offer.fileLocationUrl}
+              </Link>
+            </Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">User Email</Td>
+            <Td>{offer.userEmail || "N/A"}</Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">Create Time</Td>
+            <Td>{offer.createTime ? new Date(offer.createTime).toLocaleString() : "N/A"}</Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">Record Count</Td>
+            <Td>{offer.recordCount}</Td>
+          </Tr>
+          <Tr>
+            <Td fontWeight="semibold" color="gray.700">Records</Td>
+            <Td>{offer.nikOfferCount}</Td>
+          </Tr>
+        </Tbody>
+      </Table>
       <Box mb={6}>
         <Stat mt={4}>
           <StatLabel color="gray.600">Status</StatLabel>
@@ -105,7 +146,7 @@ const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
         </Stat>
         <Stat mt={4}>
           <StatLabel color="gray.600">Records</StatLabel>
-          <StatNumber color="gray._DETECTED_CHANGE:800">{offer.nikOfferCount}</StatNumber>
+          <StatNumber color="gray.800">{offer.nikOfferCount}</StatNumber>
         </Stat>
       </Box>
     </Box>
@@ -114,7 +155,6 @@ const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
 
 // RecordsTab Component
 const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
-  const showToast = useCustomToast();
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null);
   const [displayCount, setDisplayCount] = useState(50);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -262,7 +302,6 @@ const RecordsTab: React.FC<RecordsTabProps> = ({ offer, searchQuery }) => {
 // OfferDetailPage Component
 const OfferDetailPage = () => {
   const { fileId } = useParams({ from: "/_layout/supplier/offer/$fileId" });
-  // Define expected search parameters
   interface SearchParams {
     activeTab?: string;
     search?: string | string[];
@@ -375,6 +414,10 @@ const OfferDetailPage = () => {
 
 export const Route = createFileRoute("/_layout/supplier/offer/$fileId")({
   component: OfferDetailPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    activeTab: search.activeTab as string | undefined,
+    search: search.search as string | string[] | undefined,
+  }),
 });
 
 export default OfferDetailPage;
