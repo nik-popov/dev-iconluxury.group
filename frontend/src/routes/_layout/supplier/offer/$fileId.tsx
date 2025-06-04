@@ -94,6 +94,16 @@ async function submitForReview(fileId: string): Promise<void> {
 const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
   return (
     <Box p={4} bg="white">
+      <Box mb={6}>
+        <Stat mt={4}>
+          <StatLabel color="gray.600">Status</StatLabel>
+          <StatNumber>
+            <Badge colorScheme={offer.recordCount > 0 ? "green" : "yellow"}>
+              {offer.recordCount > 0 ? "Active" : "Pending"}
+            </Badge>
+          </StatNumber>
+        </Stat>
+      </Box>
       <Text fontSize="lg" fontWeight="bold" mb={4}>Metadata</Text>
       <Table variant="simple" size="md" colorScheme="gray" mb={6}>
         <Tbody>
@@ -135,20 +145,6 @@ const OverviewTab: React.FC<{ offer: OfferDetails }> = ({ offer }) => {
           </Tr>
         </Tbody>
       </Table>
-      <Box mb={6}>
-        <Stat mt={4}>
-          <StatLabel color="gray.600">Status</StatLabel>
-          <StatNumber>
-            <Badge colorScheme={offer.recordCount > 0 ? "green" : "yellow"}>
-              {offer.recordCount > 0 ? "Active" : "Pending"}
-            </Badge>
-          </StatNumber>
-        </Stat>
-        <Stat mt={4}>
-          <StatLabel color="gray.600">Records</StatLabel>
-          <StatNumber color="gray.800">{offer.nikOfferCount}</StatNumber>
-        </Stat>
-      </Box>
     </Box>
   );
 };
