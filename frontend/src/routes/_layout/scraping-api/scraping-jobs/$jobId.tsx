@@ -578,9 +578,7 @@ const filteredResults = job.results.filter((result) => {
 
   const shortenUrl = (url: string) => {
     if (!url) return "";
-    let cleanedUrl = url.replace(/^https?:\/\//i, "").replace(/^www\./i, "");
-    if (cleanedUrl.length <= 22) return cleanedUrl;
-    return `${cleanedUrl.slice(0, 12)}...${cleanedUrl.slice(-10)}`;
+    return url;
   };
 
   return (
@@ -642,13 +640,13 @@ const filteredResults = job.results.filter((result) => {
                       </Td>
                       <Td w="80px" color="gray.800">{result.resultId || "N/A"}</Td>
                       <Td w="80px" color="gray.800">{result.entryId || "N/A"}</Td>
-                      <Td w="120px">
+                      <Td w="120px" wordBreak="break-all">
                         <a href={result.imageUrl || "#"} target="_blank" rel="noopener noreferrer">
                           <Text color="green.300">{shortenUrl(result.imageUrl)}</Text>
                         </a>
                       </Td>
                       <Td w="120px" color="gray.800">{result.imageDesc || "N/A"}</Td>
-                      <Td w="120px">
+                      <Td w="120px" wordBreak="break-all">
                         <a href={result.imageSource || "#"} target="_blank" rel="noopener noreferrer">
                           <Text color="green.300">{shortenUrl(result.imageSource)}</Text>
                         </a>
@@ -719,13 +717,13 @@ const filteredResults = job.results.filter((result) => {
                       </Td>
                       <Td w="80px" color="gray.800">{result.resultId || "N/A"}</Td>
                       <Td w="80px" color="gray.800">{result.entryId || "N/A"}</Td>
-                      <Td w="120px">
+                      <Td w="120px" wordBreak="break-all">
                         <a href={result.imageUrl || "#"} target="_blank" rel="noopener noreferrer">
                           <Text color="green.300">{shortenUrl(result.imageUrl)}</Text>
                         </a>
                       </Td>
                       <Td w="120px" color="gray.800">{result.imageDesc || "N/A"}</Td>
-                      <Td w="120px">
+                      <Td w="120px" wordBreak="break-all">
                         <a href={result.imageSource || "#"} target="_blank" rel="noopener noreferrer">
                           <Text color="green.300">{shortenUrl(result.imageSource)}</Text>
                         </a>
@@ -1099,10 +1097,7 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
 
   const shortenUrl = (url: string): string => {
     if (!url) return "";
-    let cleanedUrl = url.replace(/^https?:\/\//i, "").replace(/^www\./i, "");
-    if (cleanedUrl.length <= 22) return cleanedUrl;
-    if (cleanedUrl.length <= 40) return `${cleanedUrl.slice(0, 12)}...${cleanedUrl.slice(-10)}`;
-    else return `${cleanedUrl.slice(0, 20)}...${cleanedUrl.slice(-20)}`;
+    return url;
   };
 
   const googleSearch = (model: string): string => `https://www.google.com/search?q=${encodeURIComponent(model || "")}&udm=2`;
