@@ -1639,7 +1639,7 @@ const SearchRowsTab: React.FC<SearchRowsTabProps> = ({ job, searchQuery }) => {
 const JobsDetailPage = () => {
   const { jobId } = useParams({ from: "/_layout/scraping-api/scraping-jobs/$jobId" }) as { jobId: string };
   const searchParams = useSearch({ from: "/_layout/scraping-api/scraping-jobs/$jobId" }) as { search?: string; activeTab?: string; domain?: string; entryId?: string };
-  const initialTab = searchParams.activeTab ? parseInt(searchParams.activeTab, 10) : 4;
+  const initialTab = searchParams.activeTab ? parseInt(searchParams.activeTab, 10) : 0;
   const initialSearch = Array.isArray(searchParams.search) ? searchParams.search[0] : searchParams.search || "";
   const [activeTab, setActiveTab] = useState<number>(isNaN(initialTab) || initialTab < 0 || initialTab > 5 ? 4 : initialTab);
   const [sortBy, setSortBy] = useState<"match" | "linesheet" | null>(null);
