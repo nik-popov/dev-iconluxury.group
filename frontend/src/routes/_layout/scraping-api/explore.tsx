@@ -287,7 +287,7 @@ function Explore() {
             </VStack>
           </Box>
 
-          <Box w={{ base: "100%", md: "250px" }} p="4" borderLeft={{ md: "1px solid" }} borderColor="gray.200">
+          {/* <Box w={{ base: "100%", md: "250px" }} p="4" borderLeft={{ md: "1px solid" }} borderColor="gray.200">
             <VStack spacing="4" align="stretch">
               <Text fontWeight="bold" color="black">Quick Actions</Text>
               <Button
@@ -421,7 +421,7 @@ function Explore() {
               </HStack>
               <Divider />
             </VStack>
-          </Box>
+          </Box> */}
         </Flex>
       )}
     </Container>
