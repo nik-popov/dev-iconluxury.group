@@ -461,12 +461,10 @@ const handleRestartClick = () =>
           <StatLabel color="gray.600">Total Results</StatLabel>
           <StatNumber color="gray.800">{job.results.length}</StatNumber>
         </Stat>
-
+      </Box>
                 <Button size="sm" onClick={() => setIsFileModalOpen(true)}>
             File Metadata
           </Button>
-      </Box>
-
       {job.results.length > 0 && (
         <Box mt={6}>
           <Text fontSize="md" fontWeight="semibold" mb={2} color="gray.800">
