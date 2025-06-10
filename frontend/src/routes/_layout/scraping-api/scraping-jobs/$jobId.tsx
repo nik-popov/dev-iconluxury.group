@@ -372,9 +372,9 @@ const handleRestartClick = () =>
 
   const progressSteps = [
     { label: "Step 1: Data Fetching", completed: progressData?.step1Completed, progress: progressData?.step1Progress },
-    { label: "Step 2: Image Analysis", completed: progressData?.step2Completed, progress: progressData?.step2Progress },
-    { label: "Step 3: AI Processing", completed: progressData?.step3Completed, progress: progressData?.step3Progress },
-    { label: "Step 4: Finalizing", completed: progressData?.step4Completed, progress: progressData?.step4Progress },
+    //  { label: "Step 2: Image Validatio", completed: progressData?.step2Completed, progress: progressData?.step2Progress },
+    //  { label: "Step 3: AI Processing", completed: progressData?.step3Completed, progress: progressData?.step3Progress },
+    //  { label: "Step 4: Finalizing", completed: progressData?.step4Completed, progress: progressData?.step4Progress },
   ];
   
   return (
