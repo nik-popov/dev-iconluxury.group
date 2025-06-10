@@ -402,9 +402,6 @@ const handleRestartClick = () =>
             }}
           />
         </Flex>
-        <Button size="sm" onClick={() => setIsFileModalOpen(true)}>
-            File Metadata
-          </Button>
       </Flex>
 
       {/* --- Progress Bar Section --- */}
@@ -464,6 +461,10 @@ const handleRestartClick = () =>
           <StatLabel color="gray.600">Total Results</StatLabel>
           <StatNumber color="gray.800">{job.results.length}</StatNumber>
         </Stat>
+
+                <Button size="sm" onClick={() => setIsFileModalOpen(true)}>
+            File Metadata
+          </Button>
       </Box>
 
       {job.results.length > 0 && (
