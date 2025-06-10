@@ -35,6 +35,7 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
+  Progress, // Progress component import is necessary
 } from "@chakra-ui/react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import useCustomToast from "../../../../hooks/useCustomToast";
@@ -62,6 +63,21 @@ interface JobDetails {
   results: ResultItem[];
   records: RecordItem[];
 }
+
+// Interface for the progress data from the API
+interface ProgressData {
+  fileId: number;
+  totalRecords: number;
+  step1Completed: number;
+  step1Progress: number;
+  step2Completed: number;
+  step2Progress: number;
+  step3Completed: number;
+  step3Progress: number;
+  step4Completed: number;
+  step4Progress: number;
+}
+
 
 interface ResultItem {
   resultId: number;
@@ -182,6 +198,42 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveT
   const [isGeneratingDownload, setIsGeneratingDownload] = useState(false);
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const showToast = useCustomToast();
+  const [progressData, setProgressData] = useState<ProgressData | null>(null);
+
+  // Effect to poll for job progress if the job is not yet complete
+  useEffect(() => {
+    if (job.fileEnd || !job.id) {
+      setProgressData(null); // Clear progress if job is done
+      return;
+    }
+
+    let isCancelled = false;
+
+    const fetchProgress = async () => {
+      try {
+        const response = await fetch(`https://backend-dev.iconluxury.group/api/scraping-jobs/${job.id}/progress`);
+        if (response.ok) {
+          const data: ProgressData = await response.json();
+          if (!isCancelled) {
+            setProgressData(data);
+          }
+        } else {
+          console.error("Failed to fetch job progress:", response.statusText);
+        }
+      } catch (error) {
+        console.error("Error fetching job progress:", error);
+      }
+    };
+
+    fetchProgress(); // Initial fetch
+    const intervalId = setInterval(fetchProgress, 5000); // Poll every 5 seconds
+
+    return () => {
+      isCancelled = true;
+      clearInterval(intervalId); // Cleanup on component unmount or dependency change
+    };
+  }, [job.id, job.fileEnd]);
+
 
   const [sortConfig, setSortConfig] = useState<{
     key: "domain" | "totalResults" | "positiveSortOrderCount";
@@ -318,6 +370,13 @@ const handleRestartClick = () =>
   const handleProcessAI = () =>
     handleApiCall(`https://dev-image-distro.popovtech.com/process-ai-analysis/`, "POST", setIsProcessingAI, "Process AI Analysis",   job.id.toString());
 
+  const progressSteps = [
+    { label: "Step 1: Data Fetching", completed: progressData?.step1Completed, progress: progressData?.step1Progress },
+    { label: "Step 2: Image Analysis", completed: progressData?.step2Completed, progress: progressData?.step2Progress },
+    { label: "Step 3: AI Processing", completed: progressData?.step3Completed, progress: progressData?.step3Progress },
+    { label: "Step 4: Finalizing", completed: progressData?.step4Completed, progress: progressData?.step4Progress },
+  ];
+  
   return (
     <Box p={4} bg="white">
       <Flex justify="space-between" align="center" mb={4} flexWrap="wrap" gap={3}>
@@ -366,6 +425,37 @@ const handleRestartClick = () =>
           </Button>
       </Flex>
 
+      {/* --- Progress Bar Section --- */}
+      {progressData && !job.fileEnd && (
+         <Card mb={6} variant="outline">
+           <CardBody>
+             <Text fontSize="lg" fontWeight="semibold" mb={4} color="gray.700">Job Progress</Text>
+             <Flex direction="column" gap={4}>
+               {progressSteps.map((step, index) => (
+                 <Box key={index}>
+                   <Flex justify="space-between" align="baseline">
+                     <Text fontWeight="medium" color="gray.800">{step.label}</Text>
+                     <Text fontSize="sm" color="gray.600">
+                       {step.completed} / {progressData.totalRecords} records
+                     </Text>
+                   </Flex>
+                   <Progress
+                     value={step.progress}
+                     size="md"
+                     colorScheme="green"
+                     hasStripe={step.progress < 100}
+                     isAnimated={step.progress < 100}
+                     mt={1}
+                     borderRadius="md"
+                   />
+                 </Box>
+               ))}
+             </Flex>
+           </CardBody>
+         </Card>
+      )}
+      {/* --- End of Progress Bar Section --- */}
+
       <Box mb={6}>
         <Stat mt={4}>
           <StatLabel color="gray.600">Input File</StatLabel>
@@ -378,7 +468,7 @@ const handleRestartClick = () =>
         <Stat mt={4}>
           <StatLabel color="gray.600">Status</StatLabel>
           <StatNumber>
-            <Badge colorScheme={job.fileEnd ? "green" : "yellow"}>{job.fileEnd ? "Completed" : "Pending"}</Badge>
+            <Badge colorScheme={job.fileEnd ? "green" : "yellow"}>{job.fileEnd ? "Completed" : "In Progress"}</Badge>
           </StatNumber>
         </Stat>
         {job.fileEnd && (
@@ -433,6 +523,7 @@ const handleRestartClick = () =>
     </Box>
   );
 };
+
 // DetailsModal Component
 const DetailsModal: React.FC<DetailsModalProps> = ({ isOpen, onClose, title, data }) => {
   const capitalizeKey = (key: string) => key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()).trim();
