@@ -411,7 +411,6 @@ const handleRestartClick = () =>
       {progressData && !job.fileEnd && (
          <Card mb={6} variant="outline">
            <CardBody>
-             <Text fontSize="lg" fontWeight="semibold" mb={4} color="gray.700">Job Progress</Text>
              <Flex direction="column" gap={4}>
                {progressSteps.map((step, index) => (
                  <Box key={index}>
