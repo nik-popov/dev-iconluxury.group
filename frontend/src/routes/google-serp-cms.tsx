@@ -362,7 +362,7 @@ const CMSGoogleSerpForm: React.FC = () => {
 
     if (colorCol) formData.append('ColorColImage', colorCol);
     if (categoryCol) formData.append('CategoryColImage', categoryCol);
-    formData.append('header_index', String(headerRowIndex));
+    formData.append('header_index', String(headerRowIndex + 1));
 
     const userEmail = 'nik@luxurymarket.com'; // Consider making this dynamic or configurable
     if (userEmail) formData.append('sendToEmail', userEmail);

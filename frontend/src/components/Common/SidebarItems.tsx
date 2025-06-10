@@ -38,10 +38,7 @@ const sidebarStructure: SidebarItem[] = [
     title: "Scraper",
     subItems: [
       { title: "Jobs", path: "/scraping-api/explore", icon: FiSearch },
-      { title: "Vision", path: "/scraping-api/vision", icon: FiEye },
-      { title: "Reasoning", path: "/scraping-api/language-model", icon: FiGlobe },
       { title: "Google SERP", path: "/scraping-api/google-serp", icon: FiGoogleSerp },
-      { title: "User Agents", path: "/scraping-api/user-agents", icon: FiGoogleSerp },
     ],
   },
   {
@@ -85,7 +82,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     if (["Dashboard", "Orders", "Offers", "Customers", "Support", "Sign out"].includes(title)) {
       return true;
     }
-    if (["Scraper", "Jobs", "Archive", "Vision", "Reasoning", "Google SERP", "Logs", "Network Logs", "Email Logs", "VPN", "Admin"].includes(title)) {
+    if (["Scraper", "Jobs", "Archive", "Google SERP", "Logs", "Network Logs", "Email Logs", "VPN", "Admin"].includes(title)) {
       return currentUser?.is_superuser || false;
     }
     return true;
