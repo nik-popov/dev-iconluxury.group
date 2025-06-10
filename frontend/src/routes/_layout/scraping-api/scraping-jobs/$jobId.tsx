@@ -382,24 +382,6 @@ const handleRestartClick = () =>
       <Flex justify="space-between" align="center" mb={4} flexWrap="wrap" gap={3}>
     
         <Flex gap={3} justify="flex-end" flexWrap="wrap">
-          <Button size="sm" colorScheme="red" onClick={handleRestartClick} isLoading={isRestarting}>
-          Restart Search
-          </Button>
-          {/* <Button size="sm" colorScheme="green" onClick={handleMatchAISort} isLoading={isMatchAISort}>
-            Match_ Sort
-          </Button> */}
-          <Button size="sm" colorScheme="green" onClick={handleInitialSort} isLoading={isInitialSort}>
-            Initial Sort
-          </Button>
-          <Button size="sm" colorScheme="green" onClick={handleSearchSort} isLoading={isSearchSort}>
-            Search Sort
-          </Button>
-          <Button size="sm" colorScheme="green" onClick={handleGenerateDownload} isLoading={isGeneratingDownload}>
-            Generate Download
-          </Button>
-          <Button size="sm" colorScheme="green" onClick={handleProcessAI} isLoading={isProcessingAI}>
-          Restart AI
-          </Button>
           <DetailsModal
             isOpen={isFileModalOpen}
             onClose={() => setIsFileModalOpen(false)}
