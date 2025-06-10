@@ -443,8 +443,8 @@ const handleRestartClick = () =>
                      value={step.progress}
                      size="md"
                      colorScheme="green"
-                     hasStripe={step.progress < 100}
-                     isAnimated={step.progress < 100}
+                     hasStripe={Number(step.progress)< 100}
+                     isAnimated={Number(step.progress) < 100}
                      mt={1}
                      borderRadius="md"
                    />
