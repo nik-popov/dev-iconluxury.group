@@ -175,14 +175,6 @@ const JobProgressPage = () => {
                   </Link>
                 </StatHelpText>
               </Stat>
-              <Stat textAlign="center">
-                <StatLabel color="gray.600">Status</StatLabel>
-                <StatNumber>
-                  <Badge fontSize="md" px={3} py={1} borderRadius="md" colorScheme={jobData.fileEnd ? "green" : "yellow"}>
-                    {jobData.fileEnd ? "Completed" : "In Progress"}
-                  </Badge>
-                </StatNumber>
-              </Stat>
               <Stat>
                 <StatLabel color="gray.600">Start Time</StatLabel>
                 <StatNumber color="gray.700" fontSize="lg">
