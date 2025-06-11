@@ -51,7 +51,7 @@ interface ProgressData {
  * It fetches job details and polls for progress updates until the job is complete.
  */
 const JobProgressPage = () => {
-  const { jobId } = useParams({ from: "/_layout/scraping-api/scraping-jobs/$jobId/progress-only" }) as { jobId: string };
+  const { jobId } = useParams({ from: "/_layout/progress/$jobId" }) as { jobId: string };
   const [jobData, setJobData] = useState<JobDetails | null>(null);
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -260,7 +260,7 @@ const JobProgressPage = () => {
 
 // Defines the route for this new page within the TanStack Router setup.
 // This should be in a file like: `src/routes/_layout/scraping-api/scraping-jobs/$jobId/progress-only.tsx`
-export const Route = createFileRoute("/_layout/progress/jobId")({
+export const Route = createFileRoute("/_layout/progress/$jobId")({
   component: JobProgressPage,
 });
 

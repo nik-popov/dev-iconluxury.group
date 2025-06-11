@@ -30,7 +30,7 @@ import { Route as LayoutSubmitFormOfferImport } from './routes/_layout/submit-fo
 import { Route as LayoutScrapingApiUserAgentsImport } from './routes/_layout/scraping-api/user-agents'
 import { Route as LayoutScrapingApiGoogleSerpImport } from './routes/_layout/scraping-api/google-serp'
 import { Route as LayoutScrapingApiExploreImport } from './routes/_layout/scraping-api/explore'
-import { Route as LayoutProgressJobIdImport } from './routes/_layout/progress/jobId'
+import { Route as LayoutProgressJobIdImport } from './routes/_layout/progress/$jobId'
 import { Route as LayoutScrapingApiScrapingJobsIndexImport } from './routes/_layout/scraping-api/scraping-jobs/index'
 import { Route as LayoutSupplierOfferFileIdImport } from './routes/_layout/supplier/offer/$fileId'
 import { Route as LayoutScrapingApiScrapingJobsJobIdImport } from './routes/_layout/scraping-api/scraping-jobs/$jobId'
@@ -153,8 +153,8 @@ const LayoutScrapingApiExploreRoute = LayoutScrapingApiExploreImport.update({
 } as any)
 
 const LayoutProgressJobIdRoute = LayoutProgressJobIdImport.update({
-  id: '/progress/jobId',
-  path: '/progress/jobId',
+  id: '/progress/$jobId',
+  path: '/progress/$jobId',
   getParentRoute: () => LayoutRoute,
 } as any)
 
@@ -280,10 +280,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutIndexImport
       parentRoute: typeof LayoutImport
     }
-    '/_layout/progress/jobId': {
-      id: '/_layout/progress/jobId'
-      path: '/progress/jobId'
-      fullPath: '/progress/jobId'
+    '/_layout/progress/$jobId': {
+      id: '/_layout/progress/$jobId'
+      path: '/progress/$jobId'
+      fullPath: '/progress/$jobId'
       preLoaderRoute: typeof LayoutProgressJobIdImport
       parentRoute: typeof LayoutImport
     }
@@ -408,7 +408,7 @@ export interface FileRoutesByFullPath {
   '/orders': typeof LayoutOrdersRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
-  '/progress/jobId': typeof LayoutProgressJobIdRoute
+  '/progress/$jobId': typeof LayoutProgressJobIdRoute
   '/scraping-api/explore': typeof LayoutScrapingApiExploreRoute
   '/scraping-api/google-serp': typeof LayoutScrapingApiGoogleSerpRoute
   '/scraping-api/user-agents': typeof LayoutScrapingApiUserAgentsRoute
@@ -433,7 +433,7 @@ export interface FileRoutesByTo {
   '/orders': typeof LayoutOrdersRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
-  '/progress/jobId': typeof LayoutProgressJobIdRoute
+  '/progress/$jobId': typeof LayoutProgressJobIdRoute
   '/scraping-api/explore': typeof LayoutScrapingApiExploreRoute
   '/scraping-api/google-serp': typeof LayoutScrapingApiGoogleSerpRoute
   '/scraping-api/user-agents': typeof LayoutScrapingApiUserAgentsRoute
@@ -460,7 +460,7 @@ export interface FileRoutesById {
   '/_layout/orders': typeof LayoutOrdersRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/': typeof LayoutIndexRoute
-  '/_layout/progress/jobId': typeof LayoutProgressJobIdRoute
+  '/_layout/progress/$jobId': typeof LayoutProgressJobIdRoute
   '/_layout/scraping-api/explore': typeof LayoutScrapingApiExploreRoute
   '/_layout/scraping-api/google-serp': typeof LayoutScrapingApiGoogleSerpRoute
   '/_layout/scraping-api/user-agents': typeof LayoutScrapingApiUserAgentsRoute
@@ -488,7 +488,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/settings'
     | '/'
-    | '/progress/jobId'
+    | '/progress/$jobId'
     | '/scraping-api/explore'
     | '/scraping-api/google-serp'
     | '/scraping-api/user-agents'
@@ -512,7 +512,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/settings'
     | '/'
-    | '/progress/jobId'
+    | '/progress/$jobId'
     | '/scraping-api/explore'
     | '/scraping-api/google-serp'
     | '/scraping-api/user-agents'
@@ -537,7 +537,7 @@ export interface FileRouteTypes {
     | '/_layout/orders'
     | '/_layout/settings'
     | '/_layout/'
-    | '/_layout/progress/jobId'
+    | '/_layout/progress/$jobId'
     | '/_layout/scraping-api/explore'
     | '/_layout/scraping-api/google-serp'
     | '/_layout/scraping-api/user-agents'
@@ -596,7 +596,7 @@ export const routeTree = rootRoute
         "/_layout/orders",
         "/_layout/settings",
         "/_layout/",
-        "/_layout/progress/jobId",
+        "/_layout/progress/$jobId",
         "/_layout/scraping-api/explore",
         "/_layout/scraping-api/google-serp",
         "/_layout/scraping-api/user-agents",
@@ -654,8 +654,8 @@ export const routeTree = rootRoute
       "filePath": "_layout/index.tsx",
       "parent": "/_layout"
     },
-    "/_layout/progress/jobId": {
-      "filePath": "_layout/progress/jobId.tsx",
+    "/_layout/progress/$jobId": {
+      "filePath": "_layout/progress/$jobId.tsx",
       "parent": "/_layout"
     },
     "/_layout/scraping-api/explore": {
