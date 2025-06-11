@@ -30,7 +30,7 @@ import { Route as LayoutSubmitFormOfferImport } from './routes/_layout/submit-fo
 import { Route as LayoutScrapingApiUserAgentsImport } from './routes/_layout/scraping-api/user-agents'
 import { Route as LayoutScrapingApiGoogleSerpImport } from './routes/_layout/scraping-api/google-serp'
 import { Route as LayoutScrapingApiExploreImport } from './routes/_layout/scraping-api/explore'
-import { Route as LayoutProgressJobIdImport } from './routes/_layout/progress/$jobId'
+import { Route as LayoutProgressJobIdImport } from './routes/progress/$jobId'
 import { Route as LayoutScrapingApiScrapingJobsIndexImport } from './routes/_layout/scraping-api/scraping-jobs/index'
 import { Route as LayoutSupplierOfferFileIdImport } from './routes/_layout/supplier/offer/$fileId'
 import { Route as LayoutScrapingApiScrapingJobsJobIdImport } from './routes/_layout/scraping-api/scraping-jobs/$jobId'
