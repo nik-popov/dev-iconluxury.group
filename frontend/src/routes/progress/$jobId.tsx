@@ -205,9 +205,6 @@ const JobProgressPage = () => {
         {progressData && !jobData.fileEnd && (
           <Card variant="outline" borderWidth="1px" borderColor="gray.200" shadow="sm">
             <CardBody>
-                <Heading as="h3" size="md" mb={6} color="gray.700" textAlign="center">
-                    Live Progress
-                </Heading>
               <VStack spacing={6}>
                 {progressSteps.map((step, index) => (
                   <Box key={index} w="100%">
