@@ -19,7 +19,7 @@ import {
   VStack,
   Link,
 } from "@chakra-ui/react";
-import useCustomToast from "../../../../hooks/useCustomToast"; // Assuming the hook's path
+import useCustomToast from "../../../hooks/useCustomToast"; // Assuming the hook's path
 
 // --- INTERFACES ---
 
