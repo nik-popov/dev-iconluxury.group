@@ -25,12 +25,12 @@ import { Route as LayoutItemsImport } from './routes/_layout/items'
 import { Route as LayoutExploreImport } from './routes/_layout/explore'
 import { Route as LayoutCustomersImport } from './routes/_layout/customers'
 import { Route as LayoutAdminImport } from './routes/_layout/admin'
-import { Route as LayoutSupplierExploreImport } from './routes/_layout/supplier/explore'
 import { Route as LayoutSubmitFormSuccessImport } from './routes/_layout/submit-form/success'
 import { Route as LayoutSubmitFormOfferImport } from './routes/_layout/submit-form/offer'
 import { Route as LayoutScrapingApiUserAgentsImport } from './routes/_layout/scraping-api/user-agents'
 import { Route as LayoutScrapingApiGoogleSerpImport } from './routes/_layout/scraping-api/google-serp'
 import { Route as LayoutScrapingApiExploreImport } from './routes/_layout/scraping-api/explore'
+import { Route as LayoutProgressJobIdImport } from './routes/_layout/progress/jobId'
 import { Route as LayoutScrapingApiScrapingJobsIndexImport } from './routes/_layout/scraping-api/scraping-jobs/index'
 import { Route as LayoutSupplierOfferFileIdImport } from './routes/_layout/supplier/offer/$fileId'
 import { Route as LayoutScrapingApiScrapingJobsJobIdImport } from './routes/_layout/scraping-api/scraping-jobs/$jobId'
@@ -120,12 +120,6 @@ const LayoutAdminRoute = LayoutAdminImport.update({
   getParentRoute: () => LayoutRoute,
 } as any)
 
-const LayoutSupplierExploreRoute = LayoutSupplierExploreImport.update({
-  id: '/supplier/explore',
-  path: '/supplier/explore',
-  getParentRoute: () => LayoutRoute,
-} as any)
-
 const LayoutSubmitFormSuccessRoute = LayoutSubmitFormSuccessImport.update({
   id: '/submit-form/success',
   path: '/submit-form/success',
@@ -155,6 +149,12 @@ const LayoutScrapingApiGoogleSerpRoute =
 const LayoutScrapingApiExploreRoute = LayoutScrapingApiExploreImport.update({
   id: '/scraping-api/explore',
   path: '/scraping-api/explore',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
+const LayoutProgressJobIdRoute = LayoutProgressJobIdImport.update({
+  id: '/progress/jobId',
+  path: '/progress/jobId',
   getParentRoute: () => LayoutRoute,
 } as any)
 
@@ -280,6 +280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutIndexImport
       parentRoute: typeof LayoutImport
     }
+    '/_layout/progress/jobId': {
+      id: '/_layout/progress/jobId'
+      path: '/progress/jobId'
+      fullPath: '/progress/jobId'
+      preLoaderRoute: typeof LayoutProgressJobIdImport
+      parentRoute: typeof LayoutImport
+    }
     '/_layout/scraping-api/explore': {
       id: '/_layout/scraping-api/explore'
       path: '/scraping-api/explore'
@@ -313,13 +320,6 @@ declare module '@tanstack/react-router' {
       path: '/submit-form/success'
       fullPath: '/submit-form/success'
       preLoaderRoute: typeof LayoutSubmitFormSuccessImport
-      parentRoute: typeof LayoutImport
-    }
-    '/_layout/supplier/explore': {
-      id: '/_layout/supplier/explore'
-      path: '/supplier/explore'
-      fullPath: '/supplier/explore'
-      preLoaderRoute: typeof LayoutSupplierExploreImport
       parentRoute: typeof LayoutImport
     }
     '/_layout/scraping-api/scraping-jobs/$jobId': {
@@ -357,12 +357,12 @@ interface LayoutRouteChildren {
   LayoutOrdersRoute: typeof LayoutOrdersRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
+  LayoutProgressJobIdRoute: typeof LayoutProgressJobIdRoute
   LayoutScrapingApiExploreRoute: typeof LayoutScrapingApiExploreRoute
   LayoutScrapingApiGoogleSerpRoute: typeof LayoutScrapingApiGoogleSerpRoute
   LayoutScrapingApiUserAgentsRoute: typeof LayoutScrapingApiUserAgentsRoute
   LayoutSubmitFormOfferRoute: typeof LayoutSubmitFormOfferRoute
   LayoutSubmitFormSuccessRoute: typeof LayoutSubmitFormSuccessRoute
-  LayoutSupplierExploreRoute: typeof LayoutSupplierExploreRoute
   LayoutScrapingApiScrapingJobsJobIdRoute: typeof LayoutScrapingApiScrapingJobsJobIdRoute
   LayoutSupplierOfferFileIdRoute: typeof LayoutSupplierOfferFileIdRoute
   LayoutScrapingApiScrapingJobsIndexRoute: typeof LayoutScrapingApiScrapingJobsIndexRoute
@@ -377,12 +377,12 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutOrdersRoute: LayoutOrdersRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutIndexRoute: LayoutIndexRoute,
+  LayoutProgressJobIdRoute: LayoutProgressJobIdRoute,
   LayoutScrapingApiExploreRoute: LayoutScrapingApiExploreRoute,
   LayoutScrapingApiGoogleSerpRoute: LayoutScrapingApiGoogleSerpRoute,
   LayoutScrapingApiUserAgentsRoute: LayoutScrapingApiUserAgentsRoute,
   LayoutSubmitFormOfferRoute: LayoutSubmitFormOfferRoute,
   LayoutSubmitFormSuccessRoute: LayoutSubmitFormSuccessRoute,
-  LayoutSupplierExploreRoute: LayoutSupplierExploreRoute,
   LayoutScrapingApiScrapingJobsJobIdRoute:
     LayoutScrapingApiScrapingJobsJobIdRoute,
   LayoutSupplierOfferFileIdRoute: LayoutSupplierOfferFileIdRoute,
@@ -408,12 +408,12 @@ export interface FileRoutesByFullPath {
   '/orders': typeof LayoutOrdersRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
+  '/progress/jobId': typeof LayoutProgressJobIdRoute
   '/scraping-api/explore': typeof LayoutScrapingApiExploreRoute
   '/scraping-api/google-serp': typeof LayoutScrapingApiGoogleSerpRoute
   '/scraping-api/user-agents': typeof LayoutScrapingApiUserAgentsRoute
   '/submit-form/offer': typeof LayoutSubmitFormOfferRoute
   '/submit-form/success': typeof LayoutSubmitFormSuccessRoute
-  '/supplier/explore': typeof LayoutSupplierExploreRoute
   '/scraping-api/scraping-jobs/$jobId': typeof LayoutScrapingApiScrapingJobsJobIdRoute
   '/supplier/offer/$fileId': typeof LayoutSupplierOfferFileIdRoute
   '/scraping-api/scraping-jobs': typeof LayoutScrapingApiScrapingJobsIndexRoute
@@ -433,12 +433,12 @@ export interface FileRoutesByTo {
   '/orders': typeof LayoutOrdersRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
+  '/progress/jobId': typeof LayoutProgressJobIdRoute
   '/scraping-api/explore': typeof LayoutScrapingApiExploreRoute
   '/scraping-api/google-serp': typeof LayoutScrapingApiGoogleSerpRoute
   '/scraping-api/user-agents': typeof LayoutScrapingApiUserAgentsRoute
   '/submit-form/offer': typeof LayoutSubmitFormOfferRoute
   '/submit-form/success': typeof LayoutSubmitFormSuccessRoute
-  '/supplier/explore': typeof LayoutSupplierExploreRoute
   '/scraping-api/scraping-jobs/$jobId': typeof LayoutScrapingApiScrapingJobsJobIdRoute
   '/supplier/offer/$fileId': typeof LayoutSupplierOfferFileIdRoute
   '/scraping-api/scraping-jobs': typeof LayoutScrapingApiScrapingJobsIndexRoute
@@ -460,12 +460,12 @@ export interface FileRoutesById {
   '/_layout/orders': typeof LayoutOrdersRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/': typeof LayoutIndexRoute
+  '/_layout/progress/jobId': typeof LayoutProgressJobIdRoute
   '/_layout/scraping-api/explore': typeof LayoutScrapingApiExploreRoute
   '/_layout/scraping-api/google-serp': typeof LayoutScrapingApiGoogleSerpRoute
   '/_layout/scraping-api/user-agents': typeof LayoutScrapingApiUserAgentsRoute
   '/_layout/submit-form/offer': typeof LayoutSubmitFormOfferRoute
   '/_layout/submit-form/success': typeof LayoutSubmitFormSuccessRoute
-  '/_layout/supplier/explore': typeof LayoutSupplierExploreRoute
   '/_layout/scraping-api/scraping-jobs/$jobId': typeof LayoutScrapingApiScrapingJobsJobIdRoute
   '/_layout/supplier/offer/$fileId': typeof LayoutSupplierOfferFileIdRoute
   '/_layout/scraping-api/scraping-jobs/': typeof LayoutScrapingApiScrapingJobsIndexRoute
@@ -488,12 +488,12 @@ export interface FileRouteTypes {
     | '/orders'
     | '/settings'
     | '/'
+    | '/progress/jobId'
     | '/scraping-api/explore'
     | '/scraping-api/google-serp'
     | '/scraping-api/user-agents'
     | '/submit-form/offer'
     | '/submit-form/success'
-    | '/supplier/explore'
     | '/scraping-api/scraping-jobs/$jobId'
     | '/supplier/offer/$fileId'
     | '/scraping-api/scraping-jobs'
@@ -512,12 +512,12 @@ export interface FileRouteTypes {
     | '/orders'
     | '/settings'
     | '/'
+    | '/progress/jobId'
     | '/scraping-api/explore'
     | '/scraping-api/google-serp'
     | '/scraping-api/user-agents'
     | '/submit-form/offer'
     | '/submit-form/success'
-    | '/supplier/explore'
     | '/scraping-api/scraping-jobs/$jobId'
     | '/supplier/offer/$fileId'
     | '/scraping-api/scraping-jobs'
@@ -537,12 +537,12 @@ export interface FileRouteTypes {
     | '/_layout/orders'
     | '/_layout/settings'
     | '/_layout/'
+    | '/_layout/progress/jobId'
     | '/_layout/scraping-api/explore'
     | '/_layout/scraping-api/google-serp'
     | '/_layout/scraping-api/user-agents'
     | '/_layout/submit-form/offer'
     | '/_layout/submit-form/success'
-    | '/_layout/supplier/explore'
     | '/_layout/scraping-api/scraping-jobs/$jobId'
     | '/_layout/supplier/offer/$fileId'
     | '/_layout/scraping-api/scraping-jobs/'
@@ -596,12 +596,12 @@ export const routeTree = rootRoute
         "/_layout/orders",
         "/_layout/settings",
         "/_layout/",
+        "/_layout/progress/jobId",
         "/_layout/scraping-api/explore",
         "/_layout/scraping-api/google-serp",
         "/_layout/scraping-api/user-agents",
         "/_layout/submit-form/offer",
         "/_layout/submit-form/success",
-        "/_layout/supplier/explore",
         "/_layout/scraping-api/scraping-jobs/$jobId",
         "/_layout/supplier/offer/$fileId",
         "/_layout/scraping-api/scraping-jobs/"
@@ -654,6 +654,10 @@ export const routeTree = rootRoute
       "filePath": "_layout/index.tsx",
       "parent": "/_layout"
     },
+    "/_layout/progress/jobId": {
+      "filePath": "_layout/progress/jobId.tsx",
+      "parent": "/_layout"
+    },
     "/_layout/scraping-api/explore": {
       "filePath": "_layout/scraping-api/explore.tsx",
       "parent": "/_layout"
@@ -672,10 +676,6 @@ export const routeTree = rootRoute
     },
     "/_layout/submit-form/success": {
       "filePath": "_layout/submit-form/success.tsx",
-      "parent": "/_layout"
-    },
-    "/_layout/supplier/explore": {
-      "filePath": "_layout/supplier/explore.tsx",
       "parent": "/_layout"
     },
     "/_layout/scraping-api/scraping-jobs/$jobId": {

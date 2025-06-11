@@ -52,7 +52,7 @@ import { FiUpload } from "react-icons/fi"; // Correctly imported
 //    ```
 // 3. If this route `/_layout/offers` implies a parent layout route (e.g., a file named `_layout.tsx`
 //    in the `routes` directory), that parent layout route file must:
-//    a. Exist and be correctly defined (e.g., `export const Route = createFileRoute('/_layout')({ component: MyLayoutComponent });`).
+//    a. Exist and be correctly defined (e.g., `export const Route = createFileRoute('/_layout/offers')({ component: MyLayoutComponent });`).
 //    b. Its component (`MyLayoutComponent` in the example) *must* render an `<Outlet />` component
 //       (imported from `@tanstack/react-router`) where child routes like this `OffersPage` will be rendered.
 //       Example for `routes/_layout.tsx`:
@@ -68,7 +68,7 @@ import { FiUpload } from "react-icons/fi"; // Correctly imported
 //           </div>
 //         );
 //       }
-//       export const Route = createFileRoute('/_layout')({ component: MyLayoutComponent });
+//       export const Route = createFileRoute('/_layout/offers')({ component: MyLayoutComponent });
 //       ```
 // 4. Hooks like `useNavigate()` must be called from components rendered *within* the `RouterProvider`'s context.
 //    If `OffersPage` is somehow rendered outside this context, these hooks will fail.
