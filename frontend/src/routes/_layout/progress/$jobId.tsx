@@ -163,15 +163,6 @@ const JobProgressPage = () => {
   return (
     <Container maxW="container.lg" py={8} bg="gray.50" minH="100vh">
       <VStack spacing={8} align="stretch">
-        <Box textAlign="center">
-          <Heading as="h1" size="xl" color="gray.800">
-            Job Progress Tracker
-          </Heading>
-          <Text fontSize="md" color="gray.500" mt={1}>
-            Live status for Job ID: {jobData.id}
-          </Text>
-        </Box>
-
         {/* Job Details Card */}
         <Card variant="outline" borderWidth="1px" borderColor="gray.200" shadow="sm">
           <CardBody>
