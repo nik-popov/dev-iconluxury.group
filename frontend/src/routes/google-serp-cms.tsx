@@ -577,18 +577,16 @@ const ControlSection: React.FC<ControlSectionProps> = ({
     </FormControl>
     <FormControl>
     <Text fontSize="md" color="gray.600">Output File:</Text>
-     <RadioGroup
+<RadioGroup
   onChange={(value) => setIsIconDistro(value === 'distro')}
   value={isIconDistro ? 'distro' : 'input'}
-  isDisabled={isLoading}
-  colorScheme="blue"
-  aria-label="Select Icon Distro option"
 >
   <HStack spacing={4}>
     <Radio value="input">Input File</Radio>
     <Radio value="distro">Icon Distro</Radio>
   </HStack>
 </RadioGroup>
+
 
     </FormControl>
     <Button
