@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react'; // Added useMemo
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Container,
   Text,
@@ -20,6 +20,7 @@ import {
   Tbody,
   Select,
   Spinner,
+  Checkbox, // Added Checkbox import
 } from '@chakra-ui/react';
 import { createFileRoute } from '@tanstack/react-router';
 import * as XLSX from 'xlsx';
@@ -30,7 +31,6 @@ import useCustomToast from '../hooks/useCustomToast';
 const REQUIRED_COLUMNS = ['style', 'brand'] as const;
 const OPTIONAL_COLUMNS = ['category', 'colorName', 'readImage', 'imageAdd'] as const;
 const ALL_COLUMNS = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS] as const;
-// const TARGET_HEADERS = ['BRAND', 'STYLE'] as const; // Not used, can be removed
 const SERVER_URL = 'https://backend-dev.iconluxury.group';
 const MAX_ROWS = 1000;
 
@@ -66,8 +66,6 @@ const indexToColumnLetter = (index: number): string => {
   return column;
 };
 
-// const ExcelDataTableMemo = React.memo(ExcelDataTable); // Not used, can be removed
-
 // Main Component
 const CMSGoogleSerpForm: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -91,52 +89,60 @@ const CMSGoogleSerpForm: React.FC = () => {
   });
   const [manualBrand, setManualBrand] = useState<string>('');
   const [manualBrandInfo, setManualBrandInfo] = useState<{ value: string; insertIndex: number } | null>(null);
+  const [isIconDistro, setIsIconDistro] = useState<boolean>(true); // Added checkbox state
   const showToast: ToastFunction = useCustomToast();
 
   // File Handling
-  const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (!selectedFile) {
-      showToast('File Error', 'No file selected', 'error');
-      return;
-    }
-
-    if (!['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'].includes(selectedFile.type)) {
-      showToast('File Error', 'Please upload an Excel file (.xlsx or .xls)', 'error');
-      return;
-    }
-
-    setFile(selectedFile);
-    setExcelData({ headers: [], rows: [] });
-    setColumnMapping({ style: null, brand: null, imageAdd: null, readImage: null, category: null, colorName: null });
-    setManualBrand('');
-    setManualBrandInfo(null); // Reset manual brand info when a new file is loaded
-    setHeaderRowIndex(null); // Reset header row index
-    setIsLoadingFile(true);
-
-    try {
-      const data = await readFile(selectedFile);
-      const workbook = XLSX.read(data, { type: 'binary' });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      if (!worksheet) throw new Error('No worksheet found in the Excel file');
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: true, defval: '' });
-      if (jsonData.length === 0) throw new Error('Excel file is empty');
-      const preview = jsonData.slice(0, MAX_ROWS) as (string | number | boolean | null)[][];
-      setPreviewRows(preview);
-
-      const autoHeaderIndex = detectHeaderRow(preview);
-      if (autoHeaderIndex !== null) {
-        processHeaderSelection(autoHeaderIndex, preview);
-      } else {
-        setIsHeaderModalOpen(true);
+  const handleFileChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const selectedFile = event.target.files?.[0];
+      if (!selectedFile) {
+        showToast('File Error', 'No file selected', 'error');
+        return;
       }
-    } catch (error) {
-      showToast('File Processing Error', error instanceof Error ? error.message : 'Unknown error', 'error');
-      setFile(null);
-    } finally {
-      setIsLoadingFile(false);
-    }
-  }, [showToast]); // processHeaderSelection is not directly used here, but implicitly via effects
+
+      if (
+        !['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'].includes(
+          selectedFile.type
+        )
+      ) {
+        showToast('File Error', 'Please upload an Excel file (.xlsx or .xls)', 'error');
+        return;
+      }
+
+      setFile(selectedFile);
+      setExcelData({ headers: [], rows: [] });
+      setColumnMapping({ style: null, brand: null, imageAdd: null, readImage: null, category: null, colorName: null });
+      setManualBrand('');
+      setManualBrandInfo(null);
+      setHeaderRowIndex(null);
+      setIsLoadingFile(true);
+
+      try {
+        const data = await readFile(selectedFile);
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        if (!worksheet) throw new Error('No worksheet found in the Excel file');
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: true, defval: '' });
+        if (jsonData.length === 0) throw new Error('Excel file is empty');
+        const preview = jsonData.slice(0, MAX_ROWS) as (string | number | boolean | null)[][];
+        setPreviewRows(preview);
+
+        const autoHeaderIndex = detectHeaderRow(preview);
+        if (autoHeaderIndex !== null) {
+          processHeaderSelection(autoHeaderIndex, preview);
+        } else {
+          setIsHeaderModalOpen(true);
+        }
+      } catch (error) {
+        showToast('File Processing Error', error instanceof Error ? error.message : 'Unknown error', 'error');
+        setFile(null);
+      } finally {
+        setIsLoadingFile(false);
+      }
+    },
+    [showToast]
+  );
 
   const readFile = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -153,14 +159,11 @@ const CMSGoogleSerpForm: React.FC = () => {
 
   const detectHeaderRow = (rows: (string | number | boolean | null)[][]): number | null => {
     const patterns = {
-      style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))$/i,
-      brand: /^(brand|brand\s*name|manufacturer|label)$/i,
+      style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))/i,
     };
     const MAX_SEARCH_ROWS = 50;
     for (let i = 0; i < Math.min(MAX_SEARCH_ROWS, rows.length); i++) {
-      const rowValues = rows[i]
-        .map(cell => String(cell ?? '').trim())
-        .filter(value => value !== '');
+      const rowValues = rows[i].map(cell => String(cell ?? '').trim()).filter(value => value !== '');
       if (rowValues.length < 2) continue;
       let styleMatch = false;
       for (const value of rowValues) {
@@ -174,37 +177,44 @@ const CMSGoogleSerpForm: React.FC = () => {
     return null;
   };
 
-  const autoMapColumns = useCallback((headers: string[]): ColumnMapping => {
-    const mapping: ColumnMapping = {
-      style: null, brand: null, imageAdd: null, readImage: null, category: null, colorName: null,
-    };
-    const patterns = {
-      style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))$/i,
-      brand: /^(brand|brand\s*name|manufacturer|label)$/i,
-      category: /^(category|type|product\s*type|group)$/i,
-      colorName: /^(color|colour|color\s*name|shade)$/i,
-    };
-    headers.forEach((header, index) => {
-      const normalizedHeader = String(header ?? '').trim().toUpperCase();
-      if (!normalizedHeader) return;
-      if (patterns.style.test(normalizedHeader) && mapping.style === null) mapping.style = index;
-      else if (patterns.brand.test(normalizedHeader) && mapping.brand === null) mapping.brand = index;
-      else if (patterns.category.test(normalizedHeader) && mapping.category === null) mapping.category = index;
-      else if (patterns.colorName.test(normalizedHeader) && mapping.colorName === null) mapping.colorName = index;
-    });
-    return mapping;
-  }, []);
+  const autoMapColumns = useCallback(
+    (headers: string[]): ColumnMapping => {
+      const mapping: ColumnMapping = {
+        style: null,
+        brand: null,
+        imageAdd: null,
+        readImage: null,
+        category: null,
+        colorName: null,
+      };
+      const patterns = {
+        style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))/i,
+        category: /^(category|type|product\s*type|group)/i,
+      };
+      headers.forEach((header, index) => {
+        const normalizedHeader = String(header ?? '').trim().toUpperCase();
+        if (!normalizedHeader) return;
+        if (patterns.style.test(normalizedHeader) && mapping.style === null) mapping.style = index;
+        else if (patterns.category.test(normalizedHeader) && mapping.category === null) mapping.category = index;
+        else if (patterns.colorName.test(normalizedHeader) && mapping.colorName === null) mapping.colorName = index;
+      });
+      return mapping;
+    },
+    []
+  );
 
-  const processHeaderSelection = useCallback((index: number, rowsToProcess: (string | number | boolean | null)[][]) => {
-    const headers = rowsToProcess[index].map(cell => String(cell ?? ''));
-    const newExcelRows = rowsToProcess.slice(index + 1).map(row => ({ row }));
-    const newMapping = autoMapColumns(headers);
-    setExcelData({ headers, rows: newExcelRows });
-    setColumnMapping(newMapping);
-    setHeaderRowIndex(index);
-    setManualBrandInfo(null); // Reset if header selection changes column structure
-  }, [autoMapColumns]);
-
+  const processHeaderSelection = useCallback(
+    (index: number, rowsToProcess: (string | number | boolean | null)[][]) => {
+      const headers = rowsToProcess[index].map(cell => String(cell ?? ''));
+      const newExcelRows = rowsToProcess.slice(index + 1).map(row => ({ row }));
+      const newMapping = autoMapColumns(headers);
+      setExcelData({ headers, rows: newExcelRows });
+      setColumnMapping(newMapping);
+      setHeaderRowIndex(index);
+      setManualBrandInfo(null);
+    },
+    [autoMapColumns]
+  );
 
   // Header Selection
   const handleRowSelect = useCallback((rowIndex: number) => {
@@ -222,32 +232,27 @@ const CMSGoogleSerpForm: React.FC = () => {
   // Manual Brand
   const applyManualBrand = useCallback(() => {
     if (!manualBrand.trim() || columnMapping.brand !== null) {
-      showToast('Manual Brand Error', 'Cannot apply manual brand. Ensure no brand column is mapped and a non-empty brand is entered.', 'warning');
+      showToast(
+        'Manual Brand Error',
+        'Cannot apply manual brand. Ensure no brand column is mapped and a non-empty brand is entered.',
+        'warning'
+      );
       return;
     }
 
-    const styleIndex = columnMapping.style;
-    const insertIndex = styleIndex !== null ? styleIndex + 1 : excelData.headers.length > 0 ? 0 : 0; // Insert at beginning if no style or no headers
+    const style = columnMapping.style;
+    const insertIndex = styleIndex !== null ? styleIndex + 1 : excelData.headers.length > 0 ? 0 : 0;
 
-    const newHeaders = [
-      ...excelData.headers.slice(0, insertIndex),
-      'BRAND (Manual)',
-      ...excelData.headers.slice(insertIndex),
-    ];
+    const newHeaders = [...excelData.headers.slice(0, insertIndex), 'BRAND (Manual)', ...excelData.headers.slice(insertIndex)];
 
     const newRows = excelData.rows.map(row => ({
-      row: [
-        ...row.row.slice(0, insertIndex),
-        manualBrand.trim(),
-        ...row.row.slice(insertIndex),
-      ],
+      row: [...row.row.slice(0, insertIndex), manualBrand.trim(), ...row.row.slice(insertIndex)],
     }));
 
     const newMapping: ColumnMapping = { ...columnMapping, brand: insertIndex };
     Object.keys(columnMapping).forEach(keyStr => {
       const key = keyStr as keyof ColumnMapping;
-      if (key === 'brand') return; // Already handled
-
+      if (key === 'brand') return;
       let originalMappedIndex = columnMapping[key];
       if (originalMappedIndex !== null && originalMappedIndex >= insertIndex) {
         newMapping[key] = originalMappedIndex + 1;
@@ -257,32 +262,22 @@ const CMSGoogleSerpForm: React.FC = () => {
     setExcelData({ headers: newHeaders, rows: newRows });
     setColumnMapping(newMapping);
     setManualBrandInfo({ value: manualBrand.trim(), insertIndex });
-    // setManualBrand(''); // Optionally clear input
     showToast('Success', 'Manual brand applied.', 'success');
   }, [manualBrand, columnMapping, excelData, showToast]);
 
-
   const validateForm = useCallback((): boolean => {
-    // Check if brand is provided either through mapping or manual input/application
     const isBrandProvided =
-      columnMapping.brand !== null ||
-      (manualBrandInfo !== null) ||
-      (manualBrand.trim() !== '' && columnMapping.brand === null); // Allows typing without apply if no column mapped
-
+      columnMapping.brand !== null || manualBrandInfo !== null || (manualBrand.trim() !== '' && columnMapping.brand === null);
     const tempMappingForValidation = { ...columnMapping };
-    if (!isBrandProvided) {
-        // Temporarily consider brand as unmapped for this check if not provided by any means
-    } else {
-        // If brand is provided one way or another, consider it "mapped" for validation
-        if(tempMappingForValidation.brand === null) tempMappingForValidation.brand = 0; // Dummy value to pass validation
+    if (isBrandProvided && tempMappingForValidation.brand === null) {
+      tempMappingForValidation.brand = 0;
     }
 
     const missingRequired = REQUIRED_COLUMNS.filter(col => tempMappingForValidation[col] === null);
 
     if (!isBrandProvided && REQUIRED_COLUMNS.includes('brand')) {
-        if(!missingRequired.includes('brand')) missingRequired.push('brand');
+      if (!missingRequired.includes('brand')) missingRequired.push('brand');
     }
-
 
     if (missingRequired.length > 0) {
       showToast('Validation Error', `Missing required columns: ${missingRequired.join(', ')}`, 'warning');
@@ -299,15 +294,14 @@ const CMSGoogleSerpForm: React.FC = () => {
     return true;
   }, [columnMapping, manualBrand, manualBrandInfo, file, headerRowIndex, showToast]);
 
-
   const prepareFormData = useCallback((): FormData | null => {
     if (!file) {
-        showToast('Error', 'No file selected for submission.', 'error');
-        return null;
+      showToast('Error', 'No file selected for submission.', 'error');
+      return null;
     }
     if (headerRowIndex === null || headerRowIndex < 0) {
-        showToast('Error', 'Invalid header row index for submission.', 'error');
-        return null;
+      showToast('Error', 'Invalid header row index for submission.', 'error');
+      return null;
     }
 
     const formData = new FormData();
@@ -322,7 +316,7 @@ const CMSGoogleSerpForm: React.FC = () => {
       if (displayIndex === null) return '';
 
       let originalIndex = displayIndex;
-      if (appliedInfo && fieldKey !== 'brand') { // If manual brand was applied AND this is not the brand field itself
+      if (appliedInfo && fieldKey !== 'brand') {
         if (displayIndex > appliedInfo.insertIndex) {
           originalIndex = displayIndex - 1;
         }
@@ -340,42 +334,43 @@ const CMSGoogleSerpForm: React.FC = () => {
     if (imageColumnImage) formData.append('imageColumnImage', imageColumnImage);
     formData.append('searchColImage', styleCol);
 
-    // Brand logic
-    if (manualBrandInfo) { // 1. "Apply" button was used
-        formData.append('brandColImage', 'MANUAL');
-        formData.append('manualBrand', manualBrandInfo.value);
-    } else if (manualBrand.trim() !== '' && columnMapping.brand === null) { // 2. Typed in input, no "Apply", no brand column mapped
-        formData.append('brandColImage', 'MANUAL');
-        formData.append('manualBrand', manualBrand.trim());
-    } else if (columnMapping.brand !== null) { // 3. Brand column is mapped
-        const brandColLetter = getOriginalColumnLetter('brand', columnMapping, manualBrandInfo); // manualBrandInfo will be null here
-        if (brandColLetter) {
-            formData.append('brandColImage', brandColLetter);
-        } else {
-             showToast('Error', 'Brand column is mapped but failed to resolve to a column letter.', 'error');
-             return null; // Critical error
-        }
-    } else { // 4. No brand provided
-        showToast('Error', 'Brand column must be mapped or a manual brand must be provided.', 'error');
-        return null; // Critical error
+    if (manualBrandInfo) {
+      formData.append('brandColImage', 'MANUAL');
+      formData.append('manualBrand', manualBrandInfo.value);
+    } else if (manualBrand.trim() !== '' && columnMapping.brand === null) {
+      formData.append('brandColImage', 'MANUAL');
+      formData.append('manualBrand', manualBrand.trim());
+    } else if (columnMapping.brand !== null) {
+      const brandColLetter = getOriginalColumnLetter('brand', columnMapping, manualBrandInfo);
+      if (brandColLetter) {
+        formData.append('brandColImage', brandColLetter);
+      } else {
+        showToast('Error', 'Brand column is mapped but failed to resolve to a column letter.', 'error');
+        return null;
+      }
+    } else {
+      showToast('Error', 'Brand column must be mapped or a manual brand must be provided.', 'error');
+      return null;
     }
 
     if (colorCol) formData.append('ColorColImage', colorCol);
     if (categoryCol) formData.append('CategoryColImage', categoryCol);
     formData.append('header_index', String(headerRowIndex + 1));
 
-    const userEmail = 'nik@luxurymarket.com'; // Consider making this dynamic or configurable
+    const userEmail = 'nik@luxurymarket.com';
     if (userEmail) formData.append('sendToEmail', userEmail);
 
-    return formData;
-  }, [file, headerRowIndex, columnMapping, manualBrand, manualBrandInfo, showToast]);
+    // Append Icon Distro value
+    formData.append('iconDistro', String(isIconDistro));
 
+    return formData;
+  }, [file, headerRowIndex, columnMapping, manualBrand, manualBrandInfo, isIconDistro, showToast]);
 
   const handleSubmit = useCallback(async () => {
     if (!validateForm()) return;
 
     const formData = prepareFormData();
-    if (!formData) return; // prepareFormData will show toast on error
+    if (!formData) return;
 
     setIsLoadingFile(true);
     try {
@@ -388,51 +383,55 @@ const CMSGoogleSerpForm: React.FC = () => {
         const errorText = await response.text();
         throw new Error(`Server error: ${response.status} - ${errorText}`);
       }
-      await response.json(); // Assuming backend sends JSON response
+      await response.json();
       showToast('Success', 'Form submitted successfully', 'success');
       setTimeout(() => {
-        window.location.reload(); // Or reset form state for SPA behavior
+        window.location.reload();
       }, 1000);
     } catch (error) {
       showToast('Submission Error', error instanceof Error ? error.message : 'Unknown error during submission', 'error');
     } finally {
       setIsLoadingFile(false);
     }
-  }, [validateForm, prepareFormData, showToast]); // Removed direct state dependencies as they are handled by validateForm/prepareFormData
+  }, [validateForm, prepareFormData, showToast]);
 
   // Column Mapping
-  const handleMappingConfirm = useCallback((confirm: boolean) => {
-    if (!confirm || selectedColumn === null) {
-      resetMappingModal();
-      return;
-    }
-    const newMapping = { ...columnMapping };
-    // Unmap any existing field pointing to this column
-    (Object.keys(newMapping) as Array<keyof ColumnMapping>).forEach(key => {
-      if (newMapping[key] === selectedColumn) {
-        newMapping[key] = null;
+  const handleMappingConfirm = useCallback(
+    (confirm: boolean) => {
+      if (!confirm || selectedColumn === null) {
+        resetMappingModal();
+        return;
       }
-    });
-    // Map the new field, if any
-    if (selectedField) {
-      newMapping[selectedField as keyof ColumnMapping] = selectedColumn;
-    }
-    setColumnMapping(newMapping);
-    if (selectedField === 'brand' && newMapping.brand !== null) { // If brand column is re-mapped, clear manual brand info
+      const newMapping = { ...columnMapping };
+      (Object.keys(newMapping) as Array<keyof ColumnMapping>).forEach(key => {
+        if (newMapping[key] === selectedColumn) {
+          newMapping[key] = null;
+        }
+      });
+      if (selectedField) {
+        newMapping[selectedField as keyof ColumnMapping] = selectedColumn;
+      }
+      setColumnMapping(newMapping);
+      if (selectedField === 'brand' && newMapping.brand !== null) {
         setManualBrandInfo(null);
         setManualBrand('');
-    }
-    resetMappingModal();
-  }, [selectedColumn, selectedField, columnMapping]);
+      }
+      resetMappingModal();
+    },
+    [selectedColumn, selectedField, columnMapping]
+  );
 
-  const openMappingModal = useCallback((columnIndex: number) => {
-    setSelectedColumn(columnIndex);
-    const currentField = (Object.entries(columnMapping) as Array<[keyof ColumnMapping, number | null]>).find(
+  const openMappingModal = useCallback(
+    (columnIndex: number) => {
+      setSelectedColumn(columnIndex);
+      const currentField = (Object.entries(columnMapping) as Array<[keyof ColumnMapping, number | null]>).find(
         ([_, value]) => value === columnIndex
       )?.[0] || getDefaultField();
-    setSelectedField(currentField);
-    setIsMappingModalOpen(true);
-  }, [columnMapping]); // getDefaultField is stable if defined outside or memoized
+      setSelectedField(currentField);
+      setIsMappingModalOpen(true);
+    },
+    [columnMapping]
+  );
 
   const resetMappingModal = () => {
     setIsMappingModalOpen(false);
@@ -440,16 +439,15 @@ const CMSGoogleSerpForm: React.FC = () => {
     setSelectedField('');
   };
 
-  const getDefaultField = useCallback((): string => { // Memoize if complex, simple enough here
+  const getDefaultField = useCallback((): string => {
     if (columnMapping.style === null) return 'style';
     if (columnMapping.brand === null) return 'brand';
-    // Optional fields last
     if (columnMapping.category === null) return 'category';
     if (columnMapping.colorName === null) return 'colorName';
     if (columnMapping.imageAdd === null) return 'imageAdd';
     if (columnMapping.readImage === null) return 'readImage';
     return '';
-  },[columnMapping]);
+  }, [columnMapping]);
 
   // Computed Values for display
   const allRequiredSelectedForDisplay = useMemo(() => {
@@ -465,14 +463,16 @@ const CMSGoogleSerpForm: React.FC = () => {
     return missing;
   }, [columnMapping, manualBrandInfo, manualBrand]);
 
-  const mappedColumnsForDisplay = useMemo(() =>
-    Object.entries(columnMapping)
-    .filter(([_, index]) => index !== null)
-    .map(([col, index]) => {
-        const headerName = excelData.headers[index as number] || `Column ${index! + 1}`;
-        return `${col.replace(/([A-Z])/g, ' $1').trim()}: ${headerName}`;
-    }), [columnMapping, excelData.headers]);
-
+  const mappedColumnsForDisplay = useMemo(
+    () =>
+      Object.entries(columnMapping)
+        .filter(([_, index]) => index !== null)
+        .map(([col, index]) => {
+          const headerName = excelData.headers[index as number] || `Column ${index! + 1}`;
+          return `${col.replace(/([A-Z])/g, ' $1').trim()}: ${headerName}`;
+        }),
+    [columnMapping, excelData.headers]
+  );
 
   // Render
   return (
@@ -486,6 +486,8 @@ const CMSGoogleSerpForm: React.FC = () => {
           rowCount={excelData.rows.length}
           missingRequired={missingRequiredForDisplay}
           mappedColumns={mappedColumnsForDisplay}
+          isIconDistro={isIconDistro}
+          setIsIconDistro={setIsIconDistro}
         />
         <ManualBrandSection
           isVisible={excelData.rows.length > 0 && columnMapping.brand === null && !manualBrandInfo}
@@ -495,16 +497,16 @@ const CMSGoogleSerpForm: React.FC = () => {
           isLoading={isLoadingFile}
         />
         {manualBrandInfo && excelData.rows.length > 0 && (
-            <Text fontSize="sm" color="green.600" fontWeight="bold">
-                Manual Brand Applied: "{manualBrandInfo.value}" (will override mapped brand column if any was selected)
-            </Text>
+          <Text fontSize="sm" color="green.600" fontWeight="bold">
+            Manual Brand Applied: "{manualBrandInfo.value}" (will override mapped brand column if any was selected)
+          </Text>
         )}
         <DataTableSection
           isLoading={isLoadingFile}
           excelData={excelData}
           columnMapping={columnMapping}
           onColumnClick={openMappingModal}
-          isManualBrand={manualBrandInfo !== null || (excelData.headers[columnMapping.brand!] === 'BRAND (Manual)')}
+          isManualBrand={manualBrandInfo !== null || excelData.headers[columnMapping.brand!] === 'BRAND (Manual)'}
         />
         <MappingModal
           isOpen={isMappingModalOpen}
@@ -544,6 +546,8 @@ interface ControlSectionProps {
   rowCount: number;
   missingRequired: string[];
   mappedColumns: string[];
+  isIconDistro: boolean;
+  setIsIconDistro: (value: boolean) => void;
 }
 
 const ControlSection: React.FC<ControlSectionProps> = ({
@@ -554,6 +558,8 @@ const ControlSection: React.FC<ControlSectionProps> = ({
   rowCount,
   missingRequired,
   mappedColumns,
+  isIconDistro,
+  setIsIconDistro,
 }) => (
   <HStack spacing={2} align="flex-end" wrap="wrap">
     <FormControl w="xl">
@@ -569,6 +575,17 @@ const ControlSection: React.FC<ControlSectionProps> = ({
         _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 2px blue.200' }}
         aria-label="Upload Excel file"
       />
+    </FormControl>
+    <FormControl>
+      <Checkbox
+        isChecked={isIconDistro}
+        onChange={(e) => setIsIconDistro(e.target.checked)}
+        colorScheme="blue"
+        isDisabled={isLoading}
+        aria-label="Enable Icon Distro"
+      >
+        Icon Distro
+      </Checkbox>
     </FormControl>
     <Button
       colorScheme="blue"
@@ -590,12 +607,12 @@ const ControlSection: React.FC<ControlSectionProps> = ({
         ) : (
           <Text fontSize="sm" color="green.600">All required fields covered.</Text>
         )}
-         <VStack align="start" spacing={0} flexDirection="column-reverse" mt={missingRequired.length > 0 ? 2 : 0}>
-            {mappedColumns.map((columnMapping, index) => (
-              <Text key={index} fontSize="sm" color="blue.600">{columnMapping}</Text>
-            ))}
-            {mappedColumns.length > 0 && <Text fontSize="sm" color="blue.600">Mapped Fields:</Text>}
-          </VStack>
+        <VStack align="start" spacing={0} flexDirection="column-reverse" mt={missingRequired.length > 0 ? 2 : 0}>
+          {mappedColumns.map((columnMapping, index) => (
+            <Text key={index} fontSize="sm" color="blue.600">{columnMapping}</Text>
+          ))}
+          {mappedColumns.length > 0 && <Text fontSize="sm" color="blue.600">Mapped Fields:</Text>}
+        </VStack>
         <Text fontSize="sm" color="gray.600">Rows: {rowCount}</Text>
       </VStack>
     )}
@@ -644,7 +661,6 @@ const ManualBrandSection: React.FC<ManualBrandSectionProps> = ({
         </Button>
       </HStack>
     )}
-    {/* <Box borderBottomWidth="1px" borderColor="gray.200" my={2} />  // Removed if not visually needed */}
   </>
 );
 
@@ -661,22 +677,22 @@ const DataTableSection: React.FC<DataTableSectionProps> = ({
   excelData,
   columnMapping,
   onColumnClick,
-  isManualBrand, // Pass this to ExcelDataTable if it uses it
+  isManualBrand,
 }) => (
   <>
     {excelData.rows.length > 0 && (
       <Box flex="1" overflowY="auto" maxH="60vh" borderWidth="1px" borderRadius="md" p={4} borderColor="gray.200" bg="white">
-        {isLoading && !excelData.headers.length ? ( // Show spinner only if truly loading initial table
+        {isLoading && !excelData.headers.length ? (
           <VStack justify="center" h="full">
             <Spinner size="lg" color="green.500" />
             <Text color="gray.600">Loading table data...</Text>
           </VStack>
         ) : (
-         <ExcelDataTable
+          <ExcelDataTable
             excelData={excelData}
             columnMapping={columnMapping}
             onColumnClick={onColumnClick}
-            isManualBrand={isManualBrand} 
+            isManualBrand={isManualBrand}
           />
         )}
       </Box>
