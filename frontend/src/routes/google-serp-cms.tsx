@@ -362,7 +362,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     if (userEmail) formData.append('sendToEmail', userEmail);
 
     // Append Icon Distro value
-    formData.append('iconDistro', String(isIconDistro));
+    formData.append('isIconDistro', String(isIconDistro));
 
     return formData;
   }, [file, headerRowIndex, columnMapping, manualBrand, manualBrandInfo, isIconDistro, showToast]);
