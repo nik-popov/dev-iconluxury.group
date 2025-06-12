@@ -576,6 +576,7 @@ const ControlSection: React.FC<ControlSectionProps> = ({
       />
     </FormControl>
     <FormControl>
+    <Text fontSize="md" color="gray.600">Output File:</Text>
      <RadioGroup
   onChange={(value) => setIsIconDistro(value === 'distro')}
   value={isIconDistro ? 'distro' : 'input'}
