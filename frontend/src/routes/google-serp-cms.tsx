@@ -91,7 +91,7 @@ const CMSGoogleSerpForm: React.FC = () => {
   });
   const [manualBrand, setManualBrand] = useState<string>('');
   const [manualBrandInfo, setManualBrandInfo] = useState<{ value: string; insertIndex: number } | null>(null);
-  const [isIconDistro, setIsIconDistro] = useState<boolean>(true); // Added checkbox state
+  const [isIconDistro, setIsIconDistro] = useState<boolean>(false); // Added checkbox state
   const showToast: ToastFunction = useCustomToast();
 
   // File Handling
@@ -575,20 +575,19 @@ const ControlSection: React.FC<ControlSectionProps> = ({
         aria-label="Upload Excel file"
       />
     </FormControl>
-    <FormControl>
-    <Text fontSize="md" color="gray.600">Output File:</Text>
-<RadioGroup
-  onChange={(value) => setIsIconDistro(value === 'distro')}
-  value={isIconDistro ? 'distro' : 'input'}
->
-  <HStack spacing={4}>
-    <Radio value="input">Input File</Radio>
-    <Radio value="distro">Icon Distro</Radio>
-  </HStack>
-</RadioGroup>
+<FormControl>
+  <Text fontSize="md" color="gray.600">Output File:</Text>
+  <RadioGroup
+    onChange={(value) => setIsIconDistro(value === 'distro')}
+    value={isIconDistro ? 'distro' : 'input'}
+  >
+    <HStack spacing={4}>
+      <Radio value="input">Input File</Radio>
+      <Radio value="distro">Icon Distro</Radio>
+    </HStack>
+  </RadioGroup>
+</FormControl>
 
-
-    </FormControl>
     <Button
       colorScheme="blue"
       onClick={onSubmit}
