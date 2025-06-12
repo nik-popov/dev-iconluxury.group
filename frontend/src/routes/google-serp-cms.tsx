@@ -229,7 +229,6 @@ const CMSGoogleSerpForm: React.FC = () => {
     setIsConfirmModalOpen(false);
   }, [selectedRowIndex, previewRows, processHeaderSelection]);
 
-  // Manual Brand
   const applyManualBrand = useCallback(() => {
     if (!manualBrand.trim() || columnMapping.brand !== null) {
       showToast(
@@ -241,7 +240,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     }
 
     const style = columnMapping.style;
-    const insertIndex = styleIndex !== null ? styleIndex + 1 : excelData.headers.length > 0 ? 0 : 0;
+    const insertIndex = style !== null ? style + 1 : excelData.headers.length > 0 ? 0 : 0; // Replaced styleIndex with style
 
     const newHeaders = [...excelData.headers.slice(0, insertIndex), 'BRAND (Manual)', ...excelData.headers.slice(insertIndex)];
 
@@ -264,7 +263,6 @@ const CMSGoogleSerpForm: React.FC = () => {
     setManualBrandInfo({ value: manualBrand.trim(), insertIndex });
     showToast('Success', 'Manual brand applied.', 'success');
   }, [manualBrand, columnMapping, excelData, showToast]);
-
   const validateForm = useCallback((): boolean => {
     const isBrandProvided =
       columnMapping.brand !== null || manualBrandInfo !== null || (manualBrand.trim() !== '' && columnMapping.brand === null);
