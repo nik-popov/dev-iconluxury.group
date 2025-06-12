@@ -535,8 +535,6 @@ const CMSGoogleSerpForm: React.FC = () => {
     </Container>
   );
 };
-
-// Sub-components
 interface ControlSectionProps {
   isLoading: boolean;
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -576,15 +574,18 @@ const ControlSection: React.FC<ControlSectionProps> = ({
       />
     </FormControl>
     <FormControl>
-      <Checkbox
-        isChecked={isIconDistro}
-        onChange={(e) => setIsIconDistro(e.target.checked)}
-        colorScheme="blue"
+      <RadioGroup
+        onChange={(value) => setIsIconDistro(value === 'input')}
+        value={isIconDistro ? 'input' : 'other'}
         isDisabled={isLoading}
-        aria-label="Enable Icon Distro"
+        colorScheme="blue"
+        aria-label="Select Icon Distro option"
       >
-        Icon Distro
-      </Checkbox>
+        <HStack spacing={4}>
+          <Radio value="input">Input File</Radio>
+          <Radio value="other">Other</Radio>
+        </HStack>
+      </RadioGroup>
     </FormControl>
     <Button
       colorScheme="blue"
@@ -618,7 +619,6 @@ const ControlSection: React.FC<ControlSectionProps> = ({
     {isLoading && <Text color="gray.600">Processing...</Text>}
   </HStack>
 );
-
 interface ManualBrandSectionProps {
   isVisible: boolean;
   manualBrand: string;
