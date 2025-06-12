@@ -178,30 +178,31 @@ const CMSGoogleSerpForm: React.FC = () => {
   };
 
   const autoMapColumns = useCallback(
-    (headers: string[]): ColumnMapping => {
-      const mapping: ColumnMapping = {
-        style: null,
-        brand: null,
-        imageAdd: null,
-        readImage: null,
-        category: null,
-        colorName: null,
-      };
-      const patterns = {
-        style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))/i,
-        category: /^(category|type|product\s*type|group)/i,
-      };
-      headers.forEach((header, index) => {
-        const normalizedHeader = String(header ?? '').trim().toUpperCase();
-        if (!normalizedHeader) return;
-        if (patterns.style.test(normalizedHeader) && mapping.style === null) mapping.style = index;
-        else if (patterns.category.test(normalizedHeader) && mapping.category === null) mapping.category = index;
-        else if (patterns.colorName.test(normalizedHeader) && mapping.colorName === null) mapping.colorName = index;
-      });
-      return mapping;
-    },
-    []
-  );
+  (headers: string[]): ColumnMapping => {
+    const mapping: ColumnMapping = {
+      style: null,
+      brand: null,
+      imageAdd: null,
+      readImage: null,
+      category: null,
+      colorName: null,
+    };
+    const patterns = {
+      style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))/i,
+      category: /^(category|type|product\s*type|group)/i,
+      colorName: /^(color|colour|color\s*name|colour\s*name)/i, // Added colorName pattern
+    };
+    headers.forEach((header, index) => {
+      const normalizedHeader = String(header ?? '').trim().toUpperCase();
+      if (!normalizedHeader) return;
+      if (patterns.style.test(normalizedHeader) && mapping.style === null) mapping.style = index;
+      else if (patterns.category.test(normalizedHeader) && mapping.category === null) mapping.category = index;
+      else if (patterns.colorName.test(normalizedHeader) && mapping.colorName === null) mapping.colorName = index;
+    });
+    return mapping;
+  },
+  []
+);
 
   const processHeaderSelection = useCallback(
     (index: number, rowsToProcess: (string | number | boolean | null)[][]) => {
