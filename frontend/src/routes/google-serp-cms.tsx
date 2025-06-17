@@ -191,13 +191,15 @@ const CMSGoogleSerpForm: React.FC = () => {
     };
     const patterns = {
       style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))/i,
+      brand: /^(brand|manufacturer|make|label|designer|vendor)/i, // Added brand patterns
       category: /^(category|type|product\s*type|group)/i,
-      colorName: /^(color|colour|color\s*name|colour\s*name)/i, // Added colorName pattern
+      colorName: /^(color|colour|color\s*name|colour\s*name)/i,
     };
     headers.forEach((header, index) => {
       const normalizedHeader = String(header ?? '').trim().toUpperCase();
       if (!normalizedHeader) return;
       if (patterns.style.test(normalizedHeader) && mapping.style === null) mapping.style = index;
+      else if (patterns.brand.test(normalizedHeader) && mapping.brand === null) mapping.brand = index;
       else if (patterns.category.test(normalizedHeader) && mapping.category === null) mapping.category = index;
       else if (patterns.colorName.test(normalizedHeader) && mapping.colorName === null) mapping.colorName = index;
     });
@@ -232,40 +234,46 @@ const CMSGoogleSerpForm: React.FC = () => {
     setIsConfirmModalOpen(false);
   }, [selectedRowIndex, previewRows, processHeaderSelection]);
 
-  const applyManualBrand = useCallback(() => {
-    if (!manualBrand.trim() || columnMapping.brand !== null) {
-      showToast(
-        'Manual Brand Error',
-        'Cannot apply manual brand. Ensure no brand column is mapped and a non-empty brand is entered.',
-        'warning'
-      );
-      return;
+const applyManualBrand = useCallback(() => {
+  if (!manualBrand.trim()) {
+    showToast('Manual Brand Error', 'Please enter a non-empty brand name.', 'warning');
+    return;
+  }
+
+  if (columnMapping.brand !== null) {
+    showToast(
+      'Manual Brand Warning',
+      'A brand column is already mapped. Applying manual brand will override it.',
+      'warning'
+    );
+  }
+
+  const style = columnMapping.style;
+  const insertIndex = style !== null ? style + 1 : excelData.headers.length > 0 ? 0 : 0;
+
+  const newHeaders = [...excelData.headers.slice(0, insertIndex), 'BRAND (Manual)', ...excelData.headers.slice(insertIndex)];
+
+  const newRows = excelData.rows.map(row => ({
+    row: [...row.row.slice(0, insertIndex), manualBrand.trim(), ...row.row.slice(insertIndex)],
+  }));
+
+  const newMapping: ColumnMapping = { ...columnMapping, brand: insertIndex };
+  Object.keys(columnMapping).forEach(keyStr => {
+    const key = keyStr as keyof ColumnMapping;
+    if (key === 'brand') return;
+    let originalMappedIndex = columnMapping[key];
+    if (originalMappedIndex !== null && originalMappedIndex >= insertIndex) {
+      newMapping[key] = originalMappedIndex + 1;
     }
+  });
 
-    const style = columnMapping.style;
-    const insertIndex = style !== null ? style + 1 : excelData.headers.length > 0 ? 0 : 0; // Replaced styleIndex with style
+  setExcelData({ headers: newHeaders, rows: newRows });
+  setColumnMapping(newMapping);
+  setManualBrandInfo({ value: manualBrand.trim(), insertIndex });
+  setManualBrand(''); // Clear input after applying
+  showToast('Success', `Manual brand "${manualBrand.trim()}" applied successfully.`, 'success');
+}, [manualBrand, columnMapping, excelData, showToast]);
 
-    const newHeaders = [...excelData.headers.slice(0, insertIndex), 'BRAND (Manual)', ...excelData.headers.slice(insertIndex)];
-
-    const newRows = excelData.rows.map(row => ({
-      row: [...row.row.slice(0, insertIndex), manualBrand.trim(), ...row.row.slice(insertIndex)],
-    }));
-
-    const newMapping: ColumnMapping = { ...columnMapping, brand: insertIndex };
-    Object.keys(columnMapping).forEach(keyStr => {
-      const key = keyStr as keyof ColumnMapping;
-      if (key === 'brand') return;
-      let originalMappedIndex = columnMapping[key];
-      if (originalMappedIndex !== null && originalMappedIndex >= insertIndex) {
-        newMapping[key] = originalMappedIndex + 1;
-      }
-    });
-
-    setExcelData({ headers: newHeaders, rows: newRows });
-    setColumnMapping(newMapping);
-    setManualBrandInfo({ value: manualBrand.trim(), insertIndex });
-    showToast('Success', 'Manual brand applied.', 'success');
-  }, [manualBrand, columnMapping, excelData, showToast]);
   const validateForm = useCallback((): boolean => {
     const isBrandProvided =
       columnMapping.brand !== null || manualBrandInfo !== null || (manualBrand.trim() !== '' && columnMapping.brand === null);
@@ -774,32 +782,100 @@ const HeaderSelectionModal: React.FC<HeaderSelectionModalProps> = ({
   previewRows,
   onRowSelect,
 }) => (
-  <Modal isOpen={isOpen} onClose={onClose} size="xl">
+  <Modal isOpen={isOpen} onClose={onClose} size="full">
     <ModalOverlay />
-    <ModalContent alignSelf="left" ml={4} mt={16} bg="white" color="black">
-      <ModalHeader>Select Header Row (Click a row) - {previewRows.length} Rows</ModalHeader>
-      <ModalBody maxH="60vh" overflowY="auto">
-        <Table size="sm" colorScheme="gray" aria-label="Preview rows for header selection">
-          <Tbody>
-            {previewRows.map((row, rowIndex) => (
-              <Tr
-                key={rowIndex}
-                onClick={() => onRowSelect(rowIndex)}
-                cursor="pointer"
-                _hover={{ bg: 'blue.50' }}
-                role="button"
-                aria-label={`Select row ${rowIndex + 1} as header`}
-              >
-                {row.map((cell, cellIndex) => (
-                  <Td key={cellIndex} py={2} px={3}>{getDisplayValue(cell)}</Td>
+    <ModalContent bg="white" color="black" m={0} borderRadius={0}>
+      <ModalHeader bg="green.600" color="white" fontWeight="bold">
+        Select Header Row (Click a row) - {previewRows.length} Rows
+      </ModalHeader>
+      <ModalBody p={0} bg="green.50">
+        <Box maxH="80vh" overflow="auto">
+          <Table size="sm" variant="simple" aria-label="Preview rows for header selection">
+            <thead>
+              <Tr bg="green.100">
+                {previewRows[0]?.map((_, index) => (
+                  <th
+                    key={index}
+                    style={{
+                      position: 'sticky',
+                      top: 0,
+                      background: '#C6EFCE',
+                      color: 'black',
+                      fontWeight: 'bold',
+                      border: '1px solid #ddd',
+                      padding: '8px',
+                      textAlign: 'center',
+                      minWidth: '100px',
+                    }}
+                  >
+                    {indexToColumnLetter(index)}
+                  </th>
                 ))}
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
+              {previewRows[0] && (
+                <Tr bg="green.200">
+                  {previewRows[0].map((cell, index) => (
+                    <th
+                      key={index}
+                      style={{
+                        position: 'sticky',
+                        top: '34px', // Adjust based on the height of the column letter row
+                        background: '#D4EFDF',
+                        color: 'black',
+                        border: '1px solid #ddd',
+                        padding: '8px',
+                        textAlign: 'center',
+                        minWidth: '100px',
+                      }}
+                    >
+                      {getDisplayValue(cell)}
+                    </th>
+                  ))}
+                </Tr>
+              )}
+            </thead>
+            <Tbody>
+              {previewRows.map((row, rowIndex) => (
+                <Tr
+                  key={rowIndex}
+                  onClick={() => onRowSelect(rowIndex)}
+                  cursor="pointer"
+                  _hover={{ bg: 'green.100' }}
+                  role="button"
+                  aria-label={`Select row ${rowIndex + 1} as header`}
+                  bg={rowIndex % 2 === 0 ? 'white' : 'green.50'}
+                >
+                  {row.map((cell, cellIndex) => (
+                    <Td
+                      key={cellIndex}
+                      py={2}
+                      px={3}
+                      border="1px solid #ddd"
+                      color="black"
+                      maxWidth="200px"
+                      whiteSpace="nowrap"
+                      overflow="hidden"
+                      textOverflow="ellipsis"
+                    >
+                      {getDisplayValue(cell)}
+                    </Td>
+                  ))}
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </Box>
       </ModalBody>
-      <ModalFooter>
-        <Button size="sm" variant="outline" borderColor="gray.300" onClick={onClose} _hover={{ bg: 'gray.100' }} aria-label="Cancel header selection">
+      <ModalFooter bg="green.600" justifyContent="flex-end">
+        <Button
+          size="sm"
+          variant="outline"
+          borderColor="white"
+          color="white"
+          onClick={onClose}
+          _hover={{ bg: 'green.700' }}
+          aria-label="Cancel header selection"
+        >
           Cancel
         </Button>
       </ModalFooter>
