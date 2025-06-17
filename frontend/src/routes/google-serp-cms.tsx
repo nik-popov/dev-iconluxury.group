@@ -661,7 +661,7 @@ const ManualBrandSection: React.FC<ManualBrandSectionProps> = ({
           />
         </FormControl>
         <Button
-          colorScheme="orange"
+          colorScheme="green"
           onClick={onApply}
           isDisabled={!manualBrand.trim() || isLoading}
         >
