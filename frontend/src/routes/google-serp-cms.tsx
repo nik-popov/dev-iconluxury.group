@@ -665,7 +665,7 @@ const ManualBrandSection: React.FC<ManualBrandSectionProps> = ({
           onClick={onApply}
           isDisabled={!manualBrand.trim() || isLoading}
         >
-          Apply Manual Brand
+          Apply Brand with New Column 
         </Button>
       </HStack>
     )}
