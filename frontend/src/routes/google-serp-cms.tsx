@@ -17,7 +17,6 @@ import {
   Table,
   Tr,
   Td,
-  Checkbox,
   Radio,
   RadioGroup,
   Tbody,
@@ -605,6 +604,7 @@ const ControlSection: React.FC<ControlSectionProps> = ({
         onClick={onSubmit}
         isDisabled={!canSubmit || isLoading}
         isLoading={isLoading}
+        aria-label="Submit form"
       >
         Submit
       </Button>
@@ -682,6 +682,7 @@ const ManualBrandSection: React.FC<ManualBrandSectionProps> = ({
           colorScheme="orange"
           onClick={onApply}
           isDisabled={!manualBrand.trim() || isLoading}
+          aria-label="Apply manual brand"
         >
           Apply Manual Brand
         </Button>
