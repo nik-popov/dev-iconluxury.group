@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, keepPreviousData, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -21,7 +21,7 @@ import {
   Checkbox,
   useDisclosure,
 } from '@chakra-ui/react';
-import { FiFolder, FiFile, FiDownload, FiCopy, FiTrash2, FiUpload, FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import { FiFolder, FiFile, FiDownload, FiCopy, FiTrash2, FiUpload, FiArrowUp, FiArrowDown, FiRefreshCw } from 'react-icons/fi';
 import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel } from 'react-icons/fa';
 
 // API Configuration
@@ -47,50 +47,58 @@ interface S3ListResponse {
 }
 
 // API Functions
-async function listObjects(
+async function listAllObjects(
   prefix: string,
-  page: number,
-  pageSize = 100,
-  continuationToken: string | null = null,
   storageType: string = STORAGE_TYPE
-): Promise<S3ListResponse> {
-  try {
-    const url = new URL(`${API_BASE_URL}/${storageType}/list`);
-    url.searchParams.append('prefix', prefix);
-    url.searchParams.append('page', page.toString());
-    url.searchParams.append('pageSize', pageSize.toString());
-    if (continuationToken) {
-      url.searchParams.append('continuation_token', continuationToken);
-    }
+): Promise<S3Object[]> {
+  let allObjects: S3Object[] = [];
+  let page = 1;
+  let continuationToken: string | null = null;
+  let hasMore = true;
 
-    const response = await fetch(url);
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = errorText || response.statusText;
-      if (response.status === 404) {
-        errorMessage = `${storageType.toUpperCase()} list endpoint not found.`;
-      } else if (response.status === 403) {
-        errorMessage = `Access denied to ${storageType.toUpperCase()} bucket.`;
-      } else if (response.status === 503) {
-        errorMessage = 'Service temporarily unavailable.';
+  while (hasMore) {
+    try {
+      const url = new URL(`${API_BASE_URL}/${storageType}/list`);
+      url.searchParams.append('prefix', prefix);
+      url.searchParams.append('page', page.toString());
+      url.searchParams.append('pageSize', '100'); // Increase page size for efficiency
+      if (continuationToken) {
+        url.searchParams.append('continuation_token', continuationToken);
       }
-      throw new Error(`Failed to list objects: ${errorMessage}`);
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = errorText || response.statusText;
+        if (response.status === 404) {
+          errorMessage = `${storageType.toUpperCase()} list endpoint not found.`;
+        } else if (response.status === 403) {
+          errorMessage = `Access denied to ${storageType.toUpperCase()} bucket.`;
+        } else if (response.status === 503) {
+          errorMessage = 'Service temporarily unavailable.';
+        }
+        throw new Error(`Failed to list objects: ${errorMessage}`);
+      }
+      const data: S3ListResponse = await response.json();
+      allObjects = [
+        ...allObjects,
+        ...data.objects.map((item) => ({
+          ...item,
+          lastModified: item.lastModified ? new Date(item.lastModified) : undefined,
+        })),
+      ];
+      hasMore = data.hasMore;
+      continuationToken = data.nextContinuationToken;
+      page += 1;
+    } catch (error: any) {
+      const message = error.message?.includes('CORS')
+        ? `CORS error: Ensure the server allows requests from this origin.`
+        : error.message || `Network error fetching ${storageType.toUpperCase()} objects`;
+      throw new Error(message);
     }
-    const data: S3ListResponse = await response.json();
-    return {
-      objects: data.objects.map((item) => ({
-        ...item,
-        lastModified: item.lastModified ? new Date(item.lastModified) : undefined,
-      })),
-      hasMore: data.hasMore,
-      nextContinuationToken: data.nextContinuationToken,
-    };
-  } catch (error: any) {
-    const message = error.message?.includes('CORS')
-      ? `CORS error: Ensure the server allows requests from this origin.`
-      : error.message || `Network error fetching ${storageType.toUpperCase()} objects`;
-    throw new Error(message);
   }
+
+  return allObjects;
 }
 
 async function getSignedUrl(
@@ -229,25 +237,27 @@ const FileList: React.FC<FileListProps> = ({
   }>({ key: 'lastModified', direction: 'desc' });
 
   // Sort objects based on sortConfig
-  const sortedObjects = [...objects].sort((a, b) => {
-    let aValue: any;
-    let bValue: any;
+  const sortedObjects = useMemo(() => {
+    return [...objects].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
 
-    if (sortConfig.key === 'name') {
-      aValue = a.name.toLowerCase();
-      bValue = b.name.toLowerCase();
-    } else if (sortConfig.key === 'size') {
-      aValue = a.size ?? 0;
-      bValue = b.size ?? 0;
-    } else if (sortConfig.key === 'lastModified') {
-      aValue = a.lastModified ? a.lastModified.getTime() : 0;
-      bValue = b.lastModified ? b.lastModified.getTime() : 0;
-    }
+      if (sortConfig.key === 'name') {
+        aValue = a.name.toLowerCase();
+        bValue = b.name.toLowerCase();
+      } else if (sortConfig.key === 'size') {
+        aValue = a.size ?? 0;
+        bValue = b.size ?? 0;
+      } else if (sortConfig.key === 'lastModified') {
+        aValue = a.lastModified ? a.lastModified.getTime() : 0;
+        bValue = b.lastModified ? b.lastModified.getTime() : 0;
+      }
 
-    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-    return 0;
-  });
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [objects, sortConfig]);
 
   const handleSort = (key: 'name' | 'size' | 'lastModified') => {
     setSortConfig((prev) => ({
@@ -395,22 +405,17 @@ function FileExplorer() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
-  const [state, setState] = useState({
-    page: 1,
-    currentPath: FIXED_PATH,
-  });
+  const [currentPath] = useState(FIXED_PATH);
   const [objects, setObjects] = useState<S3Object[]>([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [continuationToken, setContinuationToken] = useState<string | null>(null);
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [deletePaths, setDeletePaths] = useState<string[]>([]);
   const dropRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data, isFetching, error: listError } = useQuery<S3ListResponse, Error>({
-    queryKey: ['objects', state.currentPath, state.page, continuationToken, STORAGE_TYPE],
-    queryFn: () => listObjects(state.currentPath, state.page, 100, continuationToken, STORAGE_TYPE),
+  const { data, isFetching, error: listError } = useQuery<S3Object[], Error>({
+    queryKey: ['objects', currentPath, STORAGE_TYPE],
+    queryFn: () => listAllObjects(currentPath, STORAGE_TYPE),
     placeholderData: keepPreviousData,
     retry: 2,
     retryDelay: 1000,
@@ -421,7 +426,7 @@ function FileExplorer() {
     mutationFn: ({ file, path }: { file: File; path: string }) =>
       uploadFile(file, path, STORAGE_TYPE),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['objects', state.currentPath] });
+      queryClient.invalidateQueries({ queryKey: ['objects', currentPath] });
       toast({
         title: 'Upload Successful',
         description: 'File uploaded successfully.',
@@ -444,7 +449,7 @@ function FileExplorer() {
   const deleteMutation = useMutation({
     mutationFn: (paths: string[]) => deleteObjects(paths, STORAGE_TYPE),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['objects', state.currentPath] });
+      queryClient.invalidateQueries({ queryKey: ['objects', currentPath] });
       setSelectedPaths([]);
       setDeletePaths([]);
       toast({
@@ -467,23 +472,15 @@ function FileExplorer() {
   });
 
   useEffect(() => {
-    if (data?.objects) {
-      setObjects(data.objects); // Reset objects for each page
-      setHasMore(data.hasMore);
-      setContinuationToken(data.nextContinuationToken);
+    if (data) {
+      setObjects(data);
     }
-  }, [data, state.page]);
+  }, [data]);
 
-  const handlePreviousPage = () => {
-    if (state.page > 1) {
-      setState((prev) => ({ ...prev, page: prev.page - 1 }));
-    }
-  };
-
-  const handleNextPage = () => {
-    if (hasMore && !isFetching) {
-      setState((prev) => ({ ...prev, page: prev.page + 1 }));
-    }
+  const handleRefresh = () => {
+    setObjects([]);
+    setSelectedPaths([]);
+    queryClient.invalidateQueries({ queryKey: ['objects', currentPath] });
   };
 
   const handleDownload = async (key: string) => {
@@ -577,7 +574,7 @@ function FileExplorer() {
     }
 
     files.forEach((file) => {
-      const uploadPath = `${state.currentPath}${file.name}`;
+      const uploadPath = `${currentPath}${file.name}`;
       uploadMutation.mutate({ file, path: uploadPath });
     });
   };
@@ -596,7 +593,7 @@ function FileExplorer() {
     }
 
     files.forEach((file) => {
-      const uploadPath = `${state.currentPath}${file.name}`;
+      const uploadPath = `${currentPath}${file.name}`;
       uploadMutation.mutate({ file, path: uploadPath });
     });
 
@@ -630,6 +627,14 @@ function FileExplorer() {
         </Box>
         <HStack>
           <IconButton
+            aria-label="Refresh List"
+            icon={<FiRefreshCw />}
+            size="sm"
+            colorScheme="gray"
+            onClick={handleRefresh}
+            isLoading={isFetching}
+          />
+          <IconButton
             aria-label="Upload Files"
             icon={<FiUpload />}
             size="sm"
@@ -662,7 +667,7 @@ function FileExplorer() {
         borderColor={isDragging ? 'green.500' : 'gray.300'}
         bg={isDragging ? 'green.100' : 'gray.100'}
         borderRadius="lg"
-        minH="100px"
+        minH="80px"
         display="flex"
         alignItems="center"
         justifyContent="center"
@@ -710,26 +715,6 @@ function FileExplorer() {
         )}
         {isFetching && <Text fontSize="sm" color="gray.500" mt={4}>Loading...</Text>}
       </Box>
-
-      <Flex justify="space-between" mt={4}>
-        <Button
-          onClick={handlePreviousPage}
-          isDisabled={state.page === 1 || isFetching}
-          colorScheme="blue"
-          size="sm"
-        >
-          Previous
-        </Button>
-        <Text>Page {state.page}</Text>
-        <Button
-          onClick={handleNextPage}
-          isDisabled={!hasMore || isFetching}
-          colorScheme="blue"
-          size="sm"
-        >
-          Next
-        </Button>
-      </Flex>
 
       <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
         <ModalOverlay />
