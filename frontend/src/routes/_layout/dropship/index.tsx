@@ -50,7 +50,7 @@ interface S3ListResponse {
 async function listObjects(
   prefix: string,
   page: number,
-  pageSize = 10,
+  pageSize = 100, // Changed from 10 to 100
   continuationToken: string | null = null,
   storageType: string = STORAGE_TYPE
 ): Promise<S3ListResponse> {
@@ -226,7 +226,7 @@ const FileList: React.FC<FileListProps> = ({
   const [sortConfig, setSortConfig] = useState<{
     key: 'name' | 'size' | 'lastModified';
     direction: 'asc' | 'desc';
-  }>({ key: 'name', direction: 'asc' });
+  }>({ key: 'lastModified', direction: 'desc' }); // Changed to lastModified, desc
 
   // Sort objects based on sortConfig
   const sortedObjects = [...objects].sort((a, b) => {
@@ -412,7 +412,7 @@ function FileExplorer() {
 
   const { data, isFetching, error: listError } = useQuery<S3ListResponse, Error>({
     queryKey: ['objects', state.currentPath, state.page, continuationToken, STORAGE_TYPE],
-    queryFn: () => listObjects(state.currentPath, state.page, 10, continuationToken, STORAGE_TYPE),
+    queryFn: () => listObjects(state.currentPath, state.page, 100, continuationToken, STORAGE_TYPE), // Changed pageSize to 100
     placeholderData: keepPreviousData,
     retry: 2,
     retryDelay: 1000,
@@ -658,7 +658,7 @@ function FileExplorer() {
             colorScheme="blue"
             onClick={handleUploadClick}
             isLoading={uploadMutation.isPending}
-          />       Upload
+          />
           {selectedPaths.length > 0 && (
             <Button
               aria-label="Delete Selected"
