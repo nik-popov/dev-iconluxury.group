@@ -703,7 +703,7 @@ function FileExplorer() {
             
           />
           Export to CSV
-          {selectedPaths.length > 0 && (
+          {/* {selectedPaths.length > 0 && (
             <Button
               aria-label="Delete Selected"
               leftIcon={<FiTrash2 />}
@@ -714,7 +714,7 @@ function FileExplorer() {
             >
               Delete Selected ({selectedPaths.length})
             </Button>
-          )}
+          )} */}
         </HStack>
       </Flex>
 
