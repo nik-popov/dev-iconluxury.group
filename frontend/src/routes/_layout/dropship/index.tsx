@@ -240,8 +240,6 @@ const truncateName = (name: string, maxLength: number = 30) => {
 interface FileListProps {
   objects: S3Object[];
   isFetching: boolean;
-  selectedPaths: string[];
-  onSelectPath: (path: string) => void;
   onDownload: (key: string) => void;
   onCopyUrl: (key: string) => void;
   onDelete: (path: string) => void;
@@ -250,8 +248,6 @@ interface FileListProps {
 const FileList: React.FC<FileListProps> = ({
   objects,
   isFetching,
-  selectedPaths,
-  onSelectPath,
   onDownload,
   onCopyUrl,
   onDelete,
@@ -431,7 +427,7 @@ function FileExplorer() {
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const [currentPath] = useState(FIXED_PATH);
   const [objects, setObjects] = useState<S3Object[]>([]);
-  const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
+//   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [deletePaths, setDeletePaths] = useState<string[]>([]);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -767,8 +763,6 @@ function FileExplorer() {
         <FileList
           objects={objects}
           isFetching={isFetching}
-          selectedPaths={selectedPaths}
-          onSelectPath={handleSelectPath}
           onDownload={handleDownload}
           onCopyUrl={handleCopyUrl}
           onDelete={handleDelete}
