@@ -667,7 +667,7 @@ function FileExplorer() {
   }
 
   return (
-    <Container maxW="full" bg="white" color="gray.800" py={6}>
+    <Container maxW="full" color="gray.800" py={6}>
       <Flex align="center" justify="space-between" flexWrap="wrap" gap={4}>
         <Box textAlign="left" flex="1">
           <Text fontSize="xl" fontWeight="bold" color="black">
