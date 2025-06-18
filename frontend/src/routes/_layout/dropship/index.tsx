@@ -470,7 +470,7 @@ function FileExplorer() {
     mutationFn: (paths: string[]) => deleteObjects(paths, STORAGE_TYPE),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['objects', currentPath] });
-      setSelectedPaths([]);
+    //   setSelectedPaths([]);
       setDeletePaths([]);
       toast({
         title: 'Deletion Successful',
@@ -528,7 +528,7 @@ function FileExplorer() {
 
   const handleRefresh = () => {
     setObjects([]);
-    setSelectedPaths([]);
+    // setSelectedPaths([]);
     queryClient.invalidateQueries({ queryKey: ['objects', currentPath] });
   };
 
@@ -575,11 +575,11 @@ function FileExplorer() {
     onDeleteOpen();
   };
 
-  const handleSelectPath = (path: string) => {
-    setSelectedPaths((prev) =>
-      prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path]
-    );
-  };
+//   const handleSelectPath = (path: string) => {
+//     setSelectedPaths((prev) =>
+//       prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path]
+//     );
+//   };
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
