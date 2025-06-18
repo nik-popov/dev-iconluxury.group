@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, keepPreviousData, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -50,7 +50,7 @@ interface S3ListResponse {
 async function listObjects(
   prefix: string,
   page: number,
-  pageSize = 100, // Changed from 10 to 100
+  pageSize = 100,
   continuationToken: string | null = null,
   storageType: string = STORAGE_TYPE
 ): Promise<S3ListResponse> {
@@ -226,7 +226,7 @@ const FileList: React.FC<FileListProps> = ({
   const [sortConfig, setSortConfig] = useState<{
     key: 'name' | 'size' | 'lastModified';
     direction: 'asc' | 'desc';
-  }>({ key: 'lastModified', direction: 'desc' }); // Changed to lastModified, desc
+  }>({ key: 'lastModified', direction: 'desc' });
 
   // Sort objects based on sortConfig
   const sortedObjects = [...objects].sort((a, b) => {
@@ -407,12 +407,10 @@ function FileExplorer() {
   const [deletePaths, setDeletePaths] = useState<string[]>([]);
   const dropRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const { data, isFetching, error: listError } = useQuery<S3ListResponse, Error>({
     queryKey: ['objects', state.currentPath, state.page, continuationToken, STORAGE_TYPE],
-    queryFn: () => listObjects(state.currentPath, state.page, 100, continuationToken, STORAGE_TYPE), // Changed pageSize to 100
+    queryFn: () => listObjects(state.currentPath, state.page, 100, continuationToken, STORAGE_TYPE),
     placeholderData: keepPreviousData,
     retry: 2,
     retryDelay: 1000,
@@ -470,40 +468,23 @@ function FileExplorer() {
 
   useEffect(() => {
     if (data?.objects) {
-      setObjects((prev) => {
-        const newObjects = state.page === 1 ? data.objects : [...prev, ...data.objects];
-        return Array.from(new Map(newObjects.map((obj) => [obj.path, obj])).values());
-      });
+      setObjects(data.objects); // Reset objects for each page
       setHasMore(data.hasMore);
       setContinuationToken(data.nextContinuationToken);
     }
   }, [data, state.page]);
 
-  const handleLoadMore = useCallback(() => {
+  const handlePreviousPage = () => {
+    if (state.page > 1) {
+      setState((prev) => ({ ...prev, page: prev.page - 1 }));
+    }
+  };
+
+  const handleNextPage = () => {
     if (hasMore && !isFetching) {
       setState((prev) => ({ ...prev, page: prev.page + 1 }));
     }
-  }, [hasMore, isFetching]);
-
-  useEffect(() => {
-    if (sentinelRef.current && hasMore) {
-      observerRef.current = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting && !isFetching) {
-            handleLoadMore();
-          }
-        },
-        { root: null, rootMargin: '100px', threshold: 0.1 }
-      );
-      observerRef.current.observe(sentinelRef.current);
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [handleLoadMore, hasMore, isFetching]);
+  };
 
   const handleDownload = async (key: string) => {
     try {
@@ -731,8 +712,27 @@ function FileExplorer() {
           </Text>
         )}
         {isFetching && <Text fontSize="sm" color="gray.500" mt={4}>Loading...</Text>}
-        {hasMore && <Box ref={sentinelRef} h="20px" />}
       </Box>
+
+      <Flex justify="space-between" mt={4}>
+        <Button
+          onClick={handlePreviousPage}
+          isDisabled={state.page === 1 || isFetching}
+          colorScheme="blue"
+          size="sm"
+        >
+          Previous
+        </Button>
+        <Text>Page {state.page}</Text>
+        <Button
+          onClick={handleNextPage}
+          isDisabled={!hasMore || isFetching}
+          colorScheme="blue"
+          size="sm"
+        >
+          Next
+        </Button>
+      </Flex>
 
       <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
         <ModalOverlay />
