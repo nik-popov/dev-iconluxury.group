@@ -34,13 +34,12 @@ const sidebarStructure: SidebarItem[] = [
     subItems: [
       { title: "Image Hosting", path: "/dropship", icon: FiImage },
     ],},
-  { title: "Archive", path: "/explore", icon: FiArchive },
   {
     title: "Scraper",
     subItems: [
       { title: "Jobs", path: "/scraping-api/explore", icon: FiSearch },
       { title: "Google SERP", path: "/scraping-api/google-serp", icon: FiGoogleSerp },
-    ],
+      { title: "Archive", path: "/explore", icon: FiArchive },]
   },
   {
     title: "Logs",
