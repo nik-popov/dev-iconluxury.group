@@ -10,7 +10,6 @@ import {
   FiMessageSquare,
   FiGlobe,
   FiShield,
-  FiHelpCircle,
   FiLogOut,
   FiSearch,
   FiArchive,
@@ -29,10 +28,6 @@ interface SidebarItem {
 }
 
 const sidebarStructure: SidebarItem[] = [
-  { title: "Dashboard", icon: FiHome, path: "/" },
-  { title: "Offers", icon: FiCalendar, path: "/offers" },
-  { title: "Orders", icon: FiLayers, path: "/orders" },
-  { title: "Customers", icon: FiUsers, path: "/customers" },
   { title: "Archive", path: "/explore", icon: FiArchive },
   {
     title: "Scraper",
@@ -48,9 +43,17 @@ const sidebarStructure: SidebarItem[] = [
       { title: "Email Logs", path: "/support/email", icon: FiMessageSquare },
     ],
   },
-  { title: "Support", icon: FiHelpCircle, path: "/support" },
   { title: "VPN", icon: FiShield, path: "/vpn" },
   { title: "Sign out", icon: FiLogOut, action: () => {} },
+  {
+    title: "Vendor Demo",
+    subItems: [
+      { title: "Dashboard", icon: FiHome, path: "/" },
+      { title: "Offers", icon: FiCalendar, path: "/offers" },
+      { title: "Orders", icon: FiLayers, path: "/orders" },
+      { title: "Customers", icon: FiUsers, path: "/customers" },
+    ],
+  },
 ];
 
 interface SidebarItemsProps {
@@ -75,11 +78,11 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
 
   const finalSidebarStructure = [...sidebarStructure];
   if (currentUser?.is_superuser && !finalSidebarStructure.some(item => item.title === "Admin")) {
-    finalSidebarStructure.splice(finalSidebarStructure.length - 1, 0, { title: "Admin", icon: FiShield, path: "/admin" });
+    finalSidebarStructure.splice(finalSidebarStructure.length - 2, 0, { title: "Admin", icon: FiShield, path: "/admin" });
   }
 
   const isEnabled = (title: string) => {
-    if (["Dashboard", "Orders", "Offers", "Customers", "Support", "Sign out"].includes(title)) {
+    if (["Dashboard", "Orders", "Offers", "Customers", "Sign out"].includes(title)) {
       return true;
     }
     if (["Scraper", "Jobs", "Archive", "Google SERP", "Logs", "Network Logs", "Email Logs", "VPN", "Admin"].includes(title)) {
@@ -94,7 +97,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
       if (!enabled) {
         return null;
       }
-      const showAdminLabel = ["Archive","VPN", "Admin"].includes(title);
+      const showAdminLabel = ["Archive", "VPN", "Admin", "Jobs", "Google SERP", "Network Logs", "Email Logs"].includes(title);
       const isActive = path === location.pathname || (path === "/" && location.pathname === "");
       return (
         <Box key={title} mb={2}>

@@ -1,17 +1,24 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from boto3 import client
-from typing import Optional
+from typing import Optional, List
 import os
 import logging
 from botocore.exceptions import ClientError
+from fastapi import FastAPI
+from pydantic import BaseModel
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
 
-# Configure S3 client for Cloudflare R2
+# Configure routers for S3 and R2
+s3_router = APIRouter(prefix="/s3", tags=["s3"])
+r2_router = APIRouter(prefix="/r2", tags=["r2"])
+
+# Configure S3 client (used for both S3 and R2)
 s3_client = client(
     "s3",
     region_name="auto",
@@ -19,6 +26,14 @@ s3_client = client(
     aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID", "5547ff7ffb8f3b16a15d6f38322cd8bd"),
     aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY", "771014b01093eceb212dfea5eec0673842ca4a39456575ca7ff43f768cf42978")
 )
+
+# Constants
+BUCKET_NAME = "iconluxurygroup"
+MAX_UPLOAD_SIZE = 100 * 1024 * 1024  # 100 MB
+
+# Pydantic model for delete request
+class DeleteRequest(BaseModel):
+    paths: List[str]
 
 async def get_folder_count(prefix: str) -> int:
     """
@@ -29,7 +44,7 @@ async def get_folder_count(prefix: str) -> int:
         continuation_token = None
         while True:
             params = {
-                "Bucket": "iconluxurygroup",
+                "Bucket": BUCKET_NAME,
                 "Prefix": prefix,
                 "MaxKeys": 1000,
             }
@@ -45,25 +60,27 @@ async def get_folder_count(prefix: str) -> int:
         logger.error(f"Error counting objects in folder {prefix}: {str(e)}")
         return 0
 
-@router.get("/s3/list", tags=["s3"])
-async def list_s3_objects(prefix: str = "", page: int = 1, page_size: int = 10, continuation_token: Optional[str] = None):
+def sanitize_path(path: str) -> str:
     """
-    List S3 objects and folders with pagination.
-    Args:
-        prefix: S3 prefix to filter objects.
-        page: Page number (1-based).
-        page_size: Number of items per page.
-        continuation_token: S3 continuation token for pagination (optional).
-    Returns:
-        A JSON object with objects, pagination metadata, and hasMore flag.
+    Sanitize file path to prevent directory traversal and invalid characters.
+    """
+    # Remove dangerous characters and normalize path
+    sanitized = re.sub(r'[^\w\-./]', '', path.strip())
+    # Prevent absolute paths or parent directory references
+    if sanitized.startswith('/') or '..' in sanitized:
+        raise HTTPException(status_code=400, detail="Invalid path")
+    return sanitized
+
+async def list_objects(prefix: str = "", page: int = 1, page_size: int = 10, continuation_token: Optional[str] = None):
+    """
+    List objects and folders with pagination.
     """
     try:
         if page < 1 or page_size < 1:
             raise HTTPException(status_code=400, detail="Invalid page or page_size")
 
-        # Prepare parameters for S3 request
         params = {
-            "Bucket": "iconluxurygroup",
+            "Bucket": BUCKET_NAME,
             "Prefix": prefix,
             "Delimiter": "/",
             "MaxKeys": page_size,
@@ -71,10 +88,8 @@ async def list_s3_objects(prefix: str = "", page: int = 1, page_size: int = 10, 
         if page > 1 and continuation_token:
             params["ContinuationToken"] = continuation_token
 
-        # List objects
         response = s3_client.list_objects_v2(**params)
 
-        # Process folders
         folders = []
         for common_prefix in response.get("CommonPrefixes", []):
             folder_path = common_prefix["Prefix"]
@@ -89,7 +104,6 @@ async def list_s3_objects(prefix: str = "", page: int = 1, page_size: int = 10, 
                     "lastModified": None
                 })
 
-        # Process files
         files = []
         for obj in response.get("Contents", []):
             key = obj["Key"]
@@ -105,10 +119,7 @@ async def list_s3_objects(prefix: str = "", page: int = 1, page_size: int = 10, 
                         "count": None
                     })
 
-        # Combine results
         objects = folders + files
-
-        # Pagination metadata
         has_more = response.get("IsTruncated", False)
         next_continuation_token = response.get("NextContinuationToken")
 
@@ -123,21 +134,20 @@ async def list_s3_objects(prefix: str = "", page: int = 1, page_size: int = 10, 
 
     except s3_client.exceptions.NoSuchBucket as e:
         logger.error(f"Bucket not found: {str(e)}")
-        raise HTTPException(status_code=404, detail="S3 bucket not found")
+        raise HTTPException(status_code=404, detail="Bucket not found")
     except s3_client.exceptions.ClientError as e:
-        logger.error(f"S3 client error: {str(e)}")
+        logger.error(f"Client error: {str(e)}")
         error_code = e.response.get("Error", {}).get("Code")
         if error_code == "InvalidToken":
             raise HTTPException(status_code=400, detail="Invalid continuation token")
-        raise HTTPException(status_code=500, detail=f"S3 error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.get("/s3/sign", tags=["s3"])
 async def get_signed_url(key: str, expires_in: int = 3600):
     """
-    Generate a signed URL for an S3 object.
+    Generate a signed URL for an object.
     """
     try:
         if not key:
@@ -148,7 +158,7 @@ async def get_signed_url(key: str, expires_in: int = 3600):
         signed_url = s3_client.generate_presigned_url(
             ClientMethod="get_object",
             Params={
-                "Bucket": "iconluxurygroup",
+                "Bucket": BUCKET_NAME,
                 "Key": key
             },
             ExpiresIn=expires_in
@@ -161,7 +171,123 @@ async def get_signed_url(key: str, expires_in: int = 3600):
             raise HTTPException(status_code=404, detail="Object not found")
         elif error_code == "AccessDenied":
             raise HTTPException(status_code=403, detail="Access denied to the object")
-        raise HTTPException(status_code=500, detail=f"S3 error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
     except Exception as e:
         logger.error(f"Unexpected error generating signed URL: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+async def upload_file(file: UploadFile, path: str):
+    """
+    Upload a file to the specified path.
+    """
+    try:
+        # Validate file size
+        content = await file.read()
+        if len(content) > MAX_UPLOAD_SIZE:
+            raise HTTPException(status_code=400, detail=f"File size exceeds {MAX_UPLOAD_SIZE / 1024 / 1024} MB")
+
+        # Sanitize path
+        sanitized_path = sanitize_path(path)
+
+        # Upload to storage
+        s3_client.put_object(
+            Bucket=BUCKET_NAME,
+            Key=sanitized_path,
+            Body=content,
+            ContentType=file.content_type or "application/octet-stream"
+        )
+        return {"message": f"File uploaded successfully to {sanitized_path}"}
+    except ClientError as e:
+        logger.error(f"Error uploading file to {path}: {str(e)}")
+        error_code = e.response.get("Error", {}).get("Code")
+        if error_code == "AccessDenied":
+            raise HTTPException(status_code=403, detail="Access denied to upload")
+        raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error uploading file: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+async def delete_objects(paths: List[str]):
+    """
+    Delete multiple objects by their paths.
+    """
+    try:
+        if not paths:
+            raise HTTPException(status_code=400, detail="No paths provided")
+
+        # Sanitize paths
+        sanitized_paths = [sanitize_path(path) for path in paths]
+
+        # Batch delete (S3/R2 supports up to 1000 objects per request)
+        objects = [{"Key": path} for path in sanitized_paths]
+        response = s3_client.delete_objects(
+            Bucket=BUCKET_NAME,
+            Delete={"Objects": objects, "Quiet": True}
+        )
+
+        # Check for errors in the response
+        errors = response.get("Errors", [])
+        if errors:
+            error_details = ", ".join([f"{err['Key']}: {err['Message']}" for err in errors])
+            raise HTTPException(status_code=500, detail=f"Failed to delete some objects: {error_details}")
+
+        return {"message": f"Successfully deleted {len(sanitized_paths)} objects"}
+    except ClientError as e:
+        logger.error(f"Error deleting objects: {str(e)}")
+        error_code = e.response.get("Error", {}).get("Code")
+        if error_code == "AccessDenied":
+            raise HTTPException(status_code=403, detail="Access denied to delete objects")
+        raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error deleting objects: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+# S3 Endpoints
+@s3_router.get("/list")
+async def s3_list_objects(
+    prefix: str = "",
+    page: int = 1,
+    page_size: int = 10,
+    continuation_token: Optional[str] = None
+):
+    return await list_objects(prefix, page, page_size, continuation_token)
+
+@s3_router.get("/sign")
+async def s3_get_signed_url(key: str, expires_in: int = 3600):
+    return await get_signed_url(key, expires_in)
+
+@s3_router.post("/upload")
+async def s3_upload_file(
+    file: UploadFile = File(...),
+    path: str = Depends(lambda x: x.query_params.get("path"))
+):
+    return await upload_file(file, path)
+
+@s3_router.post("/delete")
+async def s3_delete_objects(request: DeleteRequest):
+    return await delete_objects(request.paths)
+
+# R2 Endpoints
+@r2_router.get("/list")
+async def r2_list_objects(
+    prefix: str = "",
+    page: int = 1,
+    page_size: int = 10,
+    continuation_token: Optional[str] = None
+):
+    return await list_objects(prefix, page, page_size, continuation_token)
+
+@r2_router.get("/sign")
+async def r2_get_signed_url(key: str, expires_in: int = 3600):
+    return await get_signed_url(key, expires_in)
+
+@r2_router.post("/upload")
+async def r2_upload_file(
+    file: UploadFile = File(...),
+    path: str = Depends(lambda x: x.query_params.get("path"))
+):
+    return await upload_file(file, path)
+
+@r2_router.post("/delete")
+async def r2_delete_objects(request: DeleteRequest):
+    return await delete_objects(request.paths)
