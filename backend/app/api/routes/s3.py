@@ -15,9 +15,9 @@ router = APIRouter()
 s3_client = client(
     "s3",
     region_name="auto",
-    endpoint_url=os.getenv("R2_ENDPOINT", "https://aa2f6aae69e7fb4bd8e2cd4311c411cb.r2.cloudflarestorage.com"),
-    aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID", "8b5a4a988c474205e0172eab5479d6f2"),
-    aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY", "8ff719bbf2946c1b6a81fcf2121e1a41604a0b6f2890f308871b381e98a8d725")
+    endpoint_url=os.getenv("R2_ENDPOINT", "https://97d91ece470eb7b9aa71ca0c781cfacc.r2.cloudflarestorage.com"),
+    aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID", "5547ff7ffb8f3b16a15d6f38322cd8bd"),
+    aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY", "771014b01093eceb212dfea5eec0673842ca4a39456575ca7ff43f768cf42978")
 )
 
 async def get_folder_count(prefix: str) -> int:
