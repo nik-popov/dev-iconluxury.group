@@ -5,7 +5,7 @@ from typing import Optional, List
 import os
 import logging
 from botocore.exceptions import ClientError
-from fastapi import FastAPI
+from fastapi import Query
 from pydantic import BaseModel
 import re
 
@@ -263,7 +263,7 @@ async def s3_get_signed_url(key: str, expires_in: int = 3600):
 @s3_router.post("/upload")
 async def s3_upload_file(
     file: UploadFile = File(...),
-    path: str = Depends(lambda x: x.query_params.get("path"))
+    path: str = Query(...)
 ):
     return await upload_file(file, path)
 

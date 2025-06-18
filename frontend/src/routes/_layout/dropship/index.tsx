@@ -127,9 +127,11 @@ async function uploadFile(
   try {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('path', path);
 
-    const response = await fetch(`${API_BASE_URL}/${storageType}/upload`, {
+    const url = new URL(`${API_BASE_URL}/${storageType}/upload`);
+    url.searchParams.append('path', path); // Send path as query parameter
+
+    const response = await fetch(url, {
       method: 'POST',
       body: formData,
     });
