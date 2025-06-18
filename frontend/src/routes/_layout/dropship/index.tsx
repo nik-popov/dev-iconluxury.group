@@ -19,7 +19,7 @@ import {
   ModalFooter,
   useToast,
   Checkbox,
-useDisclosure,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { FiFolder, FiFile, FiDownload, FiCopy, FiTrash2, FiUpload } from 'react-icons/fi';
 import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel } from 'react-icons/fa';
@@ -355,7 +355,7 @@ function FileExplorer() {
   const [continuationToken, setContinuationToken] = useState<string | null>(null);
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [deletePath, setDeletePath] = useState<string | null>(null);
+  const [deletePaths, setDeletePaths] = useState<string[]>([]);
   const dropRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -397,10 +397,10 @@ function FileExplorer() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['objects', state.currentPath] });
       setSelectedPaths([]);
-      setDeletePath(null);
+      setDeletePaths([]);
       toast({
         title: 'Deletion Successful',
-        description: 'Item deleted successfully.',
+        description: `Successfully deleted ${deletePaths.length} item${deletePaths.length > 1 ? 's' : ''}.`,
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -409,7 +409,7 @@ function FileExplorer() {
     onError: (error: any) => {
       toast({
         title: 'Deletion Failed',
-        description: error.message || 'Unable to delete item.',
+        description: error.message || 'Unable to delete item(s).',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -465,8 +465,9 @@ function FileExplorer() {
     }
   };
 
-  const handleDelete = (path: string) => {
-    setDeletePath(path);
+  const handleDelete = (paths: string | string[]) => {
+    const pathsArray = Array.isArray(paths) ? paths : [paths];
+    setDeletePaths(pathsArray);
     onDeleteOpen();
   };
 
@@ -587,6 +588,18 @@ function FileExplorer() {
             onClick={handleUploadClick}
             isLoading={uploadMutation.isPending}
           />
+          {selectedPaths.length > 0 && (
+            <Button
+              aria-label="Delete Selected"
+              leftIcon={<FiTrash2 />}
+              size="sm"
+              colorScheme="red"
+              onClick={() => handleDelete(selectedPaths)}
+              isLoading={deleteMutation.isPending}
+            >
+              Delete Selected ({selectedPaths.length})
+            </Button>
+          )}
         </HStack>
       </Flex>
 
@@ -610,19 +623,17 @@ function FileExplorer() {
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-            <HStack spacing={4} align="center">
-<Text fontSize="md" fontWeight="medium" color={isDragging ? 'green.600' : 'gray.600'}>
-            {isDragging
-              ? 'Drop files here to upload'
-              : 'Drag and drop files or click the upload button'}
+        <HStack spacing={4} align="center">
+          <Text fontSize="md" fontWeight="medium" color={isDragging ? 'green.600' : 'gray.600'}>
+            {isDragging ? 'Drop files here to upload' : 'Drag and drop files or click the upload button'}
           </Text>
           {uploadMutation.isPending && (
             <Text fontSize="sm" color="blue.500">
               Uploading {uploadMutation.variables?.file.name || 'files'}...
             </Text>
           )}
-            <FiUpload size="32px" color={isDragging ? 'green.500' : 'gray.500'} />
-            </HStack>
+          <FiUpload size="32px" color={isDragging ? 'green.500' : 'gray.500'} />
+        </HStack>
       </Box>
 
       <input
@@ -669,7 +680,10 @@ function FileExplorer() {
           <ModalHeader>Confirm Deletion</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Text>Are you sure you want to delete this item? This action cannot be undone.</Text>
+            <Text>
+              Are you sure you want to delete {deletePaths.length} item
+              {deletePaths.length > 1 ? 's' : ''}? This action cannot be undone.
+            </Text>
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" onClick={onDeleteClose}>
@@ -678,8 +692,8 @@ function FileExplorer() {
             <Button
               colorScheme="red"
               onClick={() => {
-                if (deletePath) {
-                  deleteMutation.mutate([deletePath]);
+                if (deletePaths.length > 0) {
+                  deleteMutation.mutate(deletePaths);
                 }
                 onDeleteClose();
               }}
