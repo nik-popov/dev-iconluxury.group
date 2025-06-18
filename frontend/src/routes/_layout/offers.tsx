@@ -334,7 +334,7 @@ const FileList: React.FC<FileListProps> = ({
           <Box flex="0.5">
             <Checkbox
               isChecked={objects.length > 0 && objects.every((obj) => selectedPaths.includes(obj.path))}
-              onChange={() => {
+              onChange={(e) => {
                 objects.forEach((obj) => onSelectPath(obj.path));
               }}
               isDisabled={isFetching}
@@ -704,6 +704,7 @@ function FileExplorer() {
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isFetching, error: listError } = useQuery<S3ListResponse, Error>({
     queryKey: ['objects', state.currentPath, state.page, continuationToken, state.storageType],
@@ -721,7 +722,7 @@ function FileExplorer() {
       queryClient.invalidateQueries({ queryKey: ['objects', state.currentPath] });
       toast({
         title: 'Upload Successful',
-        description: 'File uploaded successfully.',
+        description: 'File(s) uploaded successfully.',
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -730,7 +731,7 @@ function FileExplorer() {
     onError: (error: any) => {
       toast({
         title: 'Upload Failed',
-        description: error.message || 'Unable to upload file.',
+        description: error.message || 'Unable to upload file(s).',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -943,18 +944,26 @@ function FileExplorer() {
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragging(true);
+    }
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+    // Only set isDragging to false if leaving the drop area entirely
+    if (e.relatedTarget && !dropRef.current?.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (e.dataTransfer.types.includes('Files')) {
+      e.dataTransfer.dropEffect = 'copy';
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -963,10 +972,49 @@ function FileExplorer() {
     setIsDragging(false);
 
     const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) {
+      toast({
+        title: 'No Files',
+        description: 'No valid files were dropped.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     files.forEach((file) => {
       const uploadPath = `${state.currentPath}${file.name}`;
       uploadMutation.mutate({ file, path: uploadPath });
     });
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length === 0) {
+      toast({
+        title: 'No Files',
+        description: 'No files were selected.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    files.forEach((file) => {
+      const uploadPath = `${state.currentPath}${file.name}`;
+      uploadMutation.mutate({ file, path: uploadPath });
+    });
+
+    // Reset the input to allow re-selecting the same files
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
   };
 
   const breadcrumbs = () => {
@@ -1025,6 +1073,16 @@ function FileExplorer() {
           </Text>
         </Box>
         <HStack>
+          <Tooltip label="Upload Files">
+            <IconButton
+              aria-label="Upload Files"
+              icon={<FiUpload />}
+              size="sm"
+              colorScheme="blue"
+              onClick={handleUploadClick}
+              isLoading={uploadMutation.isLoading}
+            />
+          </Tooltip>
           <Tooltip label={state.isPreviewOpen ? 'Hide Preview' : 'Show Preview'}>
             <IconButton
               aria-label={state.isPreviewOpen ? 'Hide Preview' : 'Show Preview'}
@@ -1088,25 +1146,45 @@ function FileExplorer() {
 
       <Box
         ref={dropRef}
-        p={4}
+        p={6}
         mb={4}
         borderWidth="2px"
         borderStyle="dashed"
         borderColor={isDragging ? 'green.500' : 'gray.300'}
-        bg={isDragging ? 'green.50' : 'gray.50'}
-        borderRadius="md"
+        bg={isDragging ? 'green.100' : 'gray.100'}
+        borderRadius="lg"
+        minH="100px"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        transition="all 0.2s"
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
         <VStack spacing={2}>
-          <FiUpload size="24px" color={isDragging ? 'green' : 'gray'} />
-          <Text fontSize="sm" color="gray.600">
-            Drag and drop files here to upload to {state.currentPath || 'root'}
+          <FiUpload size="32px" color={isDragging ? 'green.500' : 'gray.500'} />
+          <Text fontSize="md" fontWeight="medium" color={isDragging ? 'green.600' : 'gray.600'}>
+            {isDragging
+              ? 'Drop files here to upload'
+              : `Drag and drop files or click the upload button to add to ${state.currentPath || 'root'}`}
           </Text>
+          {uploadMutation.isLoading && (
+            <Text fontSize="sm" color="blue.500">
+              Uploading {uploadMutation.variables?.file.name || 'files'}...
+            </Text>
+          )}
         </VStack>
       </Box>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        onChange={handleFileSelect}
+        multiple
+      />
 
       <Flex
         gap={6}
