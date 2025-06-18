@@ -740,14 +740,13 @@ function FileExplorer() {
       >
         <HStack spacing={4} align="center">
           <Text fontSize="md" fontWeight="medium" color={isDragging ? 'green.600' : 'gray.600'}>
-            {isDragging ? 'Drop files here to upload' : 'Drag and drop files or click the upload button'}
+            {isDragging ? 'Drop files here to upload' : 'Drag and drop files'}
           </Text>
           {uploadMutation.isPending && (
             <Text fontSize="sm" color="blue.500">
               Uploading {uploadMutation.variables?.file.name || 'files'}...
             </Text>
           )}
-          <FiUpload size="32px" color={isDragging ? 'green.500' : 'gray.500'} />
         </HStack>
       </Box>
 
