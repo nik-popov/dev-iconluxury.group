@@ -300,7 +300,7 @@ const FileList: React.FC<FileListProps> = ({
   return (
     <VStack spacing={4} align="stretch">
       <Flex p={2} borderRadius="md" mb={2}>
-        <Box flex="0.5">
+        {/* <Box flex="0.5">
           <Checkbox
             isChecked={objects.length > 0 && objects.every((obj) => selectedPaths.includes(obj.path))}
             onChange={() => {
@@ -308,7 +308,7 @@ const FileList: React.FC<FileListProps> = ({
             }}
             isDisabled={isFetching}
           />
-        </Box>
+        </Box> */}
         <Box flex="2" cursor="pointer" onClick={() => handleSort('name')}>
           <HStack>
             <Text fontWeight="bold">Name</Text>
@@ -343,13 +343,13 @@ const FileList: React.FC<FileListProps> = ({
           _hover={{ bg: 'gray.50' }}
         >
           <Flex justify="space-between" align="center">
-            <HStack flex="0.5">
+            {/* <HStack flex="0.5">
               <Checkbox
                 isChecked={selectedPaths.includes(obj.path)}
                 onChange={() => onSelectPath(obj.path)}
                 isDisabled={isFetching}
               />
-            </HStack>
+            </HStack> */}
             <HStack align="center" gap={2} flex="2">
               {obj.type === 'folder' ? <FiFolder /> : getFileIcon(obj.name)}
               <Box>
