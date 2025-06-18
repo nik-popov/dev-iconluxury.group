@@ -30,7 +30,7 @@ import {
   Legend,
 } from "chart.js";
 import { FiFilter, FiMoreVertical, FiArrowUp, FiArrowDown, FiShoppingCart, FiMessageSquare, FiUpload, FiTag } from "react-icons/fi";
-import type { UserPublic } from "../../../../client";
+import type { UserPublic } from "../../../client";
 
 // Register Chart.js components
 ChartJS.register(
