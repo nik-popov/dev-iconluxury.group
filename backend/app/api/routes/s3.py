@@ -208,39 +208,43 @@ async def upload_file(file: UploadFile, path: str):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 async def delete_objects(paths: List[str]):
-    """
-    Delete multiple objects by their paths.
-    """
     try:
         if not paths:
             raise HTTPException(status_code=400, detail="No paths provided")
-
-        # Sanitize paths
         sanitized_paths = [sanitize_path(path) for path in paths]
-
-        # Batch delete (S3/R2 supports up to 1000 objects per request)
-        objects = [{"Key": path} for path in sanitized_paths]
+        objects_to_delete = []
+        for path in sanitized_paths:
+            if path.endswith("/"):  # Folder
+                continuation_token = None
+                while True:
+                    response = s3_client.list_objects_v2(
+                        Bucket=BUCKET_NAME,
+                        Prefix=path,
+                        MaxKeys=1000,
+                        ContinuationToken=continuation_token
+                    )
+                    for obj in response.get("Contents", []):
+                        objects_to_delete.append({"Key": obj["Key"]})
+                    continuation_token = response.get("NextContinuationToken")
+                    if not continuation_token:
+                        break
+            else:  # File
+                objects_to_delete.append({"Key": path})
+        if not objects_to_delete:
+            return {"message": "No objects to delete"}
+        # Batch delete
         response = s3_client.delete_objects(
             Bucket=BUCKET_NAME,
-            Delete={"Objects": objects, "Quiet": True}
+            Delete={"Objects": objects_to_delete, "Quiet": True}
         )
-
-        # Check for errors in the response
         errors = response.get("Errors", [])
         if errors:
             error_details = ", ".join([f"{err['Key']}: {err['Message']}" for err in errors])
             raise HTTPException(status_code=500, detail=f"Failed to delete some objects: {error_details}")
-
-        return {"message": f"Successfully deleted {len(sanitized_paths)} objects"}
+        return {"message": f"Successfully deleted {len(objects_to_delete)} objects"}
     except ClientError as e:
         logger.error(f"Error deleting objects: {str(e)}")
-        error_code = e.response.get("Error", {}).get("Code")
-        if error_code == "AccessDenied":
-            raise HTTPException(status_code=403, detail="Access denied to delete objects")
         raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
-    except Exception as e:
-        logger.error(f"Unexpected error deleting objects: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 # S3 Endpoints
 @s3_router.get("/list")

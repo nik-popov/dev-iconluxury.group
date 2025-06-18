@@ -742,30 +742,32 @@ function FileExplorer() {
   const deleteMutation = useMutation({
     mutationFn: (paths: string[]) => deleteObjects(paths, state.storageType),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['objects', state.currentPath] });
-      setSelectedPaths([]);
-      setSelectedFile(null);
-      setPreviewUrl('');
-      setPreviewContent('');
-      toast({
-        title: 'Deletion Successful',
-        description: 'Selected items deleted successfully.',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
+        queryClient.invalidateQueries({ queryKey: ['objects', state.currentPath] });
+        setSelectedPaths([]);
+        setSelectedFile(null);
+        setPreviewUrl('');
+        setPreviewContent('');
+        toast({
+            title: 'Deletion Successful',
+            description: 'Selected items deleted successfully.',
+            status: 'success',
+            duration: 3000,
+            isClosable: true,
+        });
     },
     onError: (error: any) => {
-      toast({
-        title: 'Deletion Failed',
-        description: error.message || 'Unable to delete items.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
+        const message = error.message.includes('Failed to delete some objects')
+            ? error.message
+            : 'Unable to delete items.';
+        toast({
+            title: 'Deletion Failed',
+            description: message,
+            status: 'error',
+            duration: 5000,
+            isClosable: true,
+        });
     },
-  });
-
+});
   useEffect(() => {
     if (data?.objects) {
       setObjects((prev) => {
@@ -927,19 +929,40 @@ function FileExplorer() {
     );
   };
 
-  const handleDeleteSelected = () => {
+const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+const handleDeleteSelected = () => {
     if (selectedPaths.length === 0) {
-      toast({
-        title: 'No Items Selected',
-        description: 'Please select items to delete.',
-        status: 'warning',
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
+        toast({
+            title: 'No Items Selected',
+            description: 'Please select items to delete.',
+            status: 'warning',
+            duration: 3000,
+            isClosable: true,
+        });
+        return;
     }
-    deleteMutation.mutate(selectedPaths);
-  };
+    onDeleteOpen(); // Open confirmation modal
+};
+// Add modal in the render
+<Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
+    <ModalOverlay />
+    <ModalContent>
+        <ModalHeader>Confirm Deletion</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+            <Text>Are you sure you want to delete {selectedPaths.length} item(s)? This action cannot be undone.</Text>
+        </ModalBody>
+        <ModalFooter>
+            <Button variant="ghost" onClick={onDeleteClose}>Cancel</Button>
+            <Button colorScheme="red" onClick={() => {
+                deleteMutation.mutate(selectedPaths);
+                onDeleteClose();
+            }} isLoading={deleteMutation.isPending}>
+                Delete
+            </Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
