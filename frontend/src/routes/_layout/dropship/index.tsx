@@ -19,6 +19,7 @@ import {
   ModalFooter,
   useToast,
   Checkbox,
+useDisclosure,
 } from '@chakra-ui/react';
 import { FiFolder, FiFile, FiDownload, FiCopy, FiTrash2, FiUpload } from 'react-icons/fi';
 import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel } from 'react-icons/fa';
