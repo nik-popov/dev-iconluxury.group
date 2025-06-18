@@ -627,9 +627,6 @@ function FileExplorer() {
           <Text fontSize="xl" fontWeight="bold" color="black">
             Files (public/image/ecommerce/direct/)
           </Text>
-          <Text fontSize="sm" color="gray.600">
-            Manage files in the ecommerce direct directory
-          </Text>
         </Box>
         <HStack>
           <IconButton
@@ -658,6 +655,8 @@ function FileExplorer() {
       <Box
         ref={dropRef}
         p={6}
+        mt={4}
+        mb={4}
         borderWidth="2px"
         borderStyle="dashed"
         borderColor={isDragging ? 'green.500' : 'gray.300'}
