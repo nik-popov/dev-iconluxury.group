@@ -225,7 +225,7 @@ const FileList: React.FC<FileListProps> = ({
 }) => {
   return (
     <VStack spacing={4} align="stretch">
-      <Flex bg="gray.100" p={2} borderRadius="md" mb={2}>
+      <Flex p={2} borderRadius="md" mb={2}>
         <Box flex="0.5">
           <Checkbox
             isChecked={objects.length > 0 && objects.every((obj) => selectedPaths.includes(obj.path))}
