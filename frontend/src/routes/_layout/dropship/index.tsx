@@ -608,9 +608,9 @@ function FileExplorer() {
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        <VStack spacing={2}>
-          <FiUpload size="32px" color={isDragging ? 'green.500' : 'gray.500'} />
-          <Text fontSize="md" fontWeight="medium" color={isDragging ? 'green.600' : 'gray.600'}>
+            <HStack spacing={2}>
+  <FiUpload size="32px" color={isDragging ? 'green.500' : 'gray.500'} />
+<Text fontSize="md" fontWeight="medium" color={isDragging ? 'green.600' : 'gray.600'}>
             {isDragging
               ? 'Drop files here to upload'
               : 'Drag and drop files or click the upload button'}
@@ -620,7 +620,7 @@ function FileExplorer() {
               Uploading {uploadMutation.variables?.file.name || 'files'}...
             </Text>
           )}
-        </VStack>
+            </HStack>
       </Box>
 
       <input
