@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
 from app.api.routes import items, login, private, users, utils,s3
-from app.api.routes import user_agent  # <-- Import your user_agent module
 from app.api.routes import subscription
 from app.core.config import settings
 
