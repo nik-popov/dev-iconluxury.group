@@ -13,6 +13,7 @@ import {
   FiLogOut,
   FiSearch,
   FiArchive,
+  FiImage,
   FiEye,
   FiGlobe as FiGoogleSerp,
 } from "react-icons/fi";
@@ -31,7 +32,7 @@ const sidebarStructure: SidebarItem[] = [
     {
     title: "Drophip",
     subItems: [
-      { title: "Image Hosting", path: "/dropship", icon: FiArchive },
+      { title: "Image Hosting", path: "/dropship", icon: FiImage },
     ],},
   { title: "Archive", path: "/explore", icon: FiArchive },
   {
