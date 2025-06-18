@@ -49,7 +49,6 @@ const sidebarStructure: SidebarItem[] = [
     ],
   },
   { title: "VPN", icon: FiShield, path: "/vpn" },
-  { title: "Sign out", icon: FiLogOut, action: () => {} },
   {
     title: "Vendor Demo",
     subItems: [
@@ -59,6 +58,7 @@ const sidebarStructure: SidebarItem[] = [
       { title: "Customers", icon: FiUsers, path: "/customers" },
     ],
   },
+  { title: "Sign out", icon: FiLogOut, action: () => {} },
 ];
 
 interface SidebarItemsProps {
