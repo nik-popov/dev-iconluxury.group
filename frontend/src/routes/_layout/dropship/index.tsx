@@ -570,7 +570,7 @@ function FileExplorer() {
       <Flex align="center" justify="space-between" flexWrap="wrap" gap={4}>
         <Box textAlign="left" flex="1">
           <Text fontSize="xl" fontWeight="bold" color="black">
-            File Explorer (S3: public/image/ecommerce/direct/)
+            Files (public/image/ecommerce/direct/)
           </Text>
           <Text fontSize="sm" color="gray.600">
             Manage files in the ecommerce direct directory
