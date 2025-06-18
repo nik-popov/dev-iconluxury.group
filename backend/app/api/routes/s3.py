@@ -61,15 +61,13 @@ async def get_folder_count(prefix: str) -> int:
         return 0
 
 def sanitize_path(path: str) -> str:
-    """
-    Sanitize file path to prevent directory traversal and invalid characters.
-    """
-    # Remove dangerous characters and normalize path
-    sanitized = re.sub(r'[^\w\-./]', '', path.strip())
-    # Prevent absolute paths or parent directory references
-    if sanitized.startswith('/') or '..' in sanitized:
-        raise HTTPException(status_code=400, detail="Invalid path")
-    return sanitized
+    """Sanitize the path to prevent directory traversal and invalid characters."""
+    # Remove leading/trailing slashes and normalize path
+    clean_path = os.path.normpath(path.lstrip("/")).replace("\\", "/")
+    # Ensure path doesn't start with parent directory references
+    if clean_path.startswith("..") or "/.." in clean_path:
+        raise ValueError("Invalid path: contains parent directory references")
+    return clean_path
 
 async def list_objects(prefix: str = "", page: int = 1, page_size: int = 10, continuation_token: Optional[str] = None):
     """
@@ -177,23 +175,104 @@ async def get_signed_url(key: str, expires_in: int = 3600):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 async def upload_file(file: UploadFile, path: str):
+    """
+    Upload a file to S3 with robust error handling and validation.
+    
+    Args:
+        file: FastAPI UploadFile object containing the file to upload
+        path: Destination path in S3 bucket
+        
+    Returns:
+        dict: Success message with file path
+        
+    Raises:
+        HTTPException: For validation, S3, or unexpected errors
+    """
     try:
+        # Validate inputs
+        if not file.filename:
+            logger.error("No filename provided for upload")
+            raise HTTPException(status_code=400, detail="No filename provided")
+            
+        if not path:
+            logger.error("No destination path provided")
+            raise HTTPException(status_code=400, detail="No destination path provided")
+            
+        # Validate file size (set reasonable limit, e.g., 100MB)
+        MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
+        file_size = 0
+        file.file.seek(0, os.SEEK_END)
+        file_size = file.file.tell()
+        file.file.seek(0)  # Reset file pointer
+        if file_size > MAX_FILE_SIZE:
+            logger.error(f"File size {file_size} exceeds maximum {MAX_FILE_SIZE}")
+            raise HTTPException(status_code=400, detail=f"File size exceeds {MAX_FILE_SIZE} bytes")
+        if file_size == 0:
+            logger.error("Empty file provided")
+            raise HTTPException(status_code=400, detail="Empty file provided")
+            
+        # Sanitize path
         sanitized_path = sanitize_path(path)
-        # Stream the file directly
-        s3_client.upload_fileobj(
+        
+        # Determine content type
+        content_type = file.content_type
+        if not content_type or content_type == "application/octet-stream":
+            # Fallback to guessing content type from filename
+            content_type, _ = mimetypes.guess_type(file.filename)
+            content_type = content_type or "application/octet-stream"
+        
+        # Upload to S3 with metadata
+        extra_args = {
+            "ContentType": content_type,
+            "Metadata": {
+                "original_filename": file.filename,
+                "upload_timestamp": str(int(os.times().elapsed))
+            }
+        }
+        
+        logger.info(f"Uploading file {file.filename} to s3://{BUCKET_NAME}/{sanitized_path}")
+        
+        # Stream upload to S3
+        response = s3_client.upload_fileobj(
+            Fileobj=file.file,
             Bucket=BUCKET_NAME,
             Key=sanitized_path,
-            Fileobj=file.file,
-            ExtraArgs={"ContentType": file.content_type or "application/octet-stream"}
+            ExtraArgs=extra_args
         )
-        return {"message": f"File uploaded successfully to {sanitized_path}"}
+        
+        # Verify upload success by checking S3 head object
+        try:
+            s3_client.head_object(Bucket=BUCKET_NAME, Key=sanitized_path)
+        except ClientError as e:
+            logger.error(f"Verification failed for {sanitized_path}: {str(e)}")
+            raise HTTPException(status_code=500, detail="Upload verification failed")
+            
+        logger.info(f"Successfully uploaded {file.filename} to {sanitized_path}")
+        return {
+            "message": f"File uploaded successfully to {sanitized_path}",
+            "filename": file.filename,
+            "content_type": content_type,
+            "size": file_size
+        }
+        
     except ClientError as e:
-        logger.error(f"Error uploading file to {path}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
+        error_code = e.response.get("Error", {}).get("Code", "Unknown")
+        error_message = e.response.get("Error", {}).get("Message", str(e))
+        logger.error(f"S3 error uploading to {path}: {error_code} - {error_message}")
+        if error_code == "NoSuchBucket":
+            raise HTTPException(status_code=500, detail="Storage bucket does not exist")
+        elif error_code in ("AccessDenied", "Forbidden"):
+            raise HTTPException(status_code=403, detail="Insufficient permissions to upload file")
+        else:
+            raise HTTPException(status_code=500, detail=f"Storage error: {error_message}")
+            
+    except ValueError as e:
+        logger.error(f"Path validation error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Invalid path: {str(e)}")
+        
     except Exception as e:
-        logger.error(f"Unexpected error uploading file: {str(e)}")
+        logger.error(f"Unexpected error uploading file to {path}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
 async def delete_objects(paths: List[str]):
     try:
         if not paths:
