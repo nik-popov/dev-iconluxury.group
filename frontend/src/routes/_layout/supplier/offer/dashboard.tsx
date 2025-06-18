@@ -43,7 +43,7 @@ ChartJS.register(
 );
 
 
-export const Route = createFileRoute("/supplier/dashboard")({
+export const Route = createFileRoute("/_layout/supplier/dashboard")({
   component: Dashboard,
 });
 
