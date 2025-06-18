@@ -177,31 +177,18 @@ async def get_signed_url(key: str, expires_in: int = 3600):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 async def upload_file(file: UploadFile, path: str):
-    """
-    Upload a file to the specified path.
-    """
     try:
-        # Validate file size
-        content = await file.read()
-        if len(content) > MAX_UPLOAD_SIZE:
-            raise HTTPException(status_code=400, detail=f"File size exceeds {MAX_UPLOAD_SIZE / 1024 / 1024} MB")
-
-        # Sanitize path
         sanitized_path = sanitize_path(path)
-
-        # Upload to storage
-        s3_client.put_object(
+        # Stream the file directly
+        s3_client.upload_fileobj(
             Bucket=BUCKET_NAME,
             Key=sanitized_path,
-            Body=content,
-            ContentType=file.content_type or "application/octet-stream"
+            Fileobj=file.file,
+            ExtraArgs={"ContentType": file.content_type or "application/octet-stream"}
         )
         return {"message": f"File uploaded successfully to {sanitized_path}"}
     except ClientError as e:
         logger.error(f"Error uploading file to {path}: {str(e)}")
-        error_code = e.response.get("Error", {}).get("Code")
-        if error_code == "AccessDenied":
-            raise HTTPException(status_code=403, detail="Access denied to upload")
         raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
     except Exception as e:
         logger.error(f"Unexpected error uploading file: {str(e)}")
