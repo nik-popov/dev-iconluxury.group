@@ -21,7 +21,7 @@ import {
   Checkbox,
   useDisclosure,
 } from '@chakra-ui/react';
-import { FiFolder, FiFile, FiDownload, FiCopy, FiTrash2, FiUpload, FiArrowUp, FiArrowDown, FiRefreshCw } from 'react-icons/fi';
+import { FiFolder, FiFile, FiDownload, FiCopy, FiTrash2, FiUpload, FiArrowUp, FiArrowDown, FiRefreshCw, FiFileText } from 'react-icons/fi';
 import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel } from 'react-icons/fa';
 
 // API Configuration
@@ -61,7 +61,7 @@ async function listAllObjects(
       const url = new URL(`${API_BASE_URL}/${storageType}/list`);
       url.searchParams.append('prefix', prefix);
       url.searchParams.append('page', page.toString());
-      url.searchParams.append('pageSize', '100'); // Increase page size for efficiency
+      url.searchParams.append('pageSize', '100');
       if (continuationToken) {
         url.searchParams.append('continuation_token', continuationToken);
       }
@@ -137,7 +137,7 @@ async function uploadFile(
     formData.append('file', file);
 
     const url = new URL(`${API_BASE_URL}/${storageType}/upload`);
-    url.searchParams.append('path', path); // Send path as query parameter
+    url.searchParams.append('path', path);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -178,6 +178,32 @@ async function deleteObjects(
     }
   } catch (error: any) {
     throw new Error(`Deletion failed: ${error.message || 'Network error'}`);
+  }
+}
+
+async function exportToCsv(
+  prefix: string,
+  storageType: string = STORAGE_TYPE
+): Promise<string> {
+  try {
+    const url = new URL(`${API_BASE_URL}/${storageType}/export-csv`);
+    url.searchParams.append('prefix', prefix);
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = errorText || response.statusText;
+      if (response.status === 404) {
+        errorMessage = `${storageType.toUpperCase()} export-csv endpoint not found.`;
+      } else if (response.status === 403) {
+        errorMessage = `Access denied to export CSV.`;
+      }
+      throw new Error(`Failed to export CSV: ${errorMessage}`);
+    }
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    return downloadUrl;
+  } catch (error: any) {
+    throw new Error(`Export CSV failed: ${error.message || 'Network error'}`);
   }
 }
 
@@ -236,7 +262,6 @@ const FileList: React.FC<FileListProps> = ({
     direction: 'asc' | 'desc';
   }>({ key: 'lastModified', direction: 'desc' });
 
-  // Sort objects based on sortConfig
   const sortedObjects = useMemo(() => {
     return [...objects].sort((a, b) => {
       let aValue: any;
@@ -471,6 +496,35 @@ function FileExplorer() {
     },
   });
 
+  const exportCsvMutation = useMutation({
+    mutationFn: () => exportToCsv(currentPath, STORAGE_TYPE),
+    onSuccess: (downloadUrl) => {
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = 'file_list.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      toast({
+        title: 'Export Successful',
+        description: 'CSV file downloaded successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Export Failed',
+        description: error.message || 'Unable to export CSV.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    },
+  });
+
   useEffect(() => {
     if (data) {
       setObjects(data);
@@ -641,6 +695,14 @@ function FileExplorer() {
             colorScheme="blue"
             onClick={handleUploadClick}
             isLoading={uploadMutation.isPending}
+          />
+          <IconButton
+            aria-label="Export to CSV"
+            icon={<FiFileText />}
+            size="sm"
+            colorScheme="green"
+            onClick={() => exportCsvMutation.mutate()}
+            isLoading={exportCsvMutation.isPending}
           />
           {selectedPaths.length > 0 && (
             <Button

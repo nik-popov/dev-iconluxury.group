@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Response
 from fastapi.middleware.cors import CORSMiddleware
 from boto3 import client
 from typing import Optional, List
@@ -8,11 +8,13 @@ from botocore.exceptions import ClientError
 from fastapi import Query
 from pydantic import BaseModel
 import re
+import csv
+from io import StringIO
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 # Configure routers for S3 and R2
 s3_router = APIRouter(prefix="/s3", tags=["s3"])
@@ -62,9 +64,7 @@ async def get_folder_count(prefix: str) -> int:
 
 def sanitize_path(path: str) -> str:
     """Sanitize the path to prevent directory traversal and invalid characters."""
-    # Remove leading/trailing slashes and normalize path
     clean_path = os.path.normpath(path.lstrip("/")).replace("\\", "/")
-    # Ensure path doesn't start with parent directory references
     if clean_path.startswith("..") or "/.." in clean_path:
         raise ValueError("Invalid path: contains parent directory references")
     return clean_path
@@ -177,19 +177,8 @@ async def get_signed_url(key: str, expires_in: int = 3600):
 async def upload_file(file: UploadFile, path: str):
     """
     Upload a file to S3 with robust error handling and validation.
-    
-    Args:
-        file: FastAPI UploadFile object containing the file to upload
-        path: Destination path in S3 bucket
-        
-    Returns:
-        dict: Success message with file path
-        
-    Raises:
-        HTTPException: For validation, S3, or unexpected errors
     """
     try:
-        # Validate inputs
         if not file.filename:
             logger.error("No filename provided for upload")
             raise HTTPException(status_code=400, detail="No filename provided")
@@ -198,12 +187,11 @@ async def upload_file(file: UploadFile, path: str):
             logger.error("No destination path provided")
             raise HTTPException(status_code=400, detail="No destination path provided")
             
-        # Validate file size (set reasonable limit, e.g., 100MB)
         MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
         file_size = 0
         file.file.seek(0, os.SEEK_END)
         file_size = file.file.tell()
-        file.file.seek(0)  # Reset file pointer
+        file.file.seek(0)
         if file_size > MAX_FILE_SIZE:
             logger.error(f"File size {file_size} exceeds maximum {MAX_FILE_SIZE}")
             raise HTTPException(status_code=400, detail=f"File size exceeds {MAX_FILE_SIZE} bytes")
@@ -211,17 +199,13 @@ async def upload_file(file: UploadFile, path: str):
             logger.error("Empty file provided")
             raise HTTPException(status_code=400, detail="Empty file provided")
             
-        # Sanitize path
         sanitized_path = sanitize_path(path)
         
-        # Determine content type
         content_type = file.content_type
         if not content_type or content_type == "application/octet-stream":
-            # Fallback to guessing content type from filename
             content_type, _ = mimetypes.guess_type(file.filename)
             content_type = content_type or "application/octet-stream"
         
-        # Upload to S3 with metadata
         extra_args = {
             "ContentType": content_type,
             "Metadata": {
@@ -232,7 +216,6 @@ async def upload_file(file: UploadFile, path: str):
         
         logger.info(f"Uploading file {file.filename} to s3://{BUCKET_NAME}/{sanitized_path}")
         
-        # Stream upload to S3
         response = s3_client.upload_fileobj(
             Fileobj=file.file,
             Bucket=BUCKET_NAME,
@@ -240,7 +223,6 @@ async def upload_file(file: UploadFile, path: str):
             ExtraArgs=extra_args
         )
         
-        # Verify upload success by checking S3 head object
         try:
             s3_client.head_object(Bucket=BUCKET_NAME, Key=sanitized_path)
         except ClientError as e:
@@ -273,6 +255,7 @@ async def upload_file(file: UploadFile, path: str):
     except Exception as e:
         logger.error(f"Unexpected error uploading file to {path}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 async def delete_objects(paths: List[str]):
     try:
         if not paths:
@@ -280,7 +263,7 @@ async def delete_objects(paths: List[str]):
         sanitized_paths = [sanitize_path(path) for path in paths]
         objects_to_delete = []
         for path in sanitized_paths:
-            if path.endswith("/"):  # Folder
+            if path.endswith("/"):
                 continuation_token = None
                 while True:
                     response = s3_client.list_objects_v2(
@@ -294,11 +277,10 @@ async def delete_objects(paths: List[str]):
                     continuation_token = response.get("NextContinuationToken")
                     if not continuation_token:
                         break
-            else:  # File
+            else:
                 objects_to_delete.append({"Key": path})
         if not objects_to_delete:
             return {"message": "No objects to delete"}
-        # Batch delete
         response = s3_client.delete_objects(
             Bucket=BUCKET_NAME,
             Delete={"Objects": objects_to_delete, "Quiet": True}
@@ -311,6 +293,89 @@ async def delete_objects(paths: List[str]):
     except ClientError as e:
         logger.error(f"Error deleting objects: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
+
+async def export_to_csv(prefix: str = ""):
+    """
+    Export object list to CSV.
+    """
+    try:
+        # Fetch all objects
+        objects = []
+        continuation_token = None
+        while True:
+            params = {
+                "Bucket": BUCKET_NAME,
+                "Prefix": prefix,
+                "Delimiter": "/",
+                "MaxKeys": 1000,
+            }
+            if continuation_token:
+                params["ContinuationToken"] = continuation_token
+            response = s3_client.list_objects_v2(**params)
+
+            # Process folders
+            for common_prefix in response.get("CommonPrefixes", []):
+                folder_path = common_prefix["Prefix"]
+                folder_name = folder_path.rstrip("/").split("/")[-1]
+                if folder_name:
+                    count = await get_folder_count(folder_path)
+                    objects.append({
+                        "type": "folder",
+                        "name": folder_name,
+                        "path": folder_path,
+                        "size": None,
+                        "lastModified": None,
+                        "count": count
+                    })
+
+            # Process files
+            for obj in response.get("Contents", []):
+                key = obj["Key"]
+                if key != prefix and not key.endswith("/"):
+                    file_name = key.replace(prefix, "", 1).lstrip("/")
+                    if file_name:
+                        objects.append({
+                            "type": "file",
+                            "name": file_name,
+                            "path": key,
+                            "size": obj["Size"],
+                            "lastModified": obj["LastModified"].isoformat(),
+                            "count": None
+                        })
+
+            continuation_token = response.get("NextContinuationToken")
+            if not continuation_token:
+                break
+
+        # Create CSV
+        output = StringIO()
+        writer = csv.DictWriter(output, fieldnames=["type", "name", "path", "size", "lastModified", "count"])
+        writer.writeheader()
+        for obj in objects:
+            writer.writerow({
+                "type": obj["type"],
+                "name": obj["name"],
+                "path": obj["path"],
+                "size": obj["size"] if obj["size"] is not None else "",
+                "lastModified": obj["lastModified"] if obj["lastModified"] is not None else "",
+                "count": obj["count"] if obj["count"] is not None else ""
+            })
+
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=file_list_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"}
+        )
+
+    except s3_client.exceptions.NoSuchBucket as e:
+        logger.error(f"Bucket not found: {str(e)}")
+        raise HTTPException(status_code=404, detail="Bucket not found")
+    except s3_client.exceptions.ClientError as e:
+        logger.error(f"Client error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error exporting CSV: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 # S3 Endpoints
 @s3_router.get("/list")
@@ -337,6 +402,10 @@ async def s3_upload_file(
 async def s3_delete_objects(request: DeleteRequest):
     return await delete_objects(request.paths)
 
+@s3_router.get("/export-csv")
+async def s3_export_to_csv(prefix: str = ""):
+    return await export_to_csv(prefix)
+
 # R2 Endpoints
 @r2_router.get("/list")
 async def r2_list_objects(
@@ -361,3 +430,7 @@ async def r2_upload_file(
 @r2_router.post("/delete")
 async def r2_delete_objects(request: DeleteRequest):
     return await delete_objects(request.paths)
+
+@r2_router.get("/export-csv")
+async def r2_export_to_csv(prefix: str = ""):
+    return await export_to_csv(prefix)
