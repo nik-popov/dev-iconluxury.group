@@ -21,7 +21,7 @@ import {
   Checkbox,
   useDisclosure,
 } from '@chakra-ui/react';
-import { FiFolder, FiFile, FiDownload, FiCopy, FiTrash2, FiUpload } from 'react-icons/fi';
+import { FiFolder, FiFile, FiDownload, FiCopy, FiTrash2, FiUpload, FiArrowUp, FiArrowDown } from 'react-icons/fi';
 import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel } from 'react-icons/fa';
 
 // API Configuration
@@ -223,6 +223,46 @@ const FileList: React.FC<FileListProps> = ({
   onCopyUrl,
   onDelete,
 }) => {
+  const [sortConfig, setSortConfig] = useState<{
+    key: 'name' | 'size' | 'lastModified';
+    direction: 'asc' | 'desc';
+  }>({ key: 'name', direction: 'asc' });
+
+  // Sort objects based on sortConfig
+  const sortedObjects = [...objects].sort((a, b) => {
+    let aValue: any;
+    let bValue: any;
+
+    if (sortConfig.key === 'name') {
+      aValue = a.name.toLowerCase();
+      bValue = b.name.toLowerCase();
+    } else if (sortConfig.key === 'size') {
+      aValue = a.size ?? 0;
+      bValue = b.size ?? 0;
+    } else if (sortConfig.key === 'lastModified') {
+      aValue = a.lastModified ? a.lastModified.getTime() : 0;
+      bValue = b.lastModified ? b.lastModified.getTime() : 0;
+    }
+
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const handleSort = (key: 'name' | 'size' | 'lastModified') => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  };
+
+  const getSortIcon = (key: 'name' | 'size' | 'lastModified') => {
+    if (sortConfig.key === key) {
+      return sortConfig.direction === 'asc' ? <FiArrowUp /> : <FiArrowDown />;
+    }
+    return null;
+  };
+
   return (
     <VStack spacing={4} align="stretch">
       <Flex p={2} borderRadius="md" mb={2}>
@@ -235,20 +275,29 @@ const FileList: React.FC<FileListProps> = ({
             isDisabled={isFetching}
           />
         </Box>
-        <Box flex="2">
-          <Text fontWeight="bold">Name</Text>
+        <Box flex="2" cursor="pointer" onClick={() => handleSort('name')}>
+          <HStack>
+            <Text fontWeight="bold">Name</Text>
+            {getSortIcon('name')}
+          </HStack>
         </Box>
-        <Box flex="1">
-          <Text fontWeight="bold">Size</Text>
+        <Box flex="1" cursor="pointer" onClick={() => handleSort('size')}>
+          <HStack>
+            <Text fontWeight="bold">Size</Text>
+            {getSortIcon('size')}
+          </HStack>
         </Box>
-        <Box flex="1">
-          <Text fontWeight="bold">Modified</Text>
+        <Box flex="1" cursor="pointer" onClick={() => handleSort('lastModified')}>
+          <HStack>
+            <Text fontWeight="bold">Modified</Text>
+            {getSortIcon('lastModified')}
+          </HStack>
         </Box>
         <Box flex="1" textAlign="right">
           <Text fontWeight="bold">Actions</Text>
         </Box>
       </Flex>
-      {objects.map((obj, index) => (
+      {sortedObjects.map((obj, index) => (
         <Box
           key={`${obj.path}-${index}`}
           p={4}
