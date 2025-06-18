@@ -687,6 +687,7 @@ function FileExplorer() {
             onClick={handleRefresh}
             isLoading={isFetching}
           />
+            Refresh
           <IconButton
             aria-label="Upload Files"
             icon={<FiUpload />}
@@ -695,6 +696,7 @@ function FileExplorer() {
             onClick={handleUploadClick}
             isLoading={uploadMutation.isPending}
           />
+          Upload
           <IconButton
             aria-label="Export to CSV"
             icon={<FiFileText />}
@@ -702,7 +704,9 @@ function FileExplorer() {
             colorScheme="green"
             onClick={() => exportCsvMutation.mutate()}
             isLoading={exportCsvMutation.isPending}
+            
           />
+          Export to CSV
           {selectedPaths.length > 0 && (
             <Button
               aria-label="Delete Selected"
