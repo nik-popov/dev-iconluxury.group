@@ -334,7 +334,7 @@ const FileList: React.FC<FileListProps> = ({
           <Box flex="0.5">
             <Checkbox
               isChecked={objects.length > 0 && objects.every((obj) => selectedPaths.includes(obj.path))}
-              onChange={(e) => {
+              onChange={ => {
                 objects.forEach((obj) => onSelectPath(obj.path));
               }}
               isDisabled={isFetching}
