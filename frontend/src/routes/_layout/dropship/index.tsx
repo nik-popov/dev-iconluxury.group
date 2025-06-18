@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, keepPreviousData, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -407,6 +407,8 @@ function FileExplorer() {
   const [deletePaths, setDeletePaths] = useState<string[]>([]);
   const dropRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const { data, isFetching, error: listError } = useQuery<S3ListResponse, Error>({
     queryKey: ['objects', state.currentPath, state.page, continuationToken, STORAGE_TYPE],
@@ -477,6 +479,32 @@ function FileExplorer() {
     }
   }, [data, state.page]);
 
+  const handleLoadMore = useCallback(() => {
+    if (hasMore && !isFetching) {
+      setState((prev) => ({ ...prev, page: prev.page + 1 }));
+    }
+  }, [hasMore, isFetching]);
+
+  useEffect(() => {
+    if (sentinelRef.current && hasMore) {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && !isFetching) {
+            handleLoadMore();
+          }
+        },
+        { root: null, rootMargin: '100px', threshold: 0.1 }
+      );
+      observerRef.current.observe(sentinelRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [handleLoadMore, hasMore, isFetching]);
+
   const handleDownload = async (key: string) => {
     try {
       const url = await getSignedUrl(key, DEFAULT_EXPIRES_IN, STORAGE_TYPE);
@@ -524,12 +552,6 @@ function FileExplorer() {
     setSelectedPaths((prev) =>
       prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path]
     );
-  };
-
-  const handleLoadMore = () => {
-    if (hasMore) {
-      setState((prev) => ({ ...prev, page: prev.page + 1 }));
-    }
   };
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -709,18 +731,7 @@ function FileExplorer() {
           </Text>
         )}
         {isFetching && <Text fontSize="sm" color="gray.500" mt={4}>Loading...</Text>}
-        {!isFetching && hasMore && objects.length > 0 && (
-          <Button
-            colorScheme="green"
-            size="sm"
-            onClick={handleLoadMore}
-            mt={4}
-            alignSelf="center"
-            isDisabled={isFetching}
-          >
-            Load More
-          </Button>
-        )}
+        {hasMore && <Box ref={sentinelRef} h="20px" />}
       </Box>
 
       <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
