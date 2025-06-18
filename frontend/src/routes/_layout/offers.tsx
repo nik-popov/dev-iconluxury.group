@@ -1387,7 +1387,7 @@ const handleDeleteSelected = () => {
   );
 }
 
-export const Route = createFileRoute('/_layout/explore')({
+export const Route = createFileRoute('/_layout/offers')({
   component: FileExplorer,
 });
 

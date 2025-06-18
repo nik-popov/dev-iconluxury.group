@@ -28,6 +28,11 @@ interface SidebarItem {
 }
 
 const sidebarStructure: SidebarItem[] = [
+    {
+    title: "Drophip",
+    subItems: [
+      { title: "Image Hosting", path: "/dropship", icon: FiArchive },
+    ],},
   { title: "Archive", path: "/explore", icon: FiArchive },
   {
     title: "Scraper",
