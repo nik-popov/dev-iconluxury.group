@@ -658,7 +658,7 @@ function FileExplorer() {
             colorScheme="blue"
             onClick={handleUploadClick}
             isLoading={uploadMutation.isPending}
-          />       Upload
+          />
           {selectedPaths.length > 0 && (
             <Button
               aria-label="Delete Selected"
