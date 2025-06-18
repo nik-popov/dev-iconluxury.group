@@ -48,7 +48,7 @@ const sidebarStructure: SidebarItem[] = [
   {
     title: "Vendor Demo",
     subItems: [
-      { title: "Dashboard", icon: FiHome, path: "/" },
+      { title: "Dashboard", icon: FiHome, path: "/supplier/dashboard" },
       { title: "Offers", icon: FiCalendar, path: "/offers" },
       { title: "Orders", icon: FiLayers, path: "/orders" },
       { title: "Customers", icon: FiUsers, path: "/customers" },
