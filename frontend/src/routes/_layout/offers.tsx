@@ -334,7 +334,7 @@ const FileList: React.FC<FileListProps> = ({
           <Box flex="0.5">
             <Checkbox
               isChecked={objects.length > 0 && objects.every((obj) => selectedPaths.includes(obj.path))}
-              onChange={(e) => {
+              onChange={() => {
                 objects.forEach((obj) => onSelectPath(obj.path));
               }}
               isDisabled={isFetching}
@@ -952,7 +952,6 @@ function FileExplorer() {
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Only set isDragging to false if leaving the drop area entirely
     if (e.relatedTarget && !dropRef.current?.contains(e.relatedTarget as Node)) {
       setIsDragging(false);
     }
@@ -1007,7 +1006,6 @@ function FileExplorer() {
       uploadMutation.mutate({ file, path: uploadPath });
     });
 
-    // Reset the input to allow re-selecting the same files
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -1080,7 +1078,7 @@ function FileExplorer() {
               size="sm"
               colorScheme="blue"
               onClick={handleUploadClick}
-              isLoading={uploadMutation.isLoading}
+              isLoading={uploadMutation.isPending}
             />
           </Tooltip>
           <Tooltip label={state.isPreviewOpen ? 'Hide Preview' : 'Show Preview'}>
@@ -1170,7 +1168,7 @@ function FileExplorer() {
               ? 'Drop files here to upload'
               : `Drag and drop files or click the upload button to add to ${state.currentPath || 'root'}`}
           </Text>
-          {uploadMutation.isLoading && (
+          {uploadMutation.isPending && (
             <Text fontSize="sm" color="blue.500">
               Uploading {uploadMutation.variables?.file.name || 'files'}...
             </Text>
@@ -1366,7 +1364,7 @@ function FileExplorer() {
   );
 }
 
-export const Route = createFileRoute('/_layout/offers')({
+export const Route = createFileRoute('/_layout/explore')({
   component: FileExplorer,
 });
 
