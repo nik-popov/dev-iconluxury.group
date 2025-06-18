@@ -658,8 +658,6 @@ function FileExplorer() {
       <Box
         ref={dropRef}
         p={6}
-        mt={4}
-        mb={4}
         borderWidth="2px"
         borderStyle="dashed"
         borderColor={isDragging ? 'green.500' : 'gray.300'}
