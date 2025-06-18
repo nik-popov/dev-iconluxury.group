@@ -70,7 +70,7 @@ const getAuthToken = (): string | null => {
 
 async function fetchOfferDetails(fileId: string): Promise<OfferDetails> {
   const token = getAuthToken();
-  const response = await fetch(`https://backend-dev.iconluxury.group/api/luxurymarket/supplier/offers/${fileId}`, {
+  const response = await fetch(`https://external.iconluxury.group/api/luxurymarket/supplier/offers/${fileId}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -86,7 +86,7 @@ async function submitOfferForReviewApi(fileId: string): Promise<{ message: strin
   const token = getAuthToken();
   const payload = { fileId: parseInt(fileId, 10) }; // API likely expects integer fileId
 
-  const response = await fetch(`https://backend-dev.iconluxury.group/submitOffer`, {
+  const response = await fetch(`https://external.iconluxury.group/submitOffer`, {
     method: "POST",
     body: JSON.stringify(payload),
   });

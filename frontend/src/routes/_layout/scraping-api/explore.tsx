@@ -57,7 +57,7 @@ async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
 
 async function fetchJobs(page: number): Promise<JobSummary[]> {
   const token = getAuthToken();
-  const response = await fetch(`https://backend-dev.iconluxury.group/api/scraping-jobs?page=${page}&page_size=10`, {
+  const response = await fetch(`https://external.iconluxury.group/api/scraping-jobs?page=${page}&page_size=10`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
