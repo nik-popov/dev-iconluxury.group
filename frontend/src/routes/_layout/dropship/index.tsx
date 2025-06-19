@@ -216,6 +216,224 @@ const truncateName = (name: string, maxLength: number = 30) => {
   return `${start}...${end}`;
 };
 
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
+import { useQuery, keepPreviousData, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Box,
+  Container,
+  Text,
+  VStack,
+  Button,
+  Flex,
+  IconButton,
+  HStack,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  ModalFooter,
+  useToast,
+  useDisclosure,
+} from '@chakra-ui/react';
+import { FiFolder, FiFile, FiDownload, FiCopy, FiTrash2, FiUpload, FiArrowUp, FiArrowDown, FiRefreshCw, FiFileText } from 'react-icons/fi';
+import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel } from 'react-icons/fa';
+
+// API Configuration
+const API_BASE_URL = 'https://api.iconluxury.group/api/v1';
+const STORAGE_TYPE = 's3';
+const DEFAULT_EXPIRES_IN = 900; // 15 minutes
+const FIXED_PATH = 'public/image/ecommerce/direct/';
+
+// Interfaces
+interface S3Object {
+  type: 'folder' | 'file';
+  name: string;
+  path: string;
+  size?: number;
+  lastModified?: Date;
+  count?: number;
+}
+
+interface S3ListResponse {
+  objects: S3Object[];
+  hasMore: boolean;
+  nextContinuationToken: string | null;
+}
+
+// API Functions
+async function fetchJsonStore(
+  prefix: string,
+  storageType: string = STORAGE_TYPE
+): Promise<S3Object[]> {
+  try {
+    const url = new URL(`${API_BASE_URL}/${storageType}/json-store`);
+    url.searchParams.append('prefix', prefix);
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = errorText || response.statusText;
+      if (response.status === 404) {
+        errorMessage = `${storageType.toUpperCase()} JSON store not found.`;
+      } else if (response.status === 403) {
+        errorMessage = `Access denied to ${storageType.toUpperCase()} JSON store.`;
+      } else if (response.status === 503) {
+        errorMessage = 'Service temporarily unavailable.';
+      }
+      throw new Error(`Failed to fetch JSON store: ${errorMessage}`);
+    }
+    const data: S3ListResponse = await response.json();
+    return data.objects.map((item) => ({
+      ...item,
+      lastModified: item.lastModified ? new Date(item.lastModified) : undefined,
+    }));
+  } catch (error: any) {
+    const message = error.message?.includes('CORS')
+      ? `CORS error: Ensure the server allows requests from this origin.`
+      : error.message || `Network error fetching ${storageType.toUpperCase()} JSON store`;
+    throw new Error(message);
+  }
+}
+
+async function getSignedUrl(
+  key: string,
+  expiresIn: number = DEFAULT_EXPIRES_IN,
+  storageType: string = STORAGE_TYPE
+): Promise<string> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/${storageType}/sign?key=${encodeURIComponent(key)}&expires_in=${expiresIn}`
+    );
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = errorText || response.statusText;
+      if (response.status === 404) {
+        errorMessage = `${storageType.toUpperCase()} sign endpoint not found.`;
+      } else if (response.status === 403) {
+        errorMessage = `Access denied to generate signed URL.`;
+      }
+      throw new Error(`Failed to get signed URL: ${errorMessage}`);
+    }
+    const data = await response.json();
+    return data.signedUrl;
+  } catch (error: any) {
+    throw new Error(`Failed to get signed URL: ${error.message || 'Network error'}`);
+  }
+}
+
+async function uploadFile(
+  file: File,
+  path: string,
+  storageType: string = STORAGE_TYPE
+): Promise<void> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = new URL(`${API_BASE_URL}/${storageType}/upload`);
+    url.searchParams.append('path', path);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = errorText || response.statusText;
+      if (response.status === 403) {
+        errorMessage = `Access denied to upload to ${storageType.toUpperCase()}.`;
+      }
+      throw new Error(`Failed to upload file: ${errorMessage}`);
+    }
+  } catch (error: any) {
+    throw new Error(`Upload failed: ${error.message || 'Network error'}`);
+  }
+}
+
+async function deleteObjects(
+  paths: string[],
+  storageType: string = STORAGE_TYPE
+): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/${storageType}/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paths }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = errorText || response.statusText;
+      if (response.status === 403) {
+        errorMessage = `Access denied to delete from ${storageType.toUpperCase()}.`;
+      }
+      throw new Error(`Failed to delete objects: ${errorMessage}`);
+    }
+  } catch (error: any) {
+    throw new Error(`Deletion failed: ${error.message || 'Network error'}`);
+  }
+}
+
+async function exportToCsv(
+  prefix: string,
+  storageType: string = STORAGE_TYPE
+): Promise<string> {
+  try {
+    const url = new URL(`${API_BASE_URL}/${storageType}/export-csv`);
+    url.searchParams.append('prefix', prefix);
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = errorText || response.statusText;
+      if (response.status === 404) {
+        errorMessage = `${storageType.toUpperCase()} export-csv endpoint not found.`;
+      } else if (response.status === 403) {
+        errorMessage = `Access denied to export CSV.`;
+      }
+      throw new Error(`Failed to export CSV: ${errorMessage}`);
+    }
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    return downloadUrl;
+  } catch (error: any) {
+    throw new Error(`Export CSV failed: ${error.message || 'Network error'}`);
+  }
+}
+
+// Utility Functions
+const getFileIcon = (name: string) => {
+  const extension = (name.split('.').pop()?.toLowerCase() || '');
+  switch (extension) {
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+      return <FaFileImage />;
+    case 'pdf':
+      return <FaFilePdf />;
+    case 'doc':
+    case 'docx':
+      return <FaFileWord />;
+    case 'xls':
+    case 'xlsx':
+    case 'xlsm':
+      return <FaFileExcel />;
+    default:
+      return <FiFile />;
+  }
+};
+
+const truncateName = (name: string, maxLength: number = 30) => {
+  if (name.length <= maxLength) return name;
+  const start = name.slice(0, Math.floor(maxLength / 2));
+  const end = name.slice(-Math.floor(maxLength / 2));
+  return `${start}...${end}`;
+};
+
 // FileList Component
 interface FileListProps {
   objects: S3Object[];
