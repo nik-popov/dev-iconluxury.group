@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, keepPreviousData, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -23,6 +22,7 @@ import {
 } from '@chakra-ui/react';
 import { FiFolder, FiFile, FiDownload, FiCopy, FiTrash2, FiUpload, FiArrowUp, FiArrowDown, FiRefreshCw, FiFileText } from 'react-icons/fi';
 import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel } from 'react-icons/fa';
+import { debounce } from 'lodash';
 
 // API Configuration
 const API_BASE_URL = 'https://api.iconluxury.group/api/v1';
@@ -49,11 +49,15 @@ interface S3ListResponse {
 // API Functions
 async function fetchJsonStore(
   prefix: string,
-  storageType: string = STORAGE_TYPE
-): Promise<S3Object[]> {
+  storageType: string = STORAGE_TYPE,
+  continuationToken?: string
+): Promise<S3ListResponse> {
   try {
     const url = new URL(`${API_BASE_URL}/${storageType}/json-store`);
     url.searchParams.append('prefix', prefix);
+    if (continuationToken) {
+      url.searchParams.append('continuationToken', continuationToken);
+    }
 
     const response = await fetch(url);
     if (!response.ok) {
@@ -69,10 +73,14 @@ async function fetchJsonStore(
       throw new Error(`Failed to fetch JSON store: ${errorMessage}`);
     }
     const data: S3ListResponse = await response.json();
-    return data.objects.map((item) => ({
-      ...item,
-      lastModified: item.lastModified ? new Date(item.lastModified) : undefined,
-    }));
+    return {
+      objects: data.objects.map((item) => ({
+        ...item,
+        lastModified: item.lastModified ? new Date(item.lastModified) : undefined,
+      })),
+      hasMore: data.hasMore,
+      nextContinuationToken: data.nextContinuationToken,
+    };
   } catch (error: any) {
     const message = error.message?.includes('CORS')
       ? `CORS error: Ensure the server allows requests from this origin.`
@@ -139,22 +147,30 @@ async function uploadFile(
 
 async function deleteObjects(
   paths: string[],
-  storageType: string = STORAGE_TYPE
+  storageType: string = STORAGE_TYPE,
+  batchSize: number = 50
 ): Promise<void> {
   try {
-    const response = await fetch(`${API_BASE_URL}/${storageType}/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paths }),
-    });
+    const batches: string[][] = [];
+    for (let i = 0; i < paths.length; i += batchSize) {
+      batches.push(paths.slice(i, i + batchSize));
+    }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = errorText || response.statusText;
-      if (response.status === 403) {
-        errorMessage = `Access denied to delete from ${storageType.toUpperCase()}.`;
+    for (const batch of batches) {
+      const response = await fetch(`${API_BASE_URL}/${storageType}/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paths: batch }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = errorText || response.statusText;
+        if (response.status === 403) {
+          errorMessage = `Access denied to delete from ${storageType.toUpperCase()}.`;
+        }
+        throw new Error(`Failed to delete objects: ${errorMessage}`);
       }
-      throw new Error(`Failed to delete objects: ${errorMessage}`);
     }
   } catch (error: any) {
     throw new Error(`Deletion failed: ${error.message || 'Network error'}`);
@@ -226,164 +242,163 @@ interface FileListProps {
   onDelete: (path: string) => void;
 }
 
-const FileList: React.FC<FileListProps> = ({
-  objects,
-  isFetching,
-  onDownload,
-  onCopyUrl,
-  onDelete,
-}) => {
-  const [sortConfig, setSortConfig] = useState<{
-    key: 'name' | 'size' | 'lastModified';
-    direction: 'asc' | 'desc';
-  }>({ key: 'lastModified', direction: 'desc' });
+const FileList: React.FC<FileListProps> = React.memo(
+  ({ objects, isFetching, onDownload, onCopyUrl, onDelete }) => {
+    const [sortConfig, setSortConfig] = useState<{
+      key: 'name' | 'size' | 'lastModified';
+      direction: 'asc' | 'desc';
+    }>({ key: 'lastModified', direction: 'desc' });
 
-  const sortedObjects = useMemo(() => {
-    return [...objects].sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
+    const sortedObjects = useMemo(() => {
+      return [...objects].sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
 
-      if (sortConfig.key === 'name') {
-        aValue = a.name.toLowerCase();
-        bValue = b.name.toLowerCase();
-      } else if (sortConfig.key === 'size') {
-        aValue = a.size ?? 0;
-        bValue = b.size ?? 0;
-      } else if (sortConfig.key === 'lastModified') {
-        aValue = a.lastModified ? a.lastModified.getTime() : 0;
-        bValue = b.lastModified ? b.lastModified.getTime() : 0;
+        if (sortConfig.key === 'name') {
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+        } else if (sortConfig.key === 'size') {
+          aValue = a.size ?? 0;
+          bValue = b.size ?? 0;
+        } else if (sortConfig.key === 'lastModified') {
+          aValue = a.lastModified ? a.lastModified.getTime() : 0;
+          bValue = b.lastModified ? b.lastModified.getTime() : 0;
+        }
+
+        if (typeof aValue === 'string') {
+          return sortConfig.direction === 'asc'
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue);
+        }
+        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      });
+    }, [objects, sortConfig]);
+
+    const handleSort = (key: 'name' | 'size' | 'lastModified') => {
+      setSortConfig((prev) => ({
+        key,
+        direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+      }));
+    };
+
+    const getSortIcon = (key: 'name' | 'size' | 'lastModified') => {
+      if (sortConfig.key === key) {
+        return sortConfig.direction === 'asc' ? <FiArrowUp /> : <FiArrowDown />;
       }
+      return null;
+    };
 
-      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      return 0;
-    });
-  }, [objects, sortConfig]);
-
-  const handleSort = (key: 'name' | 'size' | 'lastModified') => {
-    setSortConfig((prev) => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
-    }));
-  };
-
-  const getSortIcon = (key: 'name' | 'size' | 'lastModified') => {
-    if (sortConfig.key === key) {
-      return sortConfig.direction === 'asc' ? <FiArrowUp /> : <FiArrowDown />;
-    }
-    return null;
-  };
-
-  return (
-    <VStack spacing={4} align="stretch">
-      <Flex p={2} borderRadius="md" mb={2}>
-        <Box flex="2" cursor="pointer" onClick={() => handleSort('name')}>
-          <HStack>
-            <Text fontWeight="bold">Name</Text>
-            {getSortIcon('name')}
-          </HStack>
-        </Box>
-        <Box flex="1" cursor="pointer" onClick={() => handleSort('size')}>
-          <HStack>
-            <Text fontWeight="bold">Size</Text>
-            {getSortIcon('size')}
-          </HStack>
-        </Box>
-        <Box flex="1" cursor="pointer" onClick={() => handleSort('lastModified')}>
-          <HStack>
-            <Text fontWeight="bold">Modified</Text>
-            {getSortIcon('lastModified')}
-          </HStack>
-        </Box>
-        <Box flex="1" textAlign="right">
-          <Text fontWeight="bold">Actions</Text>
-        </Box>
-      </Flex>
-      {sortedObjects.map((obj, index) => (
-        <Box
-          key={`${obj.path}-${index}`}
-          p={4}
-          borderWidth="1px"
-          borderRadius="lg"
-          borderColor="gray.200"
-          bg="white"
-          cursor="pointer"
-          _hover={{ bg: 'gray.50' }}
-        >
-          <Flex justify="space-between" align="center">
-            <HStack align="center" gap={2} flex="2">
-              {obj.type === 'folder' ? <FiFolder /> : getFileIcon(obj.name)}
-              <Box>
-                <Text fontWeight="medium" color="gray.800">
-                  {truncateName(obj.name, 30)}
+    return (
+      <VStack spacing={4} align="stretch">
+        <Flex p={2} borderRadius="md" mb={2}>
+          <Box flex="2" cursor="pointer" onClick={() => handleSort('name')}>
+            <HStack>
+              <Text fontWeight="bold">Name</Text>
+              {getSortIcon('name')}
+            </HStack>
+          </Box>
+          <Box flex="1" cursor="pointer" onClick={() => handleSort('size')}>
+            <HStack>
+              <Text fontWeight="bold">Size</Text>
+              {getSortIcon('size')}
+            </HStack>
+          </Box>
+          <Box flex="1" cursor="pointer" onClick={() => handleSort('lastModified')}>
+            <HStack>
+              <Text fontWeight="bold">Modified</Text>
+              {getSortIcon('lastModified')}
+            </HStack>
+          </Box>
+          <Box flex="1" textAlign="right">
+            <Text fontWeight="bold">Actions</Text>
+          </Box>
+        </Flex>
+        {sortedObjects.map((obj, index) => (
+          <Box
+            key={`${obj.path}-${index}`}
+            p={4}
+            borderWidth="1px"
+            borderRadius="lg"
+            borderColor="gray.200"
+            bg="white"
+            cursor="pointer"
+            _hover={{ bg: 'gray.50' }}
+          >
+            <Flex justify="space-between" align="center">
+              <HStack align="center" gap={2} flex="2">
+                {obj.type === 'folder' ? <FiFolder /> : getFileIcon(obj.name)}
+                <Box>
+                  <Text fontWeight="medium" color="gray.800">
+                    {truncateName(obj.name, 30)}
+                  </Text>
+                  {obj.type === 'file' && (
+                    <>
+                      <Text fontSize="sm" color="gray.500">
+                        Size: {obj.size ? (obj.size / 1024).toFixed(2) : '0'} KB
+                      </Text>
+                      <Text fontSize="sm" color="gray.500">
+                        Modified: {obj.lastModified ? new Date(obj.lastModified).toLocaleString() : '-'}
+                      </Text>
+                    </>
+                  )}
+                </Box>
+              </HStack>
+              <Box flex="1">
+                <Text fontSize="sm" color="gray.500">
+                  {obj.size ? (obj.size / 1024).toFixed(2) : '-'} KB
                 </Text>
+              </Box>
+              <Box flex="1">
+                <Text fontSize="sm" color="gray.500">
+                  {obj.lastModified ? new Date(obj.lastModified).toLocaleString() : '-'}
+                </Text>
+              </Box>
+              <HStack flex="1" justify="flex-end">
                 {obj.type === 'file' && (
                   <>
-                    <Text fontSize="sm" color="gray.500">
-                      Size: {obj.size ? (obj.size / 1024).toFixed(2) : '0'} KB
-                    </Text>
-                    <Text fontSize="sm" color="gray.500">
-                      Modified: {obj.lastModified ? new Date(obj.lastModified).toLocaleString() : '-'}
-                    </Text>
+                    <IconButton
+                      aria-label="Download"
+                      icon={<FiDownload />}
+                      size="sm"
+                      colorScheme="blue"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDownload(obj.path);
+                      }}
+                      isDisabled={isFetching}
+                    />
+                    <IconButton
+                      aria-label="Copy URL"
+                      icon={<FiCopy />}
+                      size="sm"
+                      colorScheme="gray"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCopyUrl(obj.path);
+                      }}
+                      isDisabled={isFetching}
+                    />
                   </>
                 )}
-              </Box>
-            </HStack>
-            <Box flex="1">
-              <Text fontSize="sm" color="gray.500">
-                {obj.size ? (obj.size / 1024).toFixed(2) : '-'} KB
-              </Text>
-            </Box>
-            <Box flex="1">
-              <Text fontSize="sm" color="gray.500">
-                {obj.lastModified ? new Date(obj.lastModified).toLocaleString() : '-'}
-              </Text>
-            </Box>
-            <HStack flex="1" justify="flex-end">
-              {obj.type === 'file' && (
-                <>
-                  <IconButton
-                    aria-label="Download"
-                    icon={<FiDownload />}
-                    size="sm"
-                    colorScheme="blue"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDownload(obj.path);
-                    }}
-                    isDisabled={isFetching}
-                  />
-                  <IconButton
-                    aria-label="Copy URL"
-                    icon={<FiCopy />}
-                    size="sm"
-                    colorScheme="gray"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCopyUrl(obj.path);
-                    }}
-                    isDisabled={isFetching}
-                  />
-                </>
-              )}
-              <IconButton
-                aria-label="Delete"
-                icon={<FiTrash2 />}
-                size="sm"
-                colorScheme="red"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(obj.path);
-                }}
-                isDisabled={isFetching}
-              />
-            </HStack>
-          </Flex>
-        </Box>
-      ))}
-    </VStack>
-  );
-};
+                <IconButton
+                  aria-label="Delete"
+                  icon={<FiTrash2 />}
+                  size="sm"
+                  colorScheme="red"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(obj.path);
+                  }}
+                  isDisabled={isFetching}
+                />
+              </HStack>
+            </Flex>
+          </Box>
+        ))}
+      </VStack>
+    );
+  }
+);
 
 // Main Component
 function FileExplorer() {
@@ -394,23 +409,52 @@ function FileExplorer() {
   const [objects, setObjects] = useState<S3Object[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [deletePaths, setDeletePaths] = useState<string[]>([]);
+  const [continuationToken, setContinuationToken] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState<boolean>(false);
   const dropRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const signedUrlCache = useRef(new Map<string, { url: string; expires: number }>()).current;
 
-  const { data, isFetching, error: listError } = useQuery<S3Object[], Error>({
+  const debouncedInvalidate = debounce((queryKey: any) => {
+    queryClient.invalidateQueries({ queryKey });
+  }, 500);
+
+  const { data, isFetching, error: listError } = useQuery<S3ListResponse, Error>({
     queryKey: ['objects', currentPath, STORAGE_TYPE],
-    queryFn: () => fetchJsonStore(currentPath, STORAGE_TYPE),
+    queryFn: () => fetchJsonStore(currentPath, STORAGE_TYPE, continuationToken),
     placeholderData: keepPreviousData,
     retry: 2,
     retryDelay: 1000,
     staleTime: 5 * 60 * 1000,
   });
 
+  useEffect(() => {
+    if (data) {
+      setObjects((prev) =>
+        continuationToken ? [...prev, ...data.objects] : data.objects
+      );
+      setHasMore(data.hasMore);
+      setContinuationToken(data.nextContinuationToken);
+    }
+  }, [data, continuationToken]);
+
+  const handleLoadMore = () => {
+    if (hasMore && data?.nextContinuationToken) {
+      setContinuationToken(data.nextContinuationToken);
+    }
+  };
+
+  const handleRefresh = () => {
+    setObjects([]);
+    setContinuationToken(null);
+    queryClient.invalidateQueries({ queryKey: ['objects', currentPath, STORAGE_TYPE] });
+  };
+
   const uploadMutation = useMutation({
     mutationFn: ({ file, path }: { file: File; path: string }) =>
       uploadFile(file, path, STORAGE_TYPE),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['objects', currentPath] });
+      debouncedInvalidate(['objects', currentPath, STORAGE_TYPE]);
       toast({
         title: 'Upload Successful',
         description: 'File uploaded successfully.',
@@ -432,8 +476,20 @@ function FileExplorer() {
 
   const deleteMutation = useMutation({
     mutationFn: (paths: string[]) => deleteObjects(paths, STORAGE_TYPE),
+    onMutate: async (paths) => {
+      await queryClient.cancelQueries({ queryKey: ['objects', currentPath, STORAGE_TYPE] });
+      const previousObjects = queryClient.getQueryData<S3Object[]>([
+        'objects',
+        currentPath,
+        STORAGE_TYPE,
+      ]);
+      queryClient.setQueryData<S3Object[]>(['objects', currentPath, STORAGE_TYPE], (old) =>
+        old?.filter((obj) => !paths.includes(obj.path)) || []
+      );
+      return { previousObjects };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['objects', currentPath] });
+      debouncedInvalidate(['objects', currentPath, STORAGE_TYPE]);
       setDeletePaths([]);
       toast({
         title: 'Deletion Successful',
@@ -443,7 +499,8 @@ function FileExplorer() {
         isClosable: true,
       });
     },
-    onError: (error: any) => {
+    onError: (error: any, _paths, context: any) => {
+      queryClient.setQueryData(['objects', currentPath, STORAGE_TYPE], context.previousObjects);
       toast({
         title: 'Deletion Failed',
         description: error.message || 'Unable to delete item(s).',
@@ -483,20 +540,17 @@ function FileExplorer() {
     },
   });
 
-  useEffect(() => {
-    if (data) {
-      setObjects(data);
-    }
-  }, [data]);
-
-  const handleRefresh = () => {
-    setObjects([]);
-    queryClient.invalidateQueries({ queryKey: ['objects', currentPath] });
-  };
-
   const handleDownload = async (key: string) => {
     try {
+      const cached = signedUrlCache.get(key);
+      const now = Date.now();
+      if (cached && cached.expires > now) {
+        window.open(cached.url, '_blank');
+        return;
+      }
+
       const url = await getSignedUrl(key, DEFAULT_EXPIRES_IN, STORAGE_TYPE);
+      signedUrlCache.set(key, { url, expires: now + DEFAULT_EXPIRES_IN * 1000 });
       window.open(url, '_blank');
     } catch (error: any) {
       toast({
@@ -511,7 +565,22 @@ function FileExplorer() {
 
   const handleCopyUrl = async (key: string) => {
     try {
+      const cached = signedUrlCache.get(key);
+      const now = Date.now();
+      if (cached && cached.expires > now) {
+        await navigator.clipboard.writeText(cached.url);
+        toast({
+          title: 'URL Copied',
+          description: 'Public URL copied to clipboard',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
       const url = await getSignedUrl(key, DEFAULT_EXPIRES_IN, STORAGE_TYPE);
+      signedUrlCache.set(key, { url, expires: now + DEFAULT_EXPIRES_IN * 1000 });
       await navigator.clipboard.writeText(url);
       toast({
         title: 'URL Copied',
@@ -578,10 +647,12 @@ function FileExplorer() {
       return;
     }
 
-    files.forEach((file) => {
-      const uploadPath = `${currentPath}${file.name}`;
-      uploadMutation.mutate({ file, path: uploadPath });
-    });
+    files.reduce((promise, file) => {
+      return promise.then(() => {
+        const uploadPath = `${currentPath}${file.name}`;
+        return uploadMutation.mutateAsync({ file, path: uploadPath });
+      });
+    }, Promise.resolve());
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -597,10 +668,12 @@ function FileExplorer() {
       return;
     }
 
-    files.forEach((file) => {
-      const uploadPath = `${currentPath}${file.name}`;
-      uploadMutation.mutate({ file, path: uploadPath });
-    });
+    files.reduce((promise, file) => {
+      return promise.then(() => {
+        const uploadPath = `${currentPath}${file.name}`;
+        return uploadMutation.mutateAsync({ file, path: uploadPath });
+      });
+    }, Promise.resolve());
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -639,7 +712,7 @@ function FileExplorer() {
             onClick={handleRefresh}
             isLoading={isFetching}
           />
-          Refresh
+          <Text>Refresh</Text>
           <IconButton
             aria-label="Upload Files"
             icon={<FiUpload />}
@@ -648,7 +721,7 @@ function FileExplorer() {
             onClick={handleUploadClick}
             isLoading={uploadMutation.isPending}
           />
-          Upload
+          <Text>Upload</Text>
           <IconButton
             aria-label="Export to CSV"
             icon={<FiFileText />}
@@ -657,7 +730,7 @@ function FileExplorer() {
             onClick={() => exportCsvMutation.mutate()}
             isLoading={exportCsvMutation.isPending}
           />
-          Export to CSV
+          <Text>Export to CSV</Text>
         </HStack>
       </Flex>
 
@@ -715,6 +788,16 @@ function FileExplorer() {
           </Text>
         )}
         {isFetching && <Text fontSize="sm" color="gray.500" mt={4}>Loading...</Text>}
+        {hasMore && !isFetching && (
+          <Button
+            mt={4}
+            colorScheme="blue"
+            onClick={handleLoadMore}
+            isLoading={isFetching}
+          >
+            Load More
+          </Button>
+        )}
       </Box>
 
       <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
