@@ -720,23 +720,26 @@ function FileExplorer() {
         >
           Previous
         </Button>
-        {pages.map((page, index) =>
-          typeof page === 'number' ? (
-            <Button
-              key={page}
-              size="sm"
-              colorScheme={currentPage === page ? 'blue' : 'gray'}
-              onClick={() => handlePageChange(page)}
-              isDisabled={isFetching}
-            >
-              {page}
-            </Button>
-          ) : (
+        {pages.map((page, index) => {
+          if (typeof page === 'number') {
+            return (
+              <Button
+                key={page}
+                size="sm"
+                colorScheme={currentPage === page ? 'blue' : 'gray'}
+                onClick={() => handlePageChange(page)}
+                isDisabled={isFetching}
+              >
+                {page}
+              </Button>
+            );
+          }
+          return (
             <Text key={`ellipsis-${index}`} mx={2}>
               {page}
             </Text>
-          )
-        )}
+          );
+        })}
         <Button
           size="sm"
           onClick={() => handlePageChange(currentPage + 1)}
@@ -868,8 +871,11 @@ function FileExplorer() {
         {isFetching && <Text fontSize="sm" color="gray.500" mt={4}>Loading...</Text>}
       </Box>
 
+      {/* Pagination Section */}
       {renderPagination()}
-      
+      {/* End Pagination Section */}
+
+      {/* Modal Section */}
       <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
         <ModalOverlay />
         <ModalContent>
@@ -900,6 +906,7 @@ function FileExplorer() {
           </ModalFooter>
         </ModalContent>
       </Modal>
+      {/* End Modal Section */}
     </Container>
   );
 }
