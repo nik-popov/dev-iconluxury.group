@@ -29,6 +29,7 @@ const API_BASE_URL = 'https://api.iconluxury.group/api/v1';
 const STORAGE_TYPE = 's3';
 const DEFAULT_EXPIRES_IN = 900; // 15 minutes
 const FIXED_PATH = 'public/image/ecommerce/direct/';
+const PAGE_SIZE = 10; // Number of items per page
 
 // Interfaces
 interface S3Object {
@@ -44,17 +45,24 @@ interface S3ListResponse {
   objects: S3Object[];
   hasMore: boolean;
   nextContinuationToken: string | null;
+  totalCount: number; // Added to know total items for pagination
 }
 
 // API Functions
 async function fetchJsonStore(
   prefix: string,
   storageType: string = STORAGE_TYPE,
-  continuationToken: string | null = null
+  continuationToken: string | null = null,
+  sortBy: 'name' | 'size' | 'lastModified' = 'lastModified',
+  sortDirection: 'asc' | 'desc' = 'desc',
+  pageSize: number = PAGE_SIZE
 ): Promise<S3ListResponse> {
   try {
     const url = new URL(`${API_BASE_URL}/${storageType}/json-store`);
     url.searchParams.append('prefix', prefix);
+    url.searchParams.append('sortBy', sortBy);
+    url.searchParams.append('sortDirection', sortDirection);
+    url.searchParams.append('pageSize', pageSize.toString());
     if (continuationToken) {
       url.searchParams.append('continuationToken', continuationToken);
     }
@@ -80,6 +88,7 @@ async function fetchJsonStore(
       })),
       hasMore: data.hasMore,
       nextContinuationToken: data.nextContinuationToken,
+      totalCount: data.totalCount || 0,
     };
   } catch (error: any) {
     const message = error.message?.includes('CORS')
@@ -240,47 +249,12 @@ interface FileListProps {
   onDownload: (key: string) => void;
   onCopyUrl: (key: string) => void;
   onDelete: (path: string) => void;
+  sortConfig: { key: 'name' | 'size' | 'lastModified'; direction: 'asc' | 'desc' };
+  onSort: (key: 'name' | 'size' | 'lastModified') => void;
 }
 
 const FileList: React.FC<FileListProps> = React.memo(
-  ({ objects, isFetching, onDownload, onCopyUrl, onDelete }) => {
-    const [sortConfig, setSortConfig] = useState<{
-      key: 'name' | 'size' | 'lastModified';
-      direction: 'asc' | 'desc';
-    }>({ key: 'lastModified', direction: 'desc' });
-
-    const sortedObjects = useMemo(() => {
-      return [...objects].sort((a, b) => {
-        let aValue: any;
-        let bValue: any;
-
-        if (sortConfig.key === 'name') {
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-        } else if (sortConfig.key === 'size') {
-          aValue = a.size ?? 0;
-          bValue = b.size ?? 0;
-        } else if (sortConfig.key === 'lastModified') {
-          aValue = a.lastModified ? a.lastModified.getTime() : 0;
-          bValue = b.lastModified ? b.lastModified.getTime() : 0;
-        }
-
-        if (typeof aValue === 'string') {
-          return sortConfig.direction === 'asc'
-            ? aValue.localeCompare(bValue)
-            : bValue.localeCompare(aValue);
-        }
-        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
-      });
-    }, [objects, sortConfig]);
-
-    const handleSort = (key: 'name' | 'size' | 'lastModified') => {
-      setSortConfig((prev) => ({
-        key,
-        direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
-      }));
-    };
-
+  ({ objects, isFetching, onDownload, onCopyUrl, onDelete, sortConfig, onSort }) => {
     const getSortIcon = (key: 'name' | 'size' | 'lastModified') => {
       if (sortConfig.key === key) {
         return sortConfig.direction === 'asc' ? <FiArrowUp /> : <FiArrowDown />;
@@ -291,19 +265,19 @@ const FileList: React.FC<FileListProps> = React.memo(
     return (
       <VStack spacing={4} align="stretch">
         <Flex p={2} borderRadius="md" mb={2}>
-          <Box flex="2" cursor="pointer" onClick={() => handleSort('name')}>
+          <Box flex="2" cursor="pointer" onClick={() => onSort('name')}>
             <HStack>
               <Text fontWeight="bold">Name</Text>
               {getSortIcon('name')}
             </HStack>
           </Box>
-          <Box flex="1" cursor="pointer" onClick={() => handleSort('size')}>
+          <Box flex="1" cursor="pointer" onClick={() => onSort('size')}>
             <HStack>
               <Text fontWeight="bold">Size</Text>
               {getSortIcon('size')}
             </HStack>
           </Box>
-          <Box flex="1" cursor="pointer" onClick={() => handleSort('lastModified')}>
+          <Box flex="1" cursor="pointer" onClick={() => onSort('lastModified')}>
             <HStack>
               <Text fontWeight="bold">Modified</Text>
               {getSortIcon('lastModified')}
@@ -313,7 +287,7 @@ const FileList: React.FC<FileListProps> = React.memo(
             <Text fontWeight="bold">Actions</Text>
           </Box>
         </Flex>
-        {sortedObjects.map((obj, index) => (
+        {objects.map((obj, index) => (
           <Box
             key={`${obj.path}-${index}`}
             p={4}
@@ -406,11 +380,15 @@ function FileExplorer() {
   const queryClient = useQueryClient();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const [currentPath] = useState(FIXED_PATH);
-  const [objects, setObjects] = useState<S3Object[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [deletePaths, setDeletePaths] = useState<string[]>([]);
   const [continuationToken, setContinuationToken] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState<boolean>(false);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [sortConfig, setSortConfig] = useState<{
+    key: 'name' | 'size' | 'lastModified';
+    direction: 'asc' | 'desc';
+  }>({ key: 'lastModified', direction: 'desc' });
   const dropRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const signedUrlCache = useRef(new Map<string, { url: string; expires: number }>()).current;
@@ -420,8 +398,16 @@ function FileExplorer() {
   }, 500);
 
   const { data, isFetching, error: listError } = useQuery<S3ListResponse, Error>({
-    queryKey: ['objects', currentPath, STORAGE_TYPE],
-    queryFn: () => fetchJsonStore(currentPath, STORAGE_TYPE, continuationToken),
+    queryKey: ['objects', currentPath, STORAGE_TYPE, currentPage, sortConfig.key, sortConfig.direction],
+    queryFn: () =>
+      fetchJsonStore(
+        currentPath,
+        STORAGE_TYPE,
+        continuationToken,
+        sortConfig.key,
+        sortConfig.direction,
+        PAGE_SIZE
+      ),
     placeholderData: keepPreviousData,
     retry: 2,
     retryDelay: 1000,
@@ -430,23 +416,28 @@ function FileExplorer() {
 
   useEffect(() => {
     if (data) {
-      setObjects((prev) =>
-        continuationToken ? [...prev, ...data.objects] : data.objects
-      );
-      setHasMore(data.hasMore);
+      setTotalCount(data.totalCount);
       setContinuationToken(data.nextContinuationToken);
     }
-  }, [data, continuationToken]);
+  }, [data]);
 
-  const handleLoadMore = () => {
-    if (hasMore && data?.nextContinuationToken) {
-      setContinuationToken(data.nextContinuationToken);
-    }
+  const handleSort = (key: 'name' | 'size' | 'lastModified') => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+    }));
+    setCurrentPage(1);
+    setContinuationToken(null);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    setContinuationToken(null); // Reset for new page
   };
 
   const handleRefresh = () => {
-    setObjects([]);
     setContinuationToken(null);
+    setCurrentPage(1);
     queryClient.invalidateQueries({ queryKey: ['objects', currentPath, STORAGE_TYPE] });
   };
 
@@ -478,13 +469,24 @@ function FileExplorer() {
     mutationFn: (paths: string[]) => deleteObjects(paths, STORAGE_TYPE),
     onMutate: async (paths) => {
       await queryClient.cancelQueries({ queryKey: ['objects', currentPath, STORAGE_TYPE] });
-      const previousObjects = queryClient.getQueryData<S3Object[]>([
+      const previousObjects = queryClient.getQueryData<S3ListResponse>([
         'objects',
         currentPath,
         STORAGE_TYPE,
+        currentPage,
+        sortConfig.key,
+        sortConfig.direction,
       ]);
-      queryClient.setQueryData<S3Object[]>(['objects', currentPath, STORAGE_TYPE], (old) =>
-        old?.filter((obj) => !paths.includes(obj.path)) || []
+      queryClient.setQueryData<S3ListResponse>(
+        ['objects', currentPath, STORAGE_TYPE, currentPage, sortConfig.key, sortConfig.direction],
+        (old) => {
+          if (!old) return { objects: [], hasMore: false, nextContinuationToken: null, totalCount: 0 };
+          return {
+            ...old,
+            objects: old.objects.filter((obj) => !paths.includes(obj.path)),
+            totalCount: old.totalCount - paths.length,
+          };
+        }
       );
       return { previousObjects };
     },
@@ -500,7 +502,10 @@ function FileExplorer() {
       });
     },
     onError: (error: any, _paths, context: any) => {
-      queryClient.setQueryData(['objects', currentPath, STORAGE_TYPE], context.previousObjects);
+      queryClient.setQueryData(
+        ['objects', currentPath, STORAGE_TYPE, currentPage, sortConfig.key, sortConfig.direction],
+        context.previousObjects
+      );
       toast({
         title: 'Deletion Failed',
         description: error.message || 'Unable to delete item(s).',
@@ -695,6 +700,8 @@ function FileExplorer() {
     );
   }
 
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
   return (
     <Container maxW="full" color="gray.800" py={6}>
       <Flex align="center" justify="space-between" flexWrap="wrap" gap={4}>
@@ -776,29 +783,43 @@ function FileExplorer() {
 
       <Box maxH="70vh" overflowY="auto">
         <FileList
-          objects={objects}
+          objects={data?.objects || []}
           isFetching={isFetching}
           onDownload={handleDownload}
           onCopyUrl={handleCopyUrl}
           onDelete={handleDelete}
+          sortConfig={sortConfig}
+          onSort={handleSort}
         />
-        {objects.length === 0 && !isFetching && (
+        {data?.objects.length === 0 && !isFetching && (
           <Text fontSize="sm" color="gray.500" mt={4}>
             No items in this directory
           </Text>
         )}
         {isFetching && <Text fontSize="sm" color="gray.500" mt={4}>Loading...</Text>}
-        {hasMore && !isFetching && (
-          <Button
-            mt={4}
-            colorScheme="blue"
-            onClick={handleLoadMore}
-            isLoading={isFetching}
-          >
-            Load More
-          </Button>
-        )}
       </Box>
+
+      {totalPages > 1 && (
+        <Flex justify="center" mt={4} align="center" gap={2}>
+          <Button
+            size="sm"
+            onClick={() => handlePageChange(currentPage - 1)}
+            isDisabled={currentPage === 1 || isFetching}
+          >
+            Previous
+          </Button>
+          <Text>
+            Page {currentPage} of {totalPages}
+          </Text>
+          <Button
+            size="sm"
+            onClick={() => handlePageChange(currentPage + 1)}
+            isDisabled={currentPage === totalPages || isFetching}
+          >
+            Next
+          </Button>
+        </Flex>
+      )}
 
       <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
         <ModalOverlay />
