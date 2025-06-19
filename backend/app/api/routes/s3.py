@@ -11,6 +11,9 @@ import re
 import csv
 from io import StringIO
 from datetime import datetime
+import json
+import mimetypes
+from io import BytesIO
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,6 +35,7 @@ s3_client = client(
 # Constants
 BUCKET_NAME = "iconluxurygroup"
 MAX_UPLOAD_SIZE = 100 * 1024 * 1024  # 100 MB
+JSON_STORE_PATH = "static/file_store.json"
 
 # Pydantic model for delete request
 class DeleteRequest(BaseModel):
@@ -61,6 +65,53 @@ async def get_folder_count(prefix: str) -> int:
     except Exception as e:
         logger.error(f"Error counting objects in folder {prefix}: {str(e)}")
         return 0
+
+# Function to read JSON store
+async def read_json_store():
+    try:
+        response = s3_client.get_object(Bucket=BUCKET_NAME, Key=JSON_STORE_PATH)
+        content = response["Body"].read().decode("utf-8")
+        return json.loads(content)
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "NoSuchKey":
+            logger.info("JSON store not found, returning empty store")
+            return {"objects": [], "hasMore": False, "nextContinuationToken": None}
+        logger.error(f"Error reading JSON store: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to read JSON store: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error reading JSON store: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+# Function to update JSON store
+async def update_json_store(new_objects: List[dict]):
+    try:
+        # Read current JSON store
+        current_store = await read_json_store()
+        current_objects = {obj["path"]: obj for obj in current_store.get("objects", [])}
+
+        # Update with new objects (add or update)
+        for obj in new_objects:
+            current_objects[obj["path"]] = obj
+
+        # Convert back to list
+        updated_objects = list(current_objects.values())
+
+        # Write back to S3
+        json_data = json.dumps({
+            "objects": updated_objects,
+            "hasMore": False,  # Since we're storing all objects
+            "nextContinuationToken": None
+        })
+        s3_client.put_object(
+            Bucket=BUCKET_NAME,
+            Key=JSON_STORE_PATH,
+            Body=json_data.encode("utf-8"),
+            ContentType="application/json"
+        )
+        logger.info(f"Updated JSON store at {JSON_STORE_PATH}")
+    except Exception as e:
+        logger.error(f"Error updating JSON store: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update JSON store: {str(e)}")
 
 def sanitize_path(path: str) -> str:
     """Sanitize the path to prevent directory traversal and invalid characters."""
@@ -176,7 +227,7 @@ async def get_signed_url(key: str, expires_in: int = 3600):
 
 async def upload_file(file: UploadFile, path: str):
     """
-    Upload a file to S3 with robust error handling and validation.
+    Upload a file to S3 with robust error handling and validation, and update JSON store.
     """
     try:
         if not file.filename:
@@ -224,7 +275,17 @@ async def upload_file(file: UploadFile, path: str):
         )
         
         try:
-            s3_client.head_object(Bucket=BUCKET_NAME, Key=sanitized_path)
+            head_response = s3_client.head_object(Bucket=BUCKET_NAME, Key=sanitized_path)
+            # Update JSON store
+            new_object = {
+                "type": "file",
+                "name": file.filename,
+                "path": sanitized_path,
+                "size": file_size,
+                "lastModified": head_response["LastModified"].isoformat(),
+                "count": None
+            }
+            await update_json_store([new_object])
         except ClientError as e:
             logger.error(f"Verification failed for {sanitized_path}: {str(e)}")
             raise HTTPException(status_code=500, detail="Upload verification failed")
@@ -405,6 +466,10 @@ async def s3_delete_objects(request: DeleteRequest):
 @s3_router.get("/export-csv")
 async def s3_export_to_csv(prefix: str = ""):
     return await export_to_csv(prefix)
+
+@s3_router.get("/json-store")
+async def get_json_store():
+    return await read_json_store()
 
 # R2 Endpoints
 @r2_router.get("/list")

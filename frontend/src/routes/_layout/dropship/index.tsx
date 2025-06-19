@@ -18,7 +18,6 @@ import {
   ModalBody,
   ModalFooter,
   useToast,
-  Checkbox,
   useDisclosure,
 } from '@chakra-ui/react';
 import { FiFolder, FiFile, FiDownload, FiCopy, FiTrash2, FiUpload, FiArrowUp, FiArrowDown, FiRefreshCw, FiFileText } from 'react-icons/fi';
@@ -47,58 +46,38 @@ interface S3ListResponse {
 }
 
 // API Functions
-async function listAllObjects(
+async function fetchJsonStore(
   prefix: string,
   storageType: string = STORAGE_TYPE
 ): Promise<S3Object[]> {
-  let allObjects: S3Object[] = [];
-  let page = 1;
-  let continuationToken: string | null = null;
-  let hasMore = true;
+  try {
+    const url = new URL(`${API_BASE_URL}/${storageType}/json-store`);
+    url.searchParams.append('prefix', prefix);
 
-  while (hasMore) {
-    try {
-      const url = new URL(`${API_BASE_URL}/${storageType}/list`);
-      url.searchParams.append('prefix', prefix);
-      url.searchParams.append('page', page.toString());
-      url.searchParams.append('pageSize', '100');
-      if (continuationToken) {
-        url.searchParams.append('continuation_token', continuationToken);
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = errorText || response.statusText;
+      if (response.status === 404) {
+        errorMessage = `${storageType.toUpperCase()} JSON store not found.`;
+      } else if (response.status === 403) {
+        errorMessage = `Access denied to ${storageType.toUpperCase()} JSON store.`;
+      } else if (response.status === 503) {
+        errorMessage = 'Service temporarily unavailable.';
       }
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = errorText || response.statusText;
-        if (response.status === 404) {
-          errorMessage = `${storageType.toUpperCase()} list endpoint not found.`;
-        } else if (response.status === 403) {
-          errorMessage = `Access denied to ${storageType.toUpperCase()} bucket.`;
-        } else if (response.status === 503) {
-          errorMessage = 'Service temporarily unavailable.';
-        }
-        throw new Error(`Failed to list objects: ${errorMessage}`);
-      }
-      const data: S3ListResponse = await response.json();
-      allObjects = [
-        ...allObjects,
-        ...data.objects.map((item) => ({
-          ...item,
-          lastModified: item.lastModified ? new Date(item.lastModified) : undefined,
-        })),
-      ];
-      hasMore = data.hasMore;
-      continuationToken = data.nextContinuationToken;
-      page += 1;
-    } catch (error: any) {
-      const message = error.message?.includes('CORS')
-        ? `CORS error: Ensure the server allows requests from this origin.`
-        : error.message || `Network error fetching ${storageType.toUpperCase()} objects`;
-      throw new Error(message);
+      throw new Error(`Failed to fetch JSON store: ${errorMessage}`);
     }
+    const data: S3ListResponse = await response.json();
+    return data.objects.map((item) => ({
+      ...item,
+      lastModified: item.lastModified ? new Date(item.lastModified) : undefined,
+    }));
+  } catch (error: any) {
+    const message = error.message?.includes('CORS')
+      ? `CORS error: Ensure the server allows requests from this origin.`
+      : error.message || `Network error fetching ${storageType.toUpperCase()} JSON store`;
+    throw new Error(message);
   }
-
-  return allObjects;
 }
 
 async function getSignedUrl(
@@ -206,6 +185,7 @@ async function exportToCsv(
     throw new Error(`Export CSV failed: ${error.message || 'Network error'}`);
   }
 }
+
 // Utility Functions
 const getFileIcon = (name: string) => {
   const extension = (name.split('.').pop()?.toLowerCase() || '');
@@ -274,7 +254,7 @@ const FileList: React.FC<FileListProps> = ({
       }
 
       if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? -1 : 1;
       return 0;
     });
   }, [objects, sortConfig]);
@@ -296,15 +276,6 @@ const FileList: React.FC<FileListProps> = ({
   return (
     <VStack spacing={4} align="stretch">
       <Flex p={2} borderRadius="md" mb={2}>
-        {/* <Box flex="0.5">
-          <Checkbox
-            isChecked={objects.length > 0 && objects.every((obj) => selectedPaths.includes(obj.path))}
-            onChange={() => {
-              objects.forEach((obj) => onSelectPath(obj.path));
-            }}
-            isDisabled={isFetching}
-          />
-        </Box> */}
         <Box flex="2" cursor="pointer" onClick={() => handleSort('name')}>
           <HStack>
             <Text fontWeight="bold">Name</Text>
@@ -339,13 +310,6 @@ const FileList: React.FC<FileListProps> = ({
           _hover={{ bg: 'gray.50' }}
         >
           <Flex justify="space-between" align="center">
-            {/* <HStack flex="0.5">
-              <Checkbox
-                isChecked={selectedPaths.includes(obj.path)}
-                onChange={() => onSelectPath(obj.path)}
-                isDisabled={isFetching}
-              />
-            </HStack> */}
             <HStack align="center" gap={2} flex="2">
               {obj.type === 'folder' ? <FiFolder /> : getFileIcon(obj.name)}
               <Box>
@@ -427,7 +391,6 @@ function FileExplorer() {
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const [currentPath] = useState(FIXED_PATH);
   const [objects, setObjects] = useState<S3Object[]>([]);
-//   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [deletePaths, setDeletePaths] = useState<string[]>([]);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -435,7 +398,7 @@ function FileExplorer() {
 
   const { data, isFetching, error: listError } = useQuery<S3Object[], Error>({
     queryKey: ['objects', currentPath, STORAGE_TYPE],
-    queryFn: () => listAllObjects(currentPath, STORAGE_TYPE),
+    queryFn: () => fetchJsonStore(currentPath, STORAGE_TYPE),
     placeholderData: keepPreviousData,
     retry: 2,
     retryDelay: 1000,
@@ -470,7 +433,6 @@ function FileExplorer() {
     mutationFn: (paths: string[]) => deleteObjects(paths, STORAGE_TYPE),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['objects', currentPath] });
-    //   setSelectedPaths([]);
       setDeletePaths([]);
       toast({
         title: 'Deletion Successful',
@@ -528,7 +490,6 @@ function FileExplorer() {
 
   const handleRefresh = () => {
     setObjects([]);
-    // setSelectedPaths([]);
     queryClient.invalidateQueries({ queryKey: ['objects', currentPath] });
   };
 
@@ -574,12 +535,6 @@ function FileExplorer() {
     setDeletePaths(pathsArray);
     onDeleteOpen();
   };
-
-//   const handleSelectPath = (path: string) => {
-//     setSelectedPaths((prev) =>
-//       prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path]
-//     );
-//   };
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
@@ -683,7 +638,7 @@ function FileExplorer() {
             onClick={handleRefresh}
             isLoading={isFetching}
           />
-            Refresh
+          Refresh
           <IconButton
             aria-label="Upload Files"
             icon={<FiUpload />}
@@ -700,21 +655,8 @@ function FileExplorer() {
             colorScheme="green"
             onClick={() => exportCsvMutation.mutate()}
             isLoading={exportCsvMutation.isPending}
-            
           />
           Export to CSV
-          {/* {selectedPaths.length > 0 && (
-            <Button
-              aria-label="Delete Selected"
-              leftIcon={<FiTrash2 />}
-              size="sm"
-              colorScheme="red"
-              onClick={() => handleDelete(selectedPaths)}
-              isLoading={deleteMutation.isPending}
-            >
-              Delete Selected ({selectedPaths.length})
-            </Button>
-          )} */}
         </HStack>
       </Flex>
 
