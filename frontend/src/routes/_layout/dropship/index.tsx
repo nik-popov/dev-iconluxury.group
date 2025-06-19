@@ -50,7 +50,7 @@ interface S3ListResponse {
 async function fetchJsonStore(
   prefix: string,
   storageType: string = STORAGE_TYPE,
-  continuationToken?: string
+  continuationToken: string | null = null
 ): Promise<S3ListResponse> {
   try {
     const url = new URL(`${API_BASE_URL}/${storageType}/json-store`);
