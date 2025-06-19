@@ -507,7 +507,7 @@ function FileExplorer() {
       );
       toast({
         title: 'Deletion Failed',
-        description: error.message || 'Unable to delete item(s).`,
+        description: error.message || 'Unable to delete item(s).',
         status: 'error',
         duration: 5000,
         isClosable: true,
