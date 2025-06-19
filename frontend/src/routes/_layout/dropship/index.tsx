@@ -43,16 +43,15 @@ interface S3Object {
 
 interface S3ListResponse {
   objects: S3Object[];
-  hasMore: boolean;
-  nextContinuationToken: string | null;
   totalCount: number;
+  nextContinuationToken: string | null;
 }
 
 // API Functions
 async function fetchJsonStore(
   prefix: string,
   storageType: string = STORAGE_TYPE,
-  continuationToken: string | null = null,
+  page: number = 1,
   sortBy: 'name' | 'size' | 'lastModified' = 'lastModified',
   sortDirection: 'asc' | 'desc' = 'desc',
   pageSize: number = PAGE_SIZE
@@ -63,9 +62,7 @@ async function fetchJsonStore(
     url.searchParams.append('sortBy', sortBy);
     url.searchParams.append('sortDirection', sortDirection);
     url.searchParams.append('pageSize', pageSize.toString());
-    if (continuationToken) {
-      url.searchParams.append('continuationToken', continuationToken);
-    }
+    url.searchParams.append('page', page.toString());
 
     const response = await fetch(url);
     if (!response.ok) {
@@ -86,9 +83,8 @@ async function fetchJsonStore(
         ...item,
         lastModified: item.lastModified ? new Date(item.lastModified) : undefined,
       })),
-      hasMore: data.hasMore,
-      nextContinuationToken: data.nextContinuationToken,
       totalCount: data.totalCount || 0,
+      nextContinuationToken: data.nextContinuationToken,
     };
   } catch (error: any) {
     const message = error.message?.includes('CORS')
@@ -395,16 +391,13 @@ function FileExplorer() {
     queryClient.invalidateQueries({ queryKey });
   }, 500);
 
-  // Calculate the continuation token based on the page
-  const continuationToken = currentPage > 1 ? `page-${currentPage}` : null;
-
   const { data, isFetching, error: listError } = useQuery<S3ListResponse, Error>({
     queryKey: ['objects', currentPath, STORAGE_TYPE, currentPage, sortConfig.key, sortConfig.direction],
     queryFn: () =>
       fetchJsonStore(
         currentPath,
         STORAGE_TYPE,
-        continuationToken,
+        currentPage,
         sortConfig.key,
         sortConfig.direction,
         PAGE_SIZE
@@ -476,7 +469,7 @@ function FileExplorer() {
       queryClient.setQueryData<S3ListResponse>(
         ['objects', currentPath, STORAGE_TYPE, currentPage, sortConfig.key, sortConfig.direction],
         (old) => {
-          if (!old) return { objects: [], hasMore: false, nextContinuationToken: null, totalCount: 0 };
+          if (!old) return { objects: [], totalCount: 0, nextContinuationToken: null };
           return {
             ...old,
             objects: old.objects.filter((obj) => !paths.includes(obj.path)),
@@ -775,7 +768,7 @@ function FileExplorer() {
         multiple
       />
 
-      <Box maxH="70vh" overflowY="auto">
+      <Box>
         <FileList
           objects={data?.objects || []}
           isFetching={isFetching}
