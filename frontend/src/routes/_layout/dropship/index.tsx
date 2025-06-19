@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, keepPreviousData, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -29,7 +29,7 @@ const API_BASE_URL = 'https://api.iconluxury.group/api/v1';
 const STORAGE_TYPE = 's3';
 const DEFAULT_EXPIRES_IN = 900; // 15 minutes
 const FIXED_PATH = 'public/image/ecommerce/direct/';
-const PAGE_SIZE = 10; // Number of items per page
+const PAGE_SIZE = 50; // 50 items per page
 
 // Interfaces
 interface S3Object {
@@ -45,7 +45,7 @@ interface S3ListResponse {
   objects: S3Object[];
   hasMore: boolean;
   nextContinuationToken: string | null;
-  totalCount: number; // Added to know total items for pagination
+  totalCount: number;
 }
 
 // API Functions
@@ -382,8 +382,6 @@ function FileExplorer() {
   const [currentPath] = useState(FIXED_PATH);
   const [isDragging, setIsDragging] = useState(false);
   const [deletePaths, setDeletePaths] = useState<string[]>([]);
-  const [continuationToken, setContinuationToken] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [sortConfig, setSortConfig] = useState<{
     key: 'name' | 'size' | 'lastModified';
@@ -396,6 +394,9 @@ function FileExplorer() {
   const debouncedInvalidate = debounce((queryKey: any) => {
     queryClient.invalidateQueries({ queryKey });
   }, 500);
+
+  // Calculate the continuation token based on the page
+  const continuationToken = currentPage > 1 ? `page-${currentPage}` : null;
 
   const { data, isFetching, error: listError } = useQuery<S3ListResponse, Error>({
     queryKey: ['objects', currentPath, STORAGE_TYPE, currentPage, sortConfig.key, sortConfig.direction],
@@ -414,29 +415,24 @@ function FileExplorer() {
     staleTime: 5 * 60 * 1000,
   });
 
-  useEffect(() => {
-    if (data) {
-      setTotalCount(data.totalCount);
-      setContinuationToken(data.nextContinuationToken);
-    }
-  }, [data]);
+  const totalCount = data?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const handleSort = (key: 'name' | 'size' | 'lastModified') => {
     setSortConfig((prev) => ({
       key,
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
     }));
-    setCurrentPage(1);
-    setContinuationToken(null);
+    setCurrentPage(1); // Reset to first page on sort
   };
 
   const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
-    setContinuationToken(null); // Reset for new page
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
   };
 
   const handleRefresh = () => {
-    setContinuationToken(null);
     setCurrentPage(1);
     queryClient.invalidateQueries({ queryKey: ['objects', currentPath, STORAGE_TYPE] });
   };
@@ -699,8 +695,6 @@ function FileExplorer() {
       </Container>
     );
   }
-
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
     <Container maxW="full" color="gray.800" py={6}>
