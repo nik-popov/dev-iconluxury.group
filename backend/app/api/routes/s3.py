@@ -390,6 +390,7 @@ async def delete_objects(paths: List[str]):
     try:
         if not paths:
             raise HTTPException(status_code=400, detail="No paths provided")
+        
         sanitized_paths = [sanitize_path(path) for path in paths]
         objects_to_delete = []
         for path in sanitized_paths:
@@ -409,20 +410,57 @@ async def delete_objects(paths: List[str]):
                         break
             else:
                 objects_to_delete.append({"Key": path})
+        
         if not objects_to_delete:
             return {"message": "No objects to delete"}
+        
+        # Perform the deletion
         response = s3_client.delete_objects(
             Bucket=BUCKET_NAME,
             Delete={"Objects": objects_to_delete, "Quiet": True}
         )
+        
         errors = response.get("Errors", [])
         if errors:
             error_details = ", ".join([f"{err['Key']}: {err['Message']}" for err in errors])
             raise HTTPException(status_code=500, detail=f"Failed to delete some objects: {error_details}")
+        
+        # Sync JSON store: Remove deleted objects
+        try:
+            # Read current JSON store
+            current_store = await read_json_store()
+            current_objects = current_store.get("objects", [])
+            
+            # Filter out deleted objects
+            deleted_keys = {obj["Key"] for obj in objects_to_delete}
+            updated_objects = [obj for obj in current_objects if obj["path"] not in deleted_keys]
+            
+            # Write updated JSON store
+            json_data = json.dumps({
+                "objects": updated_objects,
+                "hasMore": False,
+                "nextContinuationToken": None
+            })
+            s3_client.put_object(
+                Bucket=BUCKET_NAME,
+                Key=JSON_STORE_PATH,
+                Body=json_data.encode("utf-8"),
+                ContentType="application/json"
+            )
+            logger.info(f"Synced JSON store after deleting {len(objects_to_delete)} objects")
+        except Exception as e:
+            logger.error(f"Error syncing JSON store after deletion: {str(e)}")
+            # Note: We don't raise an exception here to avoid failing the deletion
+            # The deletion was successful, so we log the sync error but proceed
+            
         return {"message": f"Successfully deleted {len(objects_to_delete)} objects"}
+    
     except ClientError as e:
         logger.error(f"Error deleting objects: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error deleting objects: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 async def export_to_csv(prefix: str = ""):
     """
