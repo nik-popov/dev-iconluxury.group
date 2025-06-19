@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import { useQuery, keepPreviousData, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Container,
@@ -406,7 +406,6 @@ function FileExplorer() {
         sortConfig.direction,
         PAGE_SIZE
       ),
-    placeholderData: keepPreviousData,
     retry: 2,
     retryDelay: 1000,
     staleTime: 5 * 60 * 1000,
@@ -426,6 +425,7 @@ function FileExplorer() {
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
     }));
     setCurrentPage(1); // Reset to first page on sort
+    queryClient.invalidateQueries({ queryKey: ['objects', currentPath, STORAGE_TYPE] });
   };
 
   const handlePageChange = (newPage: number) => {
@@ -507,7 +507,7 @@ function FileExplorer() {
       );
       toast({
         title: 'Deletion Failed',
-        description: error.message || 'Unable to delete item(s).',
+        description: error.message || 'Unable to delete item(s).`,
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -869,7 +869,7 @@ function FileExplorer() {
       </Box>
 
       {renderPagination()}
-
+      
       <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
         <ModalOverlay />
         <ModalContent>
