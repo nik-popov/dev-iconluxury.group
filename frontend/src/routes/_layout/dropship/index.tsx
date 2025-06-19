@@ -19,8 +19,11 @@ import {
   ModalFooter,
   useToast,
   useDisclosure,
+  Input,
+  InputGroup,
+  InputLeftElement,
 } from '@chakra-ui/react';
-import { FiFolder, FiFile, FiDownload, FiCopy, FiTrash2, FiUpload, FiArrowUp, FiArrowDown, FiRefreshCw, FiFileText } from 'react-icons/fi';
+import { FiFolder, FiFile, FiDownload, FiCopy, FiTrash2, FiUpload, FiArrowUp, FiArrowDown, FiRefreshCw, FiFileText, FiSearch } from 'react-icons/fi';
 import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel } from 'react-icons/fa';
 import { debounce } from 'lodash';
 
@@ -259,54 +262,54 @@ const FileList: React.FC<FileListProps> = React.memo(
     };
 
     return (
-      <VStack spacing={4} align="stretch">
-        <Flex p={2} borderRadius="md" mb={2}>
+      <VStack spacing={2} align="stretch">
+        <Flex p={1} borderRadius="md" bg="gray.100">
           <Box flex="2" cursor="pointer" onClick={() => onSort('name')}>
             <HStack>
-              <Text fontWeight="bold">Name</Text>
+              <Text fontWeight="bold" fontSize="sm">Name</Text>
               {getSortIcon('name')}
             </HStack>
           </Box>
           <Box flex="1" cursor="pointer" onClick={() => onSort('size')}>
             <HStack>
-              <Text fontWeight="bold">Size</Text>
+              <Text fontWeight="bold" fontSize="sm">Size</Text>
               {getSortIcon('size')}
             </HStack>
           </Box>
           <Box flex="1" cursor="pointer" onClick={() => onSort('lastModified')}>
             <HStack>
-              <Text fontWeight="bold">Modified</Text>
+              <Text fontWeight="bold" fontSize="sm">Modified</Text>
               {getSortIcon('lastModified')}
             </HStack>
           </Box>
           <Box flex="1" textAlign="right">
-            <Text fontWeight="bold">Actions</Text>
+            <Text fontWeight="bold" fontSize="sm">Actions</Text>
           </Box>
         </Flex>
         {objects.map((obj, index) => (
           <Box
             key={`${obj.path}-${index}`}
-            p={4}
+            p={2}
             borderWidth="1px"
-            borderRadius="lg"
+            borderRadius="md"
             borderColor="gray.200"
             bg="white"
             cursor="pointer"
             _hover={{ bg: 'gray.50' }}
           >
             <Flex justify="space-between" align="center">
-              <HStack align="center" gap={2} flex="2">
-                {obj.type === 'folder' ? <FiFolder /> : getFileIcon(obj.name)}
+              <HStack align="center" gap={1} flex="2">
+                {obj.type === 'folder' ? <FiFolder size={16} /> : getFileIcon(obj.name)}
                 <Box>
-                  <Text fontWeight="medium" color="gray.800">
+                  <Text fontWeight="medium" color="gray.800" fontSize="sm">
                     {truncateName(obj.name, 30)}
                   </Text>
                   {obj.type === 'file' && (
                     <>
-                      <Text fontSize="sm" color="gray.500">
+                      <Text fontSize="xs" color="gray.500">
                         Size: {obj.size ? (obj.size / 1024).toFixed(2) : '0'} KB
                       </Text>
-                      <Text fontSize="sm" color="gray.500">
+                      <Text fontSize="xs" color="gray.500">
                         Modified: {obj.lastModified ? new Date(obj.lastModified).toLocaleString() : '-'}
                       </Text>
                     </>
@@ -314,22 +317,22 @@ const FileList: React.FC<FileListProps> = React.memo(
                 </Box>
               </HStack>
               <Box flex="1">
-                <Text fontSize="sm" color="gray.500">
+                <Text fontSize="xs" color="gray.500">
                   {obj.size ? (obj.size / 1024).toFixed(2) : '-'} KB
                 </Text>
               </Box>
               <Box flex="1">
-                <Text fontSize="sm" color="gray.500">
+                <Text fontSize="xs" color="gray.500">
                   {obj.lastModified ? new Date(obj.lastModified).toLocaleString() : '-'}
                 </Text>
               </Box>
-              <HStack flex="1" justify="flex-end">
+              <HStack flex="1" justify="flex-end" spacing={1}>
                 {obj.type === 'file' && (
                   <>
                     <IconButton
                       aria-label="Download"
-                      icon={<FiDownload />}
-                      size="sm"
+                      icon={<FiDownload size={14} />}
+                      size="xs"
                       colorScheme="blue"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -339,8 +342,8 @@ const FileList: React.FC<FileListProps> = React.memo(
                     />
                     <IconButton
                       aria-label="Copy URL"
-                      icon={<FiCopy />}
-                      size="sm"
+                      icon={<FiCopy size={14} />}
+                      size="xs"
                       colorScheme="gray"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -352,8 +355,8 @@ const FileList: React.FC<FileListProps> = React.memo(
                 )}
                 <IconButton
                   aria-label="Delete"
-                  icon={<FiTrash2 />}
-                  size="sm"
+                  icon={<FiTrash2 size={14} />}
+                  size="xs"
                   colorScheme="red"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -383,6 +386,7 @@ function FileExplorer() {
     key: 'name' | 'size' | 'lastModified';
     direction: 'asc' | 'desc';
   }>({ key: 'lastModified', direction: 'desc' });
+  const [searchQuery, setSearchQuery] = useState('');
   const dropRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const signedUrlCache = useRef(new Map<string, { url: string; expires: number }>()).current;
@@ -411,6 +415,11 @@ function FileExplorer() {
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
+  // Filter objects based on search query
+  const filteredObjects = data?.objects.filter((obj) =>
+    obj.name.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
   const handleSort = (key: 'name' | 'size' | 'lastModified') => {
     setSortConfig((prev) => ({
       key,
@@ -427,6 +436,7 @@ function FileExplorer() {
 
   const handleRefresh = () => {
     setCurrentPage(1);
+    setSearchQuery('');
     queryClient.invalidateQueries({ queryKey: ['objects', currentPath, STORAGE_TYPE] });
   };
 
@@ -678,6 +688,66 @@ function FileExplorer() {
     fileInputRef.current?.click();
   };
 
+  // Pagination rendering
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const maxPagesToShow = 5;
+    const pages: (number | string)[] = [];
+    const startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+    const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+    if (startPage > 1) {
+      pages.push(1);
+      if (startPage > 2) pages.push('...');
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) pages.push('...');
+      pages.push(totalPages);
+    }
+
+    return (
+      <Flex justify="center" mt={4} align="center" gap={2}>
+        <Button
+          size="sm"
+          onClick={() => handlePageChange(currentPage - 1)}
+          isDisabled={currentPage === 1 || isFetching}
+        >
+          Previous
+        </Button>
+        {pages.map((page, index) =>
+          typeof page === 'number' ? (
+            <Button
+              key={page}
+              size="sm"
+              colorScheme={currentPage === page ? 'blue' : 'gray'}
+              onClick={() => handlePageChange(page)}
+              isDisabled={isFetching}
+            >
+              {page}
+            </Button>
+          ) : (
+            <Text key={`ellipsis-${index}`} mx={2}>
+              {page}
+            </Text>
+          )
+        )}
+        <Button
+          size="sm"
+          onClick={() => handlePageChange(currentPage + 1)}
+          isDisabled={currentPage === totalPages || isFetching}
+        >
+          Next
+        </Button>
+      </Flex>
+    );
+  };
+
   if (listError) {
     return (
       <Container maxW="full" bg="white" color="gray.800" py={6}>
@@ -691,13 +761,25 @@ function FileExplorer() {
 
   return (
     <Container maxW="full" color="gray.800" py={6}>
-      <Flex align="center" justify="space-between" flexWrap="wrap" gap={4}>
+      <Flex align="center" justify="space-between" flexWrap="wrap" gap={4} mb={4}>
         <Box textAlign="left" flex="1">
           <Text fontSize="xl" fontWeight="bold" color="black">
             Files (public/image/ecommerce/direct/)
           </Text>
         </Box>
-        <HStack>
+        <HStack spacing={4}>
+          <InputGroup maxW="300px">
+            <InputLeftElement pointerEvents="none">
+              <FiSearch color="gray.500" />
+            </InputLeftElement>
+            <Input
+              placeholder="Search files..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              size="sm"
+              borderRadius="md"
+            />
+          </InputGroup>
           <IconButton
             aria-label="Refresh List"
             icon={<FiRefreshCw />}
@@ -706,7 +788,7 @@ function FileExplorer() {
             onClick={handleRefresh}
             isLoading={isFetching}
           />
-          <Text>Refresh</Text>
+          <Text fontSize="sm">Refresh</Text>
           <IconButton
             aria-label="Upload Files"
             icon={<FiUpload />}
@@ -715,7 +797,7 @@ function FileExplorer() {
             onClick={handleUploadClick}
             isLoading={uploadMutation.isPending}
           />
-          <Text>Upload</Text>
+          <Text fontSize="sm">Upload</Text>
           <IconButton
             aria-label="Export to CSV"
             icon={<FiFileText />}
@@ -724,7 +806,7 @@ function FileExplorer() {
             onClick={() => exportCsvMutation.mutate()}
             isLoading={exportCsvMutation.isPending}
           />
-          <Text>Export to CSV</Text>
+          <Text fontSize="sm">Export to CSV</Text>
         </HStack>
       </Flex>
 
@@ -770,7 +852,7 @@ function FileExplorer() {
 
       <Box>
         <FileList
-          objects={data?.objects || []}
+          objects={filteredObjects}
           isFetching={isFetching}
           onDownload={handleDownload}
           onCopyUrl={handleCopyUrl}
@@ -778,35 +860,15 @@ function FileExplorer() {
           sortConfig={sortConfig}
           onSort={handleSort}
         />
-        {data?.objects.length === 0 && !isFetching && (
+        {filteredObjects.length === 0 && !isFetching && (
           <Text fontSize="sm" color="gray.500" mt={4}>
-            No items in this directory
+            {searchQuery ? 'No items match your search' : 'No items in this directory'}
           </Text>
         )}
         {isFetching && <Text fontSize="sm" color="gray.500" mt={4}>Loading...</Text>}
       </Box>
 
-      {totalPages > 1 && (
-        <Flex justify="center" mt={4} align="center" gap={2}>
-          <Button
-            size="sm"
-            onClick={() => handlePageChange(currentPage - 1)}
-            isDisabled={currentPage === 1 || isFetching}
-          >
-            Previous
-          </Button>
-          <Text>
-            Page {currentPage} of {totalPages}
-          </Text>
-          <Button
-            size="sm"
-            onClick={() => handlePageChange(currentPage + 1)}
-            isDisabled={currentPage === totalPages || isFetching}
-          >
-            Next
-          </Button>
-        </Flex>
-      )}
+      {renderPagination()}
 
       <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
         <ModalOverlay />
