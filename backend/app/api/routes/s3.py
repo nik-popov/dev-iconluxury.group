@@ -35,7 +35,7 @@ s3_client = client(
 # Constants
 BUCKET_NAME = "iconluxurygroup"
 MAX_UPLOAD_SIZE = 100 * 1024 * 1024  # 100 MB
-JSON_STORE_PATH = "static/file_store.json"
+JSON_STORE_PATH = "file_store/file_store.json"
 
 # Pydantic model for delete request
 class DeleteRequest(BaseModel):
@@ -112,6 +112,75 @@ async def update_json_store(new_objects: List[dict]):
     except Exception as e:
         logger.error(f"Error updating JSON store: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to update JSON store: {str(e)}")
+
+# One-time function to fetch and add existing records to JSON store
+async def sync_existing_objects(prefix: str = ""):
+    """
+    Fetch all existing objects from S3 and add them to the JSON store.
+    """
+    try:
+        all_objects = []
+        continuation_token = None
+        while True:
+            params = {
+                "Bucket": BUCKET_NAME,
+                "Prefix": prefix,
+                "Delimiter": "/",
+                "MaxKeys": 1000,
+            }
+            if continuation_token:
+                params["ContinuationToken"] = continuation_token
+            response = s3_client.list_objects_v2(**params)
+
+            # Process folders
+            for common_prefix in response.get("CommonPrefixes", []):
+                folder_path = common_prefix["Prefix"]
+                folder_name = folder_path.rstrip("/").split("/")[-1]
+                if folder_name:
+                    count = await get_folder_count(folder_path)
+                    all_objects.append({
+                        "type": "folder",
+                        "name": folder_name,
+                        "path": folder_path,
+                        "count": count,
+                        "lastModified": None
+                    })
+
+            # Process files
+            for obj in response.get("Contents", []):
+                key = obj["Key"]
+                if key != prefix and not key.endswith("/"):
+                    file_name = key.replace(prefix, "", 1).lstrip("/")
+                    if file_name:
+                        all_objects.append({
+                            "type": "file",
+                            "name": file_name,
+                            "path": key,
+                            "size": obj["Size"],
+                            "lastModified": obj["LastModified"].isoformat(),
+                            "count": None
+                        })
+
+            continuation_token = response.get("NextContinuationToken")
+            if not continuation_token:
+                break
+
+        # Update JSON store with all objects
+        await update_json_store(all_objects)
+        logger.info(f"Synced {len(all_objects)} objects to JSON store for prefix: {prefix}")
+        return {
+            "message": f"Successfully synced {len(all_objects)} objects to JSON store",
+            "objects_synced": len(all_objects)
+        }
+    except s3_client.exceptions.NoSuchBucket as e:
+        logger.error(f"Bucket not found: {str(e)}")
+        raise HTTPException(status_code=404, detail="Bucket not found")
+    except s3_client.exceptions.ClientError as e:
+        logger.error(f"Client error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error syncing objects: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 def sanitize_path(path: str) -> str:
     """Sanitize the path to prevent directory traversal and invalid characters."""
@@ -470,6 +539,13 @@ async def s3_export_to_csv(prefix: str = ""):
 @s3_router.get("/json-store")
 async def get_json_store():
     return await read_json_store()
+
+@s3_router.post("/sync-json-store")
+async def sync_json_store(prefix: str = ""):
+    """
+    One-time endpoint to sync existing S3 objects to the JSON store.
+    """
+    return await sync_existing_objects(prefix)
 
 # R2 Endpoints
 @r2_router.get("/list")
