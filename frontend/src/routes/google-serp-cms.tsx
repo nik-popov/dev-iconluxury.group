@@ -24,7 +24,6 @@ import {
   Tooltip,
   Badge,
   IconButton,
-  Flex,
 } from '@chakra-ui/react';
 import { CloseIcon } from '@chakra-ui/icons';
 import { createFileRoute } from '@tanstack/react-router';
@@ -155,8 +154,6 @@ const CMSGoogleSerpForm: React.FC = () => {
   const [manualBrand, setManualBrand] = useState('');
   const [isManualBrandApplied, setIsManualBrandApplied] = useState(false);
   const [isIconDistro, setIsIconDistro] = useState(false);
-  const [page, setPage] = useState(1);
-  const rowsPerPage = MAX_PREVIEW_ROWS;
   const showToast: ToastFunction = useCustomToast();
 
   // File Upload
@@ -193,11 +190,11 @@ const CMSGoogleSerpForm: React.FC = () => {
         };
         const firstRow: string[] = (jsonData[0] as any[]).map(cell => String(cell ?? '').trim());
         if (detectedHeaderIndex === 0 && !firstRow.some(cell => patterns.style.test(cell) || patterns.brand.test(cell))) {
-          showToast('Warning', 'No clear header row detected; using first row. Please verify in the Preview step.', 'warning');
+          showToast('Warning', 'No clear header row detected; using first row. Please verify in the Header Selection step.', 'warning');
         }
         setRawData(jsonData as CellValue[][]);
         if (jsonData.length <= detectedHeaderIndex || detectedHeaderIndex < 0) {
-          showToast('File Error', 'Invalid header row detected. Please select a header row in the Preview step.', 'error');
+          showToast('File Error', 'Invalid header row detected. Please select a header row in the Header Selection step.', 'error');
           setHeaderIndex(0);
           setExcelData({ headers: [], rows: [] });
           setFile(null);
@@ -206,7 +203,7 @@ const CMSGoogleSerpForm: React.FC = () => {
         }
         setHeaderIndex(detectedHeaderIndex);
         const headers = (jsonData[detectedHeaderIndex] as any[]).map(cell => String(cell ?? ''));
-        const rows = jsonData.slice(detectedHeaderIndex + 1).slice(0, MAX_PREVIEW_ROWS) as CellValue[][];
+        const rows = jsonData.slice(detectedHeaderIndex + 1) as CellValue[][];
         setExcelData({ headers, rows });
         setColumnMapping(autoMapColumns(headers));
         setStep('preview');
@@ -226,12 +223,11 @@ const CMSGoogleSerpForm: React.FC = () => {
       if (newHeaderIndex < 0 || newHeaderIndex >= rawData.length) return;
       setHeaderIndex(newHeaderIndex);
       const headers = rawData[newHeaderIndex].map(cell => String(cell ?? ''));
-      const rows = rawData.slice(newHeaderIndex + 1).slice(0, MAX_PREVIEW_ROWS) as CellValue[][];
+      const rows = rawData.slice(newHeaderIndex + 1) as CellValue[][];
       setExcelData({ headers, rows });
       setColumnMapping(autoMapColumns(headers));
       setIsManualBrandApplied(false);
       setManualBrand('');
-      setPage(1);
     },
     [rawData]
   );
@@ -373,44 +369,78 @@ const CMSGoogleSerpForm: React.FC = () => {
     <Container maxW="container.xl" p={4} bg="white" color="black">
       <VStack spacing={6} align="stretch">
         {/* Step Indicator */}
-        <HStack justify="center" spacing={4} bg="gray.50" p={2} borderRadius="md">
-          {['Upload', 'Preview', 'Map', 'Submit'].map((s, i) => (
-            <Text
-              key={s}
-              fontWeight={step === s.toLowerCase() ? 'bold' : 'normal'}
-              color={step === s.toLowerCase() ? 'teal.500' : 'gray.500'}
-              cursor="pointer"
-              onClick={() => {
-                if (i < ['upload', 'preview', 'map', 'submit'].indexOf(step)) setStep(s.toLowerCase() as typeof step);
-              }}
-            >
-              {i + 1}. {s}
-            </Text>
-          ))}
+        <HStack justify="space-between" bg="gray.50" p={2} borderRadius="md" align="center">
+          <HStack spacing={4}>
+            {['Upload', 'Header Selection', 'Map', 'Submit'].map((s, i) => (
+              <Text
+                key={s}
+                fontWeight={step === s.toLowerCase().replace('header selection', 'preview') ? 'bold' : 'normal'}
+                color={step === s.toLowerCase().replace('header selection', 'preview') ? 'teal.500' : 'gray.500'}
+                cursor={i < ['upload', 'preview', 'map', 'submit'].indexOf(step) ? 'pointer' : 'default'}
+                onClick={() => {
+                  if (i < ['upload', 'preview', 'map', 'submit'].indexOf(step)) setStep(s.toLowerCase().replace('header selection', 'preview') as typeof step);
+                }}
+              >
+                {i + 1}. {s}
+              </Text>
+            ))}
+          </HStack>
+          {step !== 'upload' && (
+            <HStack>
+              {step !== 'preview' && (
+                <Button
+                  onClick={() => setStep(['upload', 'preview', 'map', 'submit'][['upload', 'preview', 'map', 'submit'].indexOf(step) - 1] as typeof step)}
+                  variant="outline"
+                  colorScheme="gray"
+                  size="sm"
+                >
+                  Back
+                </Button>
+              )}
+              {step === 'preview' && (
+                <Button onClick={() => setStep('upload')} variant="outline" colorScheme="gray" size="sm">
+                  Back
+                </Button>
+              )}
+              {step !== 'submit' && (
+                <Button
+                  colorScheme="teal"
+                  onClick={() => setStep(['preview', 'map', 'submit'][['upload', 'preview', 'map'].indexOf(step)] as typeof step)}
+                  size="sm"
+                  isDisabled={step === 'map' && !validateForm.isValid}
+                >
+                  Next: {['Header Selection', 'Map', 'Submit'][['upload', 'preview', 'map'].indexOf(step)]}
+                </Button>
+              )}
+              {step === 'submit' && (
+                <Button colorScheme="teal" onClick={handleSubmit} isLoading={isLoading} size="sm">
+                  Submit
+                </Button>
+              )}
+            </HStack>
+          )}
         </HStack>
 
         {/* Upload Step */}
         {step === 'upload' && (
-          <Flex direction={{ base: 'column', md: 'row' }} gap={6}>
-            <Box flex="1">
-              <Text fontSize="lg" fontWeight="bold" mb={4}>Upload Excel File</Text>
-              <FormControl>
-                <Tooltip label="Upload an Excel file (.xlsx or .xls) up to 10MB">
-                  <Input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleFileChange}
-                    disabled={isLoading}
-                    bg="white"
-                    borderColor="gray.300"
-                    p={1}
-                    aria-label="Upload Excel file"
-                  />
-                </Tooltip>
-              </FormControl>
-              {isLoading && <Spinner mt={4} />}
-            </Box>
-            {/* <Box flex="1" fontSize="sm" lineHeight="short">
+          <VStack spacing={4} align="stretch">
+            <Text fontSize="lg" fontWeight="bold">Upload Excel File</Text>
+            <FormControl>
+              <Tooltip label="Upload an Excel file (.xlsx or .xls) up to 10MB">
+                <Input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileChange}
+                  disabled={isLoading}
+                  bg="white"
+                  borderColor="gray.300"
+                  p={1}
+                  aria-label="Upload Excel file"
+                />
+              </Tooltip>
+            </FormControl>
+            {isLoading && <Spinner mt={4} />}
+            {/* <Box fontSize="sm" lineHeight="short">
               <Text fontWeight="bold" mb={2}>Required Fields</Text>
               <Text>Style #: Unique identifier for the product (e.g., SKU, Item #)</Text>
               <Text>Brand: Manufacturer or designer name</Text>
@@ -418,19 +448,19 @@ const CMSGoogleSerpForm: React.FC = () => {
               <Text>Category: Product type or group</Text>
               <Text>Color Name: Color of the product</Text>
             </Box> */}
-          </Flex>
+          </VStack>
         )}
 
-        {/* Preview Step */}
+        {/* Header Selection Step */}
         {step === 'preview' && (
-          <VStack spacing={4}>
-            <Text fontSize="lg" fontWeight="bold">Preview Data</Text>
+          <VStack spacing={4} align="stretch">
+            <Text fontSize="lg" fontWeight="bold">Select Header Row</Text>
             <HStack>
-              <Text>Header Row:</Text>
+              <Text>Select Header Row:</Text>
               <Select
                 value={headerIndex}
                 onChange={e => handleHeaderChange(Number(e.target.value))}
-                w="100px"
+                w="150px"
                 aria-label="Select header row"
               >
                 {rawData.slice(0, 10).map((_, index) => (
@@ -440,15 +470,7 @@ const CMSGoogleSerpForm: React.FC = () => {
                 ))}
               </Select>
             </HStack>
-            <HStack>
-              <Button onClick={() => setStep('upload')} variant="outline" colorScheme="gray" size="sm">
-                Back
-              </Button>
-              <Button colorScheme="teal" onClick={() => setStep('map')} size="sm">
-                Next: Map Columns
-              </Button>
-            </HStack>
-            <Box overflowX="auto" maxH="60vh" borderWidth="1px" borderRadius="md" p={2}>
+            <Box overflowX="auto" borderWidth="1px" borderRadius="md" p={2}>
               <Table size="sm">
                 <Thead>
                   <Tr>
@@ -465,49 +487,8 @@ const CMSGoogleSerpForm: React.FC = () => {
                     ))}
                   </Tr>
                 </Thead>
-                <Tbody>
-                  {excelData.rows.slice((page - 1) * rowsPerPage, page * rowsPerPage).map((row, rowIndex) => (
-                    <Tr key={rowIndex}>
-                      {row.map((cell, cellIndex) => (
-                        <Td
-                          key={cellIndex}
-                          maxW="200px"
-                          isTruncated
-                          bg={
-                            (columnMapping.style === cellIndex || columnMapping.brand === cellIndex) && !cell
-                              ? 'red.100'
-                              : undefined
-                          }
-                        >
-                          {getDisplayValue(cell)}
-                        </Td>
-                      ))}
-                    </Tr>
-                  ))}
-                </Tbody>
               </Table>
             </Box>
-            <HStack>
-              <Button
-                onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                isDisabled={page === 1}
-                variant="outline"
-                colorScheme="gray"
-                size="sm"
-              >
-                Previous
-              </Button>
-              <Text fontSize="sm">Page {page}</Text>
-              <Button
-                onClick={() => setPage(prev => prev + 1)}
-                isDisabled={(page * rowsPerPage) >= excelData.rows.length}
-                variant="outline"
-                colorScheme="gray"
-                size="sm"
-              >
-                Next
-              </Button>
-            </HStack>
           </VStack>
         )}
 
@@ -635,18 +616,7 @@ const CMSGoogleSerpForm: React.FC = () => {
                 </HStack>
               ))}
             </VStack>
-
             <Text fontSize="lg" fontWeight="bold" mt={4}>Data Preview</Text>
-            <HStack justify="space-between">
-              <HStack>
-                <Button onClick={() => setStep('preview')} variant="outline" colorScheme="gray" size="sm">
-                  Back
-                </Button>
-                <Button colorScheme="teal" onClick={() => setStep('submit')} isDisabled={!validateForm.isValid} size="sm">
-                  Next: Submit
-                </Button>
-              </HStack>
-            </HStack>
             <Box overflowX="auto" maxH="40vh" borderWidth="1px" borderRadius="md" p={2}>
               <Table size="sm">
                 <Thead>
@@ -665,7 +635,7 @@ const CMSGoogleSerpForm: React.FC = () => {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {excelData.rows.slice((page - 1) * rowsPerPage, page * rowsPerPage).map((row, rowIndex) => (
+                  {excelData.rows.slice(0, MAX_PREVIEW_ROWS).map((row, rowIndex) => (
                     <Tr key={rowIndex}>
                       {row.map((cell, cellIndex) => (
                         <Td
@@ -686,59 +656,82 @@ const CMSGoogleSerpForm: React.FC = () => {
                 </Tbody>
               </Table>
             </Box>
-            <HStack justify="space-between">
-              <HStack>
-                <Button
-                  onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                  isDisabled={page === 1}
-                  variant="outline"
-                  colorScheme="gray"
-                  size="sm"
-                >
-                  Previous
-                </Button>
-                <Text fontSize="sm">Page {page}</Text>
-                <Button
-                  onClick={() => setPage(prev => prev + 1)}
-                  isDisabled={(page * rowsPerPage) >= excelData.rows.length}
-                  variant="outline"
-                  colorScheme="gray"
-                  size="sm"
-                >
-                  Next
-                </Button>
-              </HStack>
-            </HStack>
           </VStack>
         )}
 
         {/* Submit Step */}
         {step === 'submit' && (
-          <VStack spacing={4}>
+          <VStack spacing={4} align="stretch">
             <Text fontSize="lg" fontWeight="bold">Review and Submit</Text>
-            <VStack align="start">
+            <VStack align="start" spacing={4}>
               <Text>Rows: {excelData.rows.length}</Text>
               <Text>Mapped Columns:</Text>
-              {getColumnMappingEntries(columnMapping)
-                .filter(([col, index]) => index !== null && col !== 'readImage' && col !== 'imageAdd')
-                .map(([col, index]) => (
-                  <Text key={col} pl={4}>
-                    - {col}: {excelData.headers[index!]}
-                  </Text>
-                ))}
-              {isManualBrandApplied && <Text>Manual Brand: Applied to all rows</Text>}
+              <VStack align="start" pl={4} spacing={2}>
+                {getColumnMappingEntries(columnMapping)
+                  .filter(([col, index]) => index !== null && col !== 'readImage' && col !== 'imageAdd')
+                  .map(([col, index]) => (
+                    <Box key={col}>
+                      <Text>
+                        - {col}: {excelData.headers[index!]}
+                      </Text>
+                      <Text fontSize="sm" color="gray.600" pl={4}>
+                        Preview: {getColumnPreview(index, excelData.rows)}
+                      </Text>
+                    </Box>
+                  ))}
+                {isManualBrandApplied && (
+                  <Box>
+                    <Text>Manual Brand: Applied to all rows</Text>
+                    <Text fontSize="sm" color="gray.600" pl={4}>
+                      Preview: {excelData.rows[0]?.[excelData.headers.length - 1] || manualBrand}
+                    </Text>
+                  </Box>
+                )}
+              </VStack>
               <Checkbox isChecked={isIconDistro} onChange={e => setIsIconDistro(e.target.checked)}>
                 Output as Icon Distro
               </Checkbox>
             </VStack>
-            <HStack>
-              <Button onClick={() => setStep('map')} variant="outline" colorScheme="gray" size="sm">
-                Back
-              </Button>
-              <Button colorScheme="teal" onClick={handleSubmit} isLoading={isLoading} size="sm">
-                Submit
-              </Button>
-            </HStack>
+            <Text fontSize="lg" fontWeight="bold" mt={4}>Data Preview</Text>
+            <Box overflowX="auto" maxH="40vh" borderWidth="1px" borderRadius="md" p={2}>
+              <Table size="sm">
+                <Thead>
+                  <Tr>
+                    {excelData.headers.map((header, index) => (
+                      <Th
+                        key={index}
+                        bg="gray.100"
+                        position="sticky"
+                        top={0}
+                        border={Object.values(columnMapping).includes(index) ? '2px solid green' : undefined}
+                      >
+                        {header || `Column ${indexToColumnLetter(index)}`}
+                      </Th>
+                    ))}
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {excelData.rows.slice(0, MAX_PREVIEW_ROWS).map((row, rowIndex) => (
+                    <Tr key={rowIndex}>
+                      {row.map((cell, cellIndex) => (
+                        <Td
+                          key={cellIndex}
+                          maxW="200px"
+                          isTruncated
+                          bg={
+                            (columnMapping.style === cellIndex || columnMapping.brand === cellIndex) && !cell
+                              ? 'red.100'
+                              : undefined
+                          }
+                        >
+                          {getDisplayValue(cell)}
+                        </Td>
+                      ))}
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </Box>
           </VStack>
         )}
       </VStack>
