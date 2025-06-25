@@ -29,9 +29,10 @@ import * as XLSX from 'xlsx';
 import useCustomToast from '../hooks/useCustomToast';
 
 // Constants
-const REQUIRED_COLUMNS = ['style', 'brand'] as const;
-const OPTIONAL_COLUMNS = ['category', 'colorName', 'readImage', 'imageAdd'] as const;
-const ALL_COLUMNS = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS] as const;
+type ColumnType = 'style' | 'brand' | 'category' | 'colorName' | 'readImage' | 'imageAdd';
+const REQUIRED_COLUMNS: ColumnType[] = ['style', 'brand'];
+const OPTIONAL_COLUMNS: ColumnType[] = ['category', 'colorName', 'readImage', 'imageAdd'];
+const ALL_COLUMNS: ColumnType[] = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS];
 const SERVER_URL = 'https://backend-dev.iconluxury.group';
 const MAX_PREVIEW_ROWS = 10;
 const MAX_FILE_SIZE_MB = 10;
@@ -50,7 +51,7 @@ const getDisplayValue = (value: any): string => {
     if (value.error) return value.error;
     if (value.result !== undefined) return getDisplayValue(value.result);
     if (value.text) return value.text;
-    if (value.hyperlink) return value.text || value.hyperlink;
+    if (value.link) return value.text || value.link;
     return JSON.stringify(value);
   }
   return String(value);
@@ -74,10 +75,12 @@ const detectHeaderRow = (rows: CellValue[][]): number => {
   let bestIndex = 0;
   let maxNonEmptyCells = 0;
   for (let i = 0; i < Math.min(50, rows.length); i++) {
-    const rowValues = rows[i].map(cell => String(cell ?? '').trim()).filter(value => value !== '');
+    const rowValues = rows[i]
+      .map(cell => String(cell ?? '').trim())
+      .filter(value => value !== '') as string[]; // Force string[] type
     const nonEmptyCount = rowValues.length;
     if (nonEmptyCount < 2) continue;
-    const hasHeaderMatch = rowValues.some(value => patterns.style.test(value) || patterns.brand.test(value));
+    const hasHeaderMatch = rowValues.some((value: string) => patterns.style.test(value) || patterns.brand.test(value));
     if (hasHeaderMatch || nonEmptyCount > maxNonEmptyCells) {
       bestIndex = i;
       maxNonEmptyCells = nonEmptyCount;
@@ -100,10 +103,10 @@ const autoMapColumns = (headers: string[]): ColumnMapping => {
     style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))/i,
     brand: /^(brand|manufacturer|make|label|designer|vendor)/i,
     category: /^(category|type|product\s*type|group)/i,
-    colorName: /^(color|colour|color\s*name|colour\s*name)/i,
+    colorName: /^(color|colour\s*$|color\s*name|colour\s*name)/i,
   };
   headers.forEach((header, index) => {
-    const normalizedHeader = String(header ?? '').trim().toUpperCase();
+    const normalizedHeader: string = String(header ?? '').trim().toUpperCase();
     if (!normalizedHeader) return;
     if (patterns.style.test(normalizedHeader) && mapping.style === null) mapping.style = index;
     else if (patterns.brand.test(normalizedHeader) && mapping.brand === null) mapping.brand = index;
@@ -202,6 +205,7 @@ const CMSGoogleSerpForm: React.FC = () => {
   // Header Row Selection
   const handleHeaderChange = useCallback(
     (newHeaderIndex: number) => {
+      if (newHeaderIndex < 0 || newHeaderIndex >= rawData.length) return;
       setHeaderIndex(newHeaderIndex);
       const headers = rawData[newHeaderIndex].map(cell => String(cell ?? ''));
       const rows = rawData.slice(newHeaderIndex + 1).slice(0, MAX_PREVIEW_ROWS) as CellValue[][];
@@ -216,25 +220,25 @@ const CMSGoogleSerpForm: React.FC = () => {
 
   // Column Mapping
   const handleColumnMap = useCallback(
-    (index: number, field: string) => {
-      if (field && !ALL_COLUMNS.includes(field as (typeof ALL_COLUMNS)[number])) return;
-      setColumnMapping(prev => {
-        const newMapping = { ...prev };
-        (Object.keys(newMapping) as (keyof ColumnMapping)[]).forEach(key => {
-          if (newMapping[key] === index) newMapping[key] = null;
-        });
-        if (field) {
-          newMapping[field as keyof ColumnMapping] = index;
-          if (field === 'brand') {
-            setManualBrand('');
-            setIsManualBrandApplied(false);
-          }
-        }
-        return newMapping;
+  (index: number, field: (typeof ALL_COLUMNS)[number] | '') => {
+    if (field && !ALL_COLUMNS.includes(field)) return;
+    setColumnMapping(prev => {
+      const newMapping = { ...prev };
+      (Object.keys(newMapping) as (keyof ColumnMapping)[]).forEach(key => {
+        if (newMapping[key] === index) newMapping[key] = null;
       });
-    },
-    []
-  );
+      if (field) {
+        newMapping[field as keyof ColumnMapping] = index;
+        if (field === 'brand') {
+          setManualBrand('');
+          setIsManualBrandApplied(false);
+        }
+      }
+      return newMapping;
+    });
+  },
+  []
+);
 
   // Manual Brand
   const applyManualBrand = useCallback(() => {
@@ -290,7 +294,7 @@ const CMSGoogleSerpForm: React.FC = () => {
     formData.append('searchColImage', indexToColumnLetter(columnMapping.style!));
     if ((manualBrand.trim() || isManualBrandApplied) && columnMapping.brand === null) {
       formData.append('brandColImage', 'MANUAL');
-      formData.append('manualBrand', manualBrand.trim() || excelData.rows[0][excelData.headers.length - 1] as string);
+      formData.append('manualBrand', manualBrand.trim() || (excelData.rows[0]?.[excelData.headers.length - 1] as string) || '');
     } else if (columnMapping.brand !== null) {
       formData.append('brandColImage', indexToColumnLetter(columnMapping.brand));
     }
