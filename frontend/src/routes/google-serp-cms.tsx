@@ -495,11 +495,9 @@ const CMSGoogleSerpForm: React.FC = () => {
         {step === 'map' && (
           <VStack spacing={4} align="stretch">
             {!validateForm.isValid && (
-              <Alert status="warning">
-                <AlertIcon />
-                <AlertTitle>Missing Required Columns:</AlertTitle>
-                <AlertDescription>{validateForm.missing.join(', ')}</AlertDescription>
-              </Alert>
+          <Text color="red.500" fontSize="sm" fontWeight="medium">
+            Missing required columns: {validateForm.missing.join(', ')}. Please map all required columns.
+          </Text>
             )}
             <VStack spacing={4} align="stretch" bg="gray.50" p={4} borderRadius="md">
               <Text fontWeight="bold">Required Columns</Text>
