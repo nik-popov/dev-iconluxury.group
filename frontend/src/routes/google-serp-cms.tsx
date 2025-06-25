@@ -92,7 +92,14 @@ const detectHeaderRow = (rows: CellValue[][]): number => {
   }
   return bestIndex;
 };
-
+const getColumnPreview = (columnIndex: number | null, rows: CellValue[][]): string => {
+  if (columnIndex === null || columnIndex < 0 || columnIndex >= rows[0]?.length) return 'No values';
+  const values = rows
+    .map(row => getDisplayValue(row[columnIndex]))
+    .filter(value => value.trim() !== '')
+    .slice(0, 3); // Get up to 3 non-empty values
+  return values.length > 0 ? values.join(', ') : 'No values';
+};
 const autoMapColumns = (headers: string[]): ColumnMapping => {
   const mapping: ColumnMapping = {
     style: null,
@@ -403,8 +410,6 @@ const CMSGoogleSerpForm: React.FC = () => {
               <Text fontWeight="bold" mt={4} mb={2}>Optional Fields</Text>
               <Text>Category: Product type or group</Text>
               <Text>Color Name: Color of the product</Text>
-              <Text>Image Read: Column for existing image data</Text>
-              <Text>Image Add: Column for new image data</Text>
             </Box>
           </Flex>
         )}
@@ -496,123 +501,130 @@ const CMSGoogleSerpForm: React.FC = () => {
         )}
 
         {/* Map Step */}
-        {step === 'map' && (
-          <VStack spacing={4} align="stretch">
-            <Text fontSize="lg" fontWeight="bold">Map Columns</Text>
-            {!validateForm.isValid && (
-              <Alert status="warning">
-                <AlertIcon />
-                <AlertTitle>Missing Required Columns:</AlertTitle>
-                <AlertDescription>{validateForm.missing.join(', ')}</AlertDescription>
-              </Alert>
-            )}
-            <VStack spacing={4} align="stretch" bg="gray.50" p={4} borderRadius="md">
-              <Text fontWeight="bold">Required Columns</Text>
-              {REQUIRED_COLUMNS.map(field => (
-                <HStack key={field} spacing={2}>
-                  <Text w="150px">{field}:</Text>
-                  <Tooltip label={`Select Excel column for ${field}`}>
-                  <Select
-  value={columnMapping[field] !== null ? columnMapping[field]! : ''}
-  onChange={e => handleColumnMap(Number(e.target.value), field)}
-  placeholder="Unmapped"
-  aria-label={`Map ${field} column`}
-  flex="1"
->
-  <option value="">Unmapped</option>
-  {excelData.headers.map((header, index) => (
-    <option
-      key={index}
-      value={index}
-      disabled={Object.values(columnMapping).includes(index) && columnMapping[field] !== index}
-    >
-      {header || `Column ${indexToColumnLetter(index)}`}
-    </option>
-  ))}
-</Select>
-                 </Tooltip>
-{columnMapping[field] !== null && (
-  <Tooltip label="Clear mapping">
-    <IconButton
-      aria-label={`Clear ${field} mapping`}
-      icon={<CloseIcon />}
-      size="sm"
-      onClick={() => handleClearMapping(columnMapping[field]!)} // Pass the column index
-    />
-  </Tooltip>
-)}
-                </HStack>
+{step === 'map' && (
+  <VStack spacing={4} align="stretch">
+    <Text fontSize="lg" fontWeight="bold">Map Columns</Text>
+    {!validateForm.isValid && (
+      <Alert status="warning">
+        <AlertIcon />
+        <AlertTitle>Missing Required Columns:</AlertTitle>
+        <AlertDescription>{validateForm.missing.join(', ')}</AlertDescription>
+      </Alert>
+    )}
+    <VStack spacing={4} align="stretch" bg="gray.50" p={4} borderRadius="md">
+      <Text fontWeight="bold">Required Columns</Text>
+      {REQUIRED_COLUMNS.map(field => (
+        <HStack key={field} spacing={2} align="center">
+          <Text w="150px">{field}:</Text>
+          <Tooltip label={`Select Excel column for ${field}`}>
+            <Select
+              value={columnMapping[field] !== null ? columnMapping[field]! : ''}
+              onChange={e => handleColumnMap(Number(e.target.value), field)}
+              placeholder="Unmapped"
+              aria-label={`Map ${field} column`}
+              flex="1"
+            >
+              <option value="">Unmapped</option>
+              {excelData.headers.map((header, index) => (
+                <option
+                  key={index}
+                  value={index}
+                  disabled={Object.values(columnMapping).includes(index) && columnMapping[field] !== index}
+                >
+                  {header || `Column ${indexToColumnLetter(index)}`}
+                </option>
               ))}
-              <Text fontWeight="bold" mt={4}>Optional Columns</Text>
-              {OPTIONAL_COLUMNS.map(field => (
-                <HStack key={field} spacing={2}>
-                  <Text w="150px">{field}:</Text>
-                  <Tooltip label={`Select Excel column for ${field}`}>
-                <Select
-  value={columnMapping[field] !== null ? columnMapping[field]! : ''}
-  onChange={e => handleColumnMap(Number(e.target.value), field)} // Fix: Pass index first, then field
-  placeholder="Unmapped"
-  aria-label={`Map ${field} column`}
-  flex="1"
->
-  <option value="">Unmapped</option>
-  {excelData.headers.map((header, index) => (
-    <option
-      key={index}
-      value={index}
-      disabled={Object.values(columnMapping).includes(index) && columnMapping[field] !== index}
-    >
-      {header || `Column ${indexToColumnLetter(index)}`}
-    </option>
-  ))}
-</Select>
-                  </Tooltip>
-                  {columnMapping[field] !== null && (
-  <Tooltip label="Clear mapping">
-    <IconButton
-      aria-label={`Clear ${field} mapping`}
-      icon={<CloseIcon />}
-      size="sm"
-      onClick={() => handleClearMapping(columnMapping[field]!)} // Fix: Pass column index
-    />
-  </Tooltip>
-)}
-                </HStack>
+            </Select>
+          </Tooltip>
+          {columnMapping[field] !== null && (
+            <Tooltip label="Clear mapping">
+              <IconButton
+                aria-label={`Clear ${field} mapping`}
+                icon={<CloseIcon />}
+                size="sm"
+                onClick={() => handleClearMapping(columnMapping[field]!)}
+              />
+            </Tooltip>
+          )}
+          <Box w="200px" fontSize="sm" color="gray.600" isTruncated>
+            {getColumnPreview(columnMapping[field], excelData.rows)}
+          </Box>
+        </HStack>
+      ))}
+      <Text fontWeight="bold" mt={4}>Optional Columns</Text>
+      {OPTIONAL_COLUMNS.map(field => (
+        <HStack key={field} spacing={2} align="center">
+          <Text w="150px">{field}:</Text>
+          <Tooltip label={`Select Excel column for ${field}`}>
+            <Select
+              value={columnMapping[field] !== null ? columnMapping[field]! : ''}
+              onChange={e => handleColumnMap(Number(e.target.value), field)}
+              placeholder="Unmapped"
+              aria-label={`Map ${field} column`}
+              flex="1"
+            >
+              <option value="">Unmapped</option>
+              {excelData.headers.map((header, index) => (
+                <option
+                  key={index}
+                  value={index}
+                  disabled={Object.values(columnMapping).includes(index) && columnMapping[field] !== index}
+                >
+                  {header || `Column ${indexToColumnLetter(index)}`}
+                </option>
               ))}
-              <FormControl>
-                <HStack spacing={2}>
-                  <Text w="150px">Manual Brand:</Text>
-                  <Tooltip label="Enter a brand to apply to all rows">
-                    <Input
-                      placeholder="Add Brand for All Rows (Optional)"
-                      value={manualBrand}
-                      onChange={e => setManualBrand(e.target.value)}
-                      disabled={columnMapping.brand !== null}
-                      aria-label="Manual brand input"
-                      flex="1"
-                    />
-                  </Tooltip>
-                  <Button
-                    colorScheme="green"
-                    size="sm"
-                    onClick={applyManualBrand}
-                    isDisabled={!manualBrand.trim() || columnMapping.brand !== null}
-                  >
-                    Apply
-                  </Button>
-                  {isManualBrandApplied && (
-                    <Button colorScheme="red" variant="outline" size="sm" onClick={removeManualBrand}>
-                      Remove
-                    </Button>
-                  )}
-                </HStack>
-                {isManualBrandApplied && (
-                  <Badge colorScheme="green" mt={2}>
-                    Manual Brand Column Applied
-                  </Badge>
-                )}
-              </FormControl>
-            </VStack>
+            </Select>
+          </Tooltip>
+          {columnMapping[field] !== null && (
+            <Tooltip label="Clear mapping">
+              <IconButton
+                aria-label={`Clear ${field} mapping`}
+                icon={<CloseIcon />}
+                size="sm"
+                onClick={() => handleClearMapping(columnMapping[field]!)}
+              />
+            </Tooltip>
+          )}
+          <Box w="200px" fontSize="sm" color="gray.600" isTruncated>
+            {getColumnPreview(columnMapping[field], excelData.rows)}
+          </Box>
+        </HStack>
+      ))}
+      <FormControl>
+        <HStack spacing={2}>
+          <Text w="150px">Manual Brand:</Text>
+          <Tooltip label="Enter a brand to apply to all rows">
+            <Input
+              placeholder="Add Brand for All Rows (Optional)"
+              value={manualBrand}
+              onChange={e => setManualBrand(e.target.value)}
+              disabled={columnMapping.brand !== null}
+              aria-label="Manual brand input"
+              flex="1"
+            />
+          </Tooltip>
+          <Button
+            colorScheme="green"
+            size="sm"
+            onClick={applyManualBrand}
+            isDisabled={!manualBrand.trim() || columnMapping.brand !== null}
+          >
+            Apply
+          </Button>
+          {isManualBrandApplied && (
+            <Button colorScheme="red" variant="outline" size="sm" onClick={removeManualBrand}>
+              Remove
+            </Button>
+          )}
+        </HStack>
+        {isManualBrandApplied && (
+          <Badge colorScheme="green" mt={2}>
+            Manual Brand Column Applied
+          </Badge>
+        )}
+      </FormControl>
+    </VStack>
+
             <Text fontSize="lg" fontWeight="bold" mt={4}>Data Preview</Text>
             <Box overflowX="auto" maxH="40vh" borderWidth="1px" borderRadius="md" p={2}>
               <Table size="sm">
