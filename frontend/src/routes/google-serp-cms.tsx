@@ -32,9 +32,9 @@ import * as XLSX from 'xlsx';
 import useCustomToast from '../hooks/useCustomToast';
 
 // Constants
-type ColumnType = 'style' | 'brand' | 'category' | 'colorName' | 'readImage' | 'imageAdd';
+type ColumnType = 'style' | 'brand' | 'category' | 'colorName';
 const REQUIRED_COLUMNS: ColumnType[] = ['style', 'brand'];
-const OPTIONAL_COLUMNS: ColumnType[] = ['category', 'colorName', 'readImage', 'imageAdd'];
+const OPTIONAL_COLUMNS: ColumnType[] = ['category', 'colorName'];
 const ALL_COLUMNS: ColumnType[] = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS];
 const SERVER_URL = 'https://external.iconluxury.group';
 const MAX_PREVIEW_ROWS = 10;
@@ -43,10 +43,10 @@ const MAX_FILE_SIZE_MB = 10;
 // Types
 type CellValue = string | number | boolean | null;
 type ExcelData = { headers: string[]; rows: CellValue[][] };
-type ColumnMapping = Record<typeof ALL_COLUMNS[number], number | null>;
+type ColumnMapping = Record<ColumnType | 'readImage' | 'imageAdd', number | null>;
 type ToastFunction = (title: string, description: string, status: 'error' | 'warning' | 'success') => void;
 
-// Helper Functions (unchanged for brevity)
+// Helper Functions
 const getDisplayValue = (value: any): string => {
   if (value == null) return '';
   if (value instanceof Date) return value.toLocaleString();
@@ -92,28 +92,31 @@ const detectHeaderRow = (rows: CellValue[][]): number => {
   }
   return bestIndex;
 };
+
 const getColumnPreview = (columnIndex: number | null, rows: CellValue[][]): string => {
   if (columnIndex === null || columnIndex < 0 || columnIndex >= rows[0]?.length) return 'No values';
   const values = rows
     .map(row => getDisplayValue(row[columnIndex]))
     .filter(value => value.trim() !== '')
-    .slice(0, 3); // Get up to 3 non-empty values
+    .slice(0, 3);
   return values.length > 0 ? values.join(', ') : 'No values';
 };
+
 const autoMapColumns = (headers: string[]): ColumnMapping => {
   const mapping: ColumnMapping = {
     style: null,
     brand: null,
-    imageAdd: null,
-    readImage: null,
     category: null,
     colorName: null,
+    readImage: null,
+    imageAdd: null,
   };
   const patterns = {
     style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))/i,
     brand: /^(brand|manufacturer|make|label|designer|vendor)/i,
     category: /^(category|type|product\s*type|group)/i,
     colorName: /^(color|colour\s*$|color\s*name|colour\s*name)/i,
+    image: /^(image|photo|picture|img|readImage|imageAdd)/i,
   };
   headers.forEach((header, index) => {
     const normalizedHeader = header.trim().toUpperCase();
@@ -122,6 +125,10 @@ const autoMapColumns = (headers: string[]): ColumnMapping => {
     else if (patterns.brand.test(normalizedHeader) && mapping.brand === null) mapping.brand = index;
     else if (patterns.category.test(normalizedHeader) && mapping.category === null) mapping.category = index;
     else if (patterns.colorName.test(normalizedHeader) && mapping.colorName === null) mapping.colorName = index;
+    else if (patterns.image.test(normalizedHeader) && mapping.readImage === null && mapping.imageAdd === null) {
+      mapping.readImage = index;
+      mapping.imageAdd = index;
+    }
   });
   return mapping;
 };
@@ -140,10 +147,10 @@ const CMSGoogleSerpForm: React.FC = () => {
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
     style: null,
     brand: null,
-    imageAdd: null,
-    readImage: null,
     category: null,
     colorName: null,
+    readImage: null,
+    imageAdd: null,
   });
   const [manualBrand, setManualBrand] = useState('');
   const [isManualBrandApplied, setIsManualBrandApplied] = useState(false);
@@ -231,47 +238,47 @@ const CMSGoogleSerpForm: React.FC = () => {
 
   // Column Mapping
   const handleColumnMap = useCallback(
-  (index: number, field: string) => {
-    if (field && !ALL_COLUMNS.includes(field as ColumnType)) return;
-    setColumnMapping(prev => {
-      const newMapping = { ...prev };
-      // Clear any existing mapping for this index
-      (Object.keys(newMapping) as (keyof ColumnMapping)[]).forEach(key => {
-        if (newMapping[key] === index) newMapping[key] = null;
-      });
-      // Apply new mapping if field is valid
-      if (field && ALL_COLUMNS.includes(field as ColumnType)) {
-        newMapping[field as keyof ColumnMapping] = index;
-        if (field === 'brand') {
-          setManualBrand('');
-          setIsManualBrandApplied(false);
-        }
-      }
-      return newMapping;
-    });
-  },
-  []
-);
-
-  // Clear Mapping
-  const handleClearMapping = useCallback(
-  (index: number) => {
-    setColumnMapping(prev => {
-      const newMapping = { ...prev };
-      (Object.keys(newMapping) as (keyof ColumnMapping)[]).forEach(key => {
-        if (newMapping[key] === index) {
-          newMapping[key] = null;
-          if (key === 'brand') {
+    (index: number, field: string) => {
+      if (field && !ALL_COLUMNS.includes(field as ColumnType)) return;
+      setColumnMapping(prev => {
+        const newMapping = { ...prev };
+        (Object.keys(newMapping) as (keyof ColumnMapping)[]).forEach(key => {
+          if (newMapping[key] === index && key !== 'readImage' && key !== 'imageAdd') {
+            newMapping[key] = null;
+          }
+        });
+        if (field && ALL_COLUMNS.includes(field as ColumnType)) {
+          newMapping[field as keyof ColumnMapping] = index;
+          if (field === 'brand') {
             setManualBrand('');
             setIsManualBrandApplied(false);
           }
         }
+        return newMapping;
       });
-      return newMapping;
-    });
-  },
-  []
-);
+    },
+    []
+  );
+
+  // Clear Mapping
+  const handleClearMapping = useCallback(
+    (index: number) => {
+      setColumnMapping(prev => {
+        const newMapping = { ...prev };
+        (Object.keys(newMapping) as (keyof ColumnMapping)[]).forEach(key => {
+          if (newMapping[key] === index && key !== 'readImage' && key !== 'imageAdd') {
+            newMapping[key] = null;
+            if (key === 'brand') {
+              setManualBrand('');
+              setIsManualBrandApplied(false);
+            }
+          }
+        });
+        return newMapping;
+      });
+    },
+    []
+  );
 
   // Manual Brand
   const applyManualBrand = useCallback(() => {
@@ -347,13 +354,13 @@ const CMSGoogleSerpForm: React.FC = () => {
       });
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Server Response:', response.status, errorText); // Log status and response
+        console.error('Server Response:', response.status, errorText);
         throw new Error(`Server error: ${errorText || response.statusText}`);
       }
       showToast('Success', 'Form submitted successfully', 'success');
       setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
-      console.error('Fetch Error:', error); // Log full error
+      console.error('Fetch Error:', error);
       showToast('Submission Error', error instanceof Error ? error.message : 'Failed to submit', 'error');
       setStep('map');
     } finally {
@@ -501,129 +508,129 @@ const CMSGoogleSerpForm: React.FC = () => {
         )}
 
         {/* Map Step */}
-{step === 'map' && (
-  <VStack spacing={4} align="stretch">
-    <Text fontSize="lg" fontWeight="bold">Map Columns</Text>
-    {!validateForm.isValid && (
-      <Alert status="warning">
-        <AlertIcon />
-        <AlertTitle>Missing Required Columns:</AlertTitle>
-        <AlertDescription>{validateForm.missing.join(', ')}</AlertDescription>
-      </Alert>
-    )}
-    <VStack spacing={4} align="stretch" bg="gray.50" p={4} borderRadius="md">
-      <Text fontWeight="bold">Required Columns</Text>
-      {REQUIRED_COLUMNS.map(field => (
-        <HStack key={field} spacing={2} align="center">
-          <Text w="150px">{field}:</Text>
-          <Tooltip label={`Select Excel column for ${field}`}>
-            <Select
-              value={columnMapping[field] !== null ? columnMapping[field]! : ''}
-              onChange={e => handleColumnMap(Number(e.target.value), field)}
-              placeholder="Unmapped"
-              aria-label={`Map ${field} column`}
-              flex="1"
-            >
-              <option value="">Unmapped</option>
-              {excelData.headers.map((header, index) => (
-                <option
-                  key={index}
-                  value={index}
-                  disabled={Object.values(columnMapping).includes(index) && columnMapping[field] !== index}
-                >
-                  {header || `Column ${indexToColumnLetter(index)}`}
-                </option>
+        {step === 'map' && (
+          <VStack spacing={4} align="stretch">
+            <Text fontSize="lg" fontWeight="bold">Map Columns</Text>
+            {!validateForm.isValid && (
+              <Alert status="warning">
+                <AlertIcon />
+                <AlertTitle>Missing Required Columns:</AlertTitle>
+                <AlertDescription>{validateForm.missing.join(', ')}</AlertDescription>
+              </Alert>
+            )}
+            <VStack spacing={4} align="stretch" bg="gray.50" p={4} borderRadius="md">
+              <Text fontWeight="bold">Required Columns</Text>
+              {REQUIRED_COLUMNS.map(field => (
+                <HStack key={field} spacing={2} align="center">
+                  <Text w="150px">{field}:</Text>
+                  <Tooltip label={`Select Excel column for ${field}`}>
+                    <Select
+                      value={columnMapping[field] !== null ? columnMapping[field]! : ''}
+                      onChange={e => handleColumnMap(Number(e.target.value), field)}
+                      placeholder="Unmapped"
+                      aria-label={`Map ${field} column`}
+                      flex="1"
+                    >
+                      <option value="">Unmapped</option>
+                      {excelData.headers.map((header, index) => (
+                        <option
+                          key={index}
+                          value={index}
+                          disabled={Object.values(columnMapping).includes(index) && columnMapping[field] !== index}
+                        >
+                          {header || `Column ${indexToColumnLetter(index)}`}
+                        </option>
+                      ))}
+                    </Select>
+                  </Tooltip>
+                  {columnMapping[field] !== null && (
+                    <Tooltip label="Clear mapping">
+                      <IconButton
+                        aria-label={`Clear ${field} mapping`}
+                        icon={<CloseIcon />}
+                        size="sm"
+                        onClick={() => handleClearMapping(columnMapping[field]!)}
+                      />
+                    </Tooltip>
+                  )}
+                  <Box w="200px" fontSize="sm" color="gray.600" isTruncated>
+                    {getColumnPreview(columnMapping[field], excelData.rows)}
+                  </Box>
+                </HStack>
               ))}
-            </Select>
-          </Tooltip>
-          {columnMapping[field] !== null && (
-            <Tooltip label="Clear mapping">
-              <IconButton
-                aria-label={`Clear ${field} mapping`}
-                icon={<CloseIcon />}
-                size="sm"
-                onClick={() => handleClearMapping(columnMapping[field]!)}
-              />
-            </Tooltip>
-          )}
-          <Box w="200px" fontSize="sm" color="gray.600" isTruncated>
-            {getColumnPreview(columnMapping[field], excelData.rows)}
-          </Box>
-        </HStack>
-      ))}
-       <FormControl>
-        <HStack spacing={2}>
-          <Text w="150px">Manual Brand:</Text>
-          <Tooltip label="Enter a brand to apply to all rows">
-            <Input
-              placeholder="Add Brand for All Rows (Optional)"
-              value={manualBrand}
-              onChange={e => setManualBrand(e.target.value)}
-              disabled={columnMapping.brand !== null}
-              aria-label="Manual brand input"
-              flex="1"
-            />
-          </Tooltip>
-          <Button
-            colorScheme="green"
-            size="sm"
-            onClick={applyManualBrand}
-            isDisabled={!manualBrand.trim() || columnMapping.brand !== null}
-          >
-            Apply
-          </Button>
-          {isManualBrandApplied && (
-            <Button colorScheme="red" variant="outline" size="sm" onClick={removeManualBrand}>
-              Remove
-            </Button>
-          )}
-        </HStack>
-        {isManualBrandApplied && (
-          <Badge colorScheme="green" mt={2}>
-            Manual Brand Column Applied
-          </Badge>
-        )}
-      </FormControl>
-      <Text fontWeight="bold" mt={4}>Optional Columns</Text>
-      {OPTIONAL_COLUMNS.map(field => (
-        <HStack key={field} spacing={2} align="center">
-          <Text w="150px">{field}:</Text>
-          <Tooltip label={`Select Excel column for ${field}`}>
-            <Select
-              value={columnMapping[field] !== null ? columnMapping[field]! : ''}
-              onChange={e => handleColumnMap(Number(e.target.value), field)}
-              placeholder="Unmapped"
-              aria-label={`Map ${field} column`}
-              flex="1"
-            >
-              <option value="">Unmapped</option>
-              {excelData.headers.map((header, index) => (
-                <option
-                  key={index}
-                  value={index}
-                  disabled={Object.values(columnMapping).includes(index) && columnMapping[field] !== index}
-                >
-                  {header || `Column ${indexToColumnLetter(index)}`}
-                </option>
+              <FormControl>
+                <HStack spacing={2}>
+                  <Text w="150px">Manual Brand:</Text>
+                  <Tooltip label="Enter a brand to apply to all rows">
+                    <Input
+                      placeholder="Add Brand for All Rows (Optional)"
+                      value={manualBrand}
+                      onChange={e => setManualBrand(e.target.value)}
+                      disabled={columnMapping.brand !== null}
+                      aria-label="Manual brand input"
+                      flex="1"
+                    />
+                  </Tooltip>
+                  <Button
+                    colorScheme="green"
+                    size="sm"
+                    onClick={applyManualBrand}
+                    isDisabled={!manualBrand.trim() || columnMapping.brand !== null}
+                  >
+                    Apply
+                  </Button>
+                  {isManualBrandApplied && (
+                    <Button colorScheme="red" variant="outline" size="sm" onClick={removeManualBrand}>
+                      Remove
+                    </Button>
+                  )}
+                </HStack>
+                {isManualBrandApplied && (
+                  <Badge colorScheme="green" mt={2}>
+                    Manual Brand Column Applied
+                  </Badge>
+                )}
+              </FormControl>
+              <Text fontWeight="bold" mt={4}>Optional Columns</Text>
+              {OPTIONAL_COLUMNS.map(field => (
+                <HStack key={field} spacing={2} align="center">
+                  <Text w="150px">{field}:</Text>
+                  <Tooltip label={`Select Excel column for ${field}`}>
+                    <Select
+                      value={columnMapping[field] !== null ? columnMapping[field]! : ''}
+                      onChange={e => handleColumnMap(Number(e.target.value), field)}
+                      placeholder="Unmapped"
+                      aria-label={`Map ${field} column`}
+                      flex="1"
+                    >
+                      <option value="">Unmapped</option>
+                      {excelData.headers.map((header, index) => (
+                        <option
+                          key={index}
+                          value={index}
+                          disabled={Object.values(columnMapping).includes(index) && columnMapping[field] !== index}
+                        >
+                          {header || `Column ${indexToColumnLetter(index)}`}
+                        </option>
+                      ))}
+                    </Select>
+                  </Tooltip>
+                  {columnMapping[field] !== null && (
+                    <Tooltip label="Clear mapping">
+                      <IconButton
+                        aria-label={`Clear ${field} mapping`}
+                        icon={<CloseIcon />}
+                        size="sm"
+                        onClick={() => handleClearMapping(columnMapping[field]!)}
+                      />
+                    </Tooltip>
+                  )}
+                  <Box w="200px" fontSize="sm" color="gray.600" isTruncated>
+                    {getColumnPreview(columnMapping[field], excelData.rows)}
+                  </Box>
+                </HStack>
               ))}
-            </Select>
-          </Tooltip>
-          {columnMapping[field] !== null && (
-            <Tooltip label="Clear mapping">
-              <IconButton
-                aria-label={`Clear ${field} mapping`}
-                icon={<CloseIcon />}
-                size="sm"
-                onClick={() => handleClearMapping(columnMapping[field]!)}
-              />
-            </Tooltip>
-          )}
-          <Box w="200px" fontSize="sm" color="gray.600" isTruncated>
-            {getColumnPreview(columnMapping[field], excelData.rows)}
-          </Box>
-        </HStack>
-      ))}
-    </VStack>
+            </VStack>
 
             <Text fontSize="lg" fontWeight="bold" mt={4}>Data Preview</Text>
             <Box overflowX="auto" maxH="40vh" borderWidth="1px" borderRadius="md" p={2}>
@@ -705,7 +712,7 @@ const CMSGoogleSerpForm: React.FC = () => {
               <Text>Rows: {excelData.rows.length}</Text>
               <Text>Mapped Columns:</Text>
               {getColumnMappingEntries(columnMapping)
-                .filter(([, index]) => index !== null)
+                .filter(([col, index]) => index !== null && col !== 'readImage' && col !== 'imageAdd')
                 .map(([col, index]) => (
                   <Text key={col} pl={4}>
                     - {col}: {excelData.headers[index!]}
