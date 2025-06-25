@@ -614,7 +614,6 @@ const CMSGoogleSerpForm: React.FC = () => {
                 </HStack>
               ))}
             </VStack>
-            <Text fontSize="lg" fontWeight="bold" mt={4}>Data Preview</Text>
             <Box overflowX="auto" maxH="40vh" borderWidth="1px" borderRadius="md" p={2}>
               <Table size="sm">
                 <Thead>
@@ -660,7 +659,6 @@ const CMSGoogleSerpForm: React.FC = () => {
         {/* Submit Step */}
         {step === 'submit' && (
           <VStack spacing={4} align="stretch">
-            <Text fontSize="lg" fontWeight="bold">Review and Submit</Text>
             <VStack align="start" spacing={4}>
               <Text>Rows: {excelData.rows.length}</Text>
               <Text>Mapped Columns:</Text>
@@ -690,7 +688,6 @@ const CMSGoogleSerpForm: React.FC = () => {
                 Output as Icon Distro
               </Checkbox>
             </VStack>
-            <Text fontSize="lg" fontWeight="bold" mt={4}>Data Preview</Text>
             <Box overflowX="auto" maxH="40vh" borderWidth="1px" borderRadius="md" p={2}>
               <Table size="sm">
                 <Thead>
