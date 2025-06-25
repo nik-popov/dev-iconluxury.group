@@ -410,14 +410,14 @@ const CMSGoogleSerpForm: React.FC = () => {
               </FormControl>
               {isLoading && <Spinner mt={4} />}
             </Box>
-            <Box flex="1" fontSize="sm" lineHeight="short">
+            {/* <Box flex="1" fontSize="sm" lineHeight="short">
               <Text fontWeight="bold" mb={2}>Required Fields</Text>
               <Text>Style #: Unique identifier for the product (e.g., SKU, Item #)</Text>
               <Text>Brand: Manufacturer or designer name</Text>
               <Text fontWeight="bold" mt={4} mb={2}>Optional Fields</Text>
               <Text>Category: Product type or group</Text>
               <Text>Color Name: Color of the product</Text>
-            </Box>
+            </Box> */}
           </Flex>
         )}
 
