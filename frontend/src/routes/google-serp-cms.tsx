@@ -551,6 +551,39 @@ const CMSGoogleSerpForm: React.FC = () => {
           </Box>
         </HStack>
       ))}
+       <FormControl>
+        <HStack spacing={2}>
+          <Text w="150px">Manual Brand:</Text>
+          <Tooltip label="Enter a brand to apply to all rows">
+            <Input
+              placeholder="Add Brand for All Rows (Optional)"
+              value={manualBrand}
+              onChange={e => setManualBrand(e.target.value)}
+              disabled={columnMapping.brand !== null}
+              aria-label="Manual brand input"
+              flex="1"
+            />
+          </Tooltip>
+          <Button
+            colorScheme="green"
+            size="sm"
+            onClick={applyManualBrand}
+            isDisabled={!manualBrand.trim() || columnMapping.brand !== null}
+          >
+            Apply
+          </Button>
+          {isManualBrandApplied && (
+            <Button colorScheme="red" variant="outline" size="sm" onClick={removeManualBrand}>
+              Remove
+            </Button>
+          )}
+        </HStack>
+        {isManualBrandApplied && (
+          <Badge colorScheme="green" mt={2}>
+            Manual Brand Column Applied
+          </Badge>
+        )}
+      </FormControl>
       <Text fontWeight="bold" mt={4}>Optional Columns</Text>
       {OPTIONAL_COLUMNS.map(field => (
         <HStack key={field} spacing={2} align="center">
@@ -590,39 +623,6 @@ const CMSGoogleSerpForm: React.FC = () => {
           </Box>
         </HStack>
       ))}
-      <FormControl>
-        <HStack spacing={2}>
-          <Text w="150px">Manual Brand:</Text>
-          <Tooltip label="Enter a brand to apply to all rows">
-            <Input
-              placeholder="Add Brand for All Rows (Optional)"
-              value={manualBrand}
-              onChange={e => setManualBrand(e.target.value)}
-              disabled={columnMapping.brand !== null}
-              aria-label="Manual brand input"
-              flex="1"
-            />
-          </Tooltip>
-          <Button
-            colorScheme="green"
-            size="sm"
-            onClick={applyManualBrand}
-            isDisabled={!manualBrand.trim() || columnMapping.brand !== null}
-          >
-            Apply
-          </Button>
-          {isManualBrandApplied && (
-            <Button colorScheme="red" variant="outline" size="sm" onClick={removeManualBrand}>
-              Remove
-            </Button>
-          )}
-        </HStack>
-        {isManualBrandApplied && (
-          <Badge colorScheme="green" mt={2}>
-            Manual Brand Column Applied
-          </Badge>
-        )}
-      </FormControl>
     </VStack>
 
             <Text fontSize="lg" fontWeight="bold" mt={4}>Data Preview</Text>
