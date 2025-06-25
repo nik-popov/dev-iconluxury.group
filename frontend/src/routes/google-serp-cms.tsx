@@ -23,7 +23,10 @@ import {
   Checkbox,
   Tooltip,
   Badge,
+  IconButton,
+  Flex,
 } from '@chakra-ui/react';
+import { CloseIcon } from '@chakra-ui/icons';
 import { createFileRoute } from '@tanstack/react-router';
 import * as XLSX from 'xlsx';
 import useCustomToast from '../hooks/useCustomToast';
@@ -43,7 +46,7 @@ type ExcelData = { headers: string[]; rows: CellValue[][] };
 type ColumnMapping = Record<typeof ALL_COLUMNS[number], number | null>;
 type ToastFunction = (title: string, description: string, status: 'error' | 'warning' | 'success') => void;
 
-// Helper Functions
+// Helper Functions (unchanged for brevity)
 const getDisplayValue = (value: any): string => {
   if (value == null) return '';
   if (value instanceof Date) return value.toLocaleString();
@@ -77,7 +80,7 @@ const detectHeaderRow = (rows: CellValue[][]): number => {
   for (let i = 0; i < Math.min(50, rows.length); i++) {
     const rowValues = rows[i]
       .map(cell => String(cell ?? '').trim())
-      .filter(value => value !== '') as string[]; // Force string[] type
+      .filter(value => value !== '') as string[];
     const nonEmptyCount = rowValues.length;
     if (nonEmptyCount < 2) continue;
     const hasHeaderMatch = rowValues.some((value: string) => patterns.style.test(value) || patterns.brand.test(value));
@@ -144,65 +147,64 @@ const CMSGoogleSerpForm: React.FC = () => {
 
   // File Upload
   const handleFileChange = useCallback(
-  async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (!selectedFile) {
-      showToast('File Error', 'No file selected', 'error');
-      return;
-    }
-    if (!['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'].includes(selectedFile.type)) {
-      showToast('File Error', 'Please upload an Excel file (.xlsx or .xls)', 'error');
-      return;
-    }
-    if (selectedFile.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      showToast('File Error', `File size exceeds ${MAX_FILE_SIZE_MB}MB`, 'error');
-      return;
-    }
-
-    setFile(selectedFile);
-    setIsLoading(true);
-    try {
-      const data = await selectedFile.arrayBuffer();
-      const workbook = XLSX.read(data, { type: 'array' });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      if (!worksheet) throw new Error('No worksheet found');
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-      if (jsonData.length === 0) throw new Error('Excel file is empty');
-
-      const detectedHeaderIndex = detectHeaderRow(jsonData as CellValue[][]);
-      const patterns = {
-        style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))/i,
-        brand: /^(brand|manufacturer|make|label|designer|vendor)/i,
-      };
-      // Explicitly map first row to strings
-      const firstRow: string[] = (jsonData[0] as any[]).map(cell => String(cell ?? '').trim());
-      if (detectedHeaderIndex === 0 && !firstRow.some(cell => patterns.style.test(cell) || patterns.brand.test(cell))) {
-        showToast('Warning', 'No clear header row detected; using first row. Please verify in the Preview step.', 'warning');
-      }
-      setRawData(jsonData as CellValue[][]);
-      if (jsonData.length <= detectedHeaderIndex || detectedHeaderIndex < 0) {
-        showToast('File Error', 'Invalid header row detected. Please select a header row in the Preview step.', 'error');
-        setHeaderIndex(0);
-        setExcelData({ headers: [], rows: [] });
-        setFile(null);
-        setStep('upload');
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const selectedFile = event.target.files?.[0];
+      if (!selectedFile) {
+        showToast('File Error', 'No file selected', 'error');
         return;
       }
-      setHeaderIndex(detectedHeaderIndex);
-      const headers = (jsonData[detectedHeaderIndex] as any[]).map(cell => String(cell ?? ''));
-      const rows = jsonData.slice(detectedHeaderIndex + 1).slice(0, MAX_PREVIEW_ROWS) as CellValue[][];
-      setExcelData({ headers, rows });
-      setColumnMapping(autoMapColumns(headers));
-      setStep('preview');
-    } catch (error) {
-      showToast('File Processing Error', error instanceof Error ? error.message : 'Unknown error', 'error');
-      setFile(null);
-    } finally {
-      setIsLoading(false);
-    }
-  },
-  [showToast]
-);
+      if (!['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'].includes(selectedFile.type)) {
+        showToast('File Error', 'Please upload an Excel file (.xlsx or .xls)', 'error');
+        return;
+      }
+      if (selectedFile.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+        showToast('File Error', `File size exceeds ${MAX_FILE_SIZE_MB}MB`, 'error');
+        return;
+      }
+
+      setFile(selectedFile);
+      setIsLoading(true);
+      try {
+        const data = await selectedFile.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        if (!worksheet) throw new Error('No worksheet found');
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+        if (jsonData.length === 0) throw new Error('Excel file is empty');
+
+        const detectedHeaderIndex = detectHeaderRow(jsonData as CellValue[][]);
+        const patterns = {
+          style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))/i,
+          brand: /^(brand|manufacturer|make|label|designer|vendor)/i,
+        };
+        const firstRow: string[] = (jsonData[0] as any[]).map(cell => String(cell ?? '').trim());
+        if (detectedHeaderIndex === 0 && !firstRow.some(cell => patterns.style.test(cell) || patterns.brand.test(cell))) {
+          showToast('Warning', 'No clear header row detected; using first row. Please verify in the Preview step.', 'warning');
+        }
+        setRawData(jsonData as CellValue[][]);
+        if (jsonData.length <= detectedHeaderIndex || detectedHeaderIndex < 0) {
+          showToast('File Error', 'Invalid header row detected. Please select a header row in the Preview step.', 'error');
+          setHeaderIndex(0);
+          setExcelData({ headers: [], rows: [] });
+          setFile(null);
+          setStep('upload');
+          return;
+        }
+        setHeaderIndex(detectedHeaderIndex);
+        const headers = (jsonData[detectedHeaderIndex] as any[]).map(cell => String(cell ?? ''));
+        const rows = jsonData.slice(detectedHeaderIndex + 1).slice(0, MAX_PREVIEW_ROWS) as CellValue[][];
+        setExcelData({ headers, rows });
+        setColumnMapping(autoMapColumns(headers));
+        setStep('preview');
+      } catch (error) {
+        showToast('File Processing Error', error instanceof Error ? error.message : 'Unknown error', 'error');
+        setFile(null);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [showToast]
+  );
 
   // Header Row Selection
   const handleHeaderChange = useCallback(
@@ -222,25 +224,40 @@ const CMSGoogleSerpForm: React.FC = () => {
 
   // Column Mapping
   const handleColumnMap = useCallback(
-  (index: number, field: string) => {
-    if (field && !ALL_COLUMNS.includes(field as (typeof ALL_COLUMNS)[number])) return;
-    setColumnMapping(prev => {
-      const newMapping = { ...prev };
-      (Object.keys(newMapping) as (keyof ColumnMapping)[]).forEach(key => {
-        if (newMapping[key] === index) newMapping[key] = null;
-      });
-      if (field && ALL_COLUMNS.includes(field as (typeof ALL_COLUMNS)[number])) {
-        newMapping[field as keyof ColumnMapping] = index;
-        if (field === 'brand') {
-          setManualBrand('');
-          setIsManualBrandApplied(false);
+    (index: number, field: string) => {
+      if (field && !ALL_COLUMNS.includes(field as (typeof ALL_COLUMNS)[number])) return;
+      setColumnMapping(prev => {
+        const newMapping = { ...prev };
+        (Object.keys(newMapping) as (keyof ColumnMapping)[]).forEach(key => {
+          if (newMapping[key] === index) newMapping[key] = null;
+        });
+        if (field && ALL_COLUMNS.includes(field as (typeof ALL_COLUMNS)[number])) {
+          newMapping[field as keyof ColumnMapping] = index;
+          if (field === 'brand') {
+            setManualBrand('');
+            setIsManualBrandApplied(false);
+          }
         }
-      }
-      return newMapping;
-    });
-  },
-  []
-);
+        return newMapping;
+      });
+    },
+    []
+  );
+
+  // Clear Mapping
+  const handleClearMapping = useCallback(
+    (index: number) => {
+      setColumnMapping(prev => {
+        const newMapping = { ...prev };
+        (Object.keys(newMapping) as (keyof ColumnMapping)[]).forEach(key => {
+          if (newMapping[key] === index) newMapping[key] = null;
+        });
+        return newMapping;
+      });
+    },
+    []
+  );
+
   // Manual Brand
   const applyManualBrand = useCallback(() => {
     if (!manualBrand.trim()) {
@@ -350,24 +367,36 @@ const CMSGoogleSerpForm: React.FC = () => {
 
         {/* Upload Step */}
         {step === 'upload' && (
-          <VStack spacing={4}>
-            <Text fontSize="lg" fontWeight="bold">Upload Excel File</Text>
-            <FormControl>
-              <Tooltip label="Upload an Excel file (.xlsx or .xls) up to 10MB">
-                <Input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={handleFileChange}
-                  disabled={isLoading}
-                  bg="white"
-                  borderColor="gray.300"
-                  p={1}
-                  aria-label="Upload Excel file"
-                />
-              </Tooltip>
-            </FormControl>
-            {isLoading && <Spinner />}
-          </VStack>
+          <Flex direction={{ base: 'column', md: 'row' }} gap={6}>
+            <Box flex="1">
+              <Text fontSize="lg" fontWeight="bold" mb={4}>Upload Excel File</Text>
+              <FormControl>
+                <Tooltip label="Upload an Excel file (.xlsx or .xls) up to 10MB">
+                  <Input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleFileChange}
+                    disabled={isLoading}
+                    bg="white"
+                    borderColor="gray.300"
+                    p={1}
+                    aria-label="Upload Excel file"
+                  />
+                </Tooltip>
+              </FormControl>
+              {isLoading && <Spinner mt={4} />}
+            </Box>
+            <Box flex="1" fontSize="sm" lineHeight="short">
+              <Text fontWeight="bold" mb={2}>Required Fields</Text>
+              <Text>Style #: Unique identifier for the product (e.g., SKU, Item #)</Text>
+              <Text>Brand: Manufacturer or designer name</Text>
+              <Text fontWeight="bold" mt={4} mb={2}>Optional Fields</Text>
+              <Text>Category: Product type or group</Text>
+              <Text>Color Name: Color of the product</Text>
+              <Text>Image Read: Column for existing image data</Text>
+              <Text>Image Add: Column for new image data</Text>
+            </Box>
+          </Flex>
         )}
 
         {/* Preview Step */}
@@ -480,21 +509,33 @@ const CMSGoogleSerpForm: React.FC = () => {
                     <Tr key={index}>
                       <Td>{header || `Column ${indexToColumnLetter(index)}`}</Td>
                       <Td>
-                        <Tooltip label="Select the field this column represents">
-                          <Select
-                            value={getColumnMappingEntries(columnMapping).find(([, colIndex]) => colIndex === index)?.[0] || ''}
-                            onChange={e => handleColumnMap(index, e.target.value)}
-                            placeholder="Unmapped"
-                            aria-label={`Map column ${header || indexToColumnLetter(index)}`}
-                          >
-                            <option value="">Unmapped</option>
-                            {ALL_COLUMNS.map(col => (
-                              <option key={col} value={col}>
-                                {col} {REQUIRED_COLUMNS.includes(col) ? '(Required)' : '(Optional)'}
-                              </option>
-                            ))}
-                          </Select>
-                        </Tooltip>
+                        <HStack>
+                          <Tooltip label="Select the field this column represents">
+                            <Select
+                              value={getColumnMappingEntries(columnMapping).find(([, colIndex]) => colIndex === index)?.[0] || ''}
+                              onChange={e => handleColumnMap(index, e.target.value)}
+                              placeholder="Unmapped"
+                              aria-label={`Map column ${header || indexToColumnLetter(index)}`}
+                            >
+                              <option value="">Unmapped</option>
+                              {ALL_COLUMNS.map(col => (
+                                <option key={col} value={col}>
+                                  {col} {REQUIRED_COLUMNS.includes(col) ? '(Required)' : '(Optional)'}
+                                </option>
+                              ))}
+                            </Select>
+                          </Tooltip>
+                          {getColumnMappingEntries(columnMapping).some(([, colIndex]) => colIndex === index) && (
+                            <Tooltip label="Clear mapping">
+                              <IconButton
+                                aria-label="Clear mapping"
+                                icon={<CloseIcon />}
+                                size="sm"
+                                onClick={() => handleClearMapping(index)}
+                              />
+                            </Tooltip>
+                          )}
+                        </HStack>
                       </Td>
                     </Tr>
                   ))}
