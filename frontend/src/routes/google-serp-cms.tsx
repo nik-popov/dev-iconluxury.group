@@ -454,7 +454,6 @@ const CMSGoogleSerpForm: React.FC = () => {
         {/* Header Selection Step */}
         {step === 'preview' && (
           <VStack spacing={4} align="stretch">
-            <Text fontSize="lg" fontWeight="bold">Select Header Row</Text>
             <HStack>
               <Text>Select Header Row:</Text>
               <Select
@@ -495,7 +494,6 @@ const CMSGoogleSerpForm: React.FC = () => {
         {/* Map Step */}
         {step === 'map' && (
           <VStack spacing={4} align="stretch">
-            <Text fontSize="lg" fontWeight="bold">Map Columns</Text>
             {!validateForm.isValid && (
               <Alert status="warning">
                 <AlertIcon />
