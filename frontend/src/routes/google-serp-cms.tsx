@@ -378,7 +378,7 @@ const CMSGoogleSerpForm: React.FC = () => {
             <Text
               key={s}
               fontWeight={step === s.toLowerCase() ? 'bold' : 'normal'}
-              color={step === s.toLowerCase() ? 'blue.500' : 'gray.500'}
+              color={step === s.toLowerCase() ? 'teal.500' : 'gray.500'}
               cursor="pointer"
               onClick={() => {
                 if (i < ['upload', 'preview', 'map', 'submit'].indexOf(step)) setStep(s.toLowerCase() as typeof step);
@@ -440,6 +440,14 @@ const CMSGoogleSerpForm: React.FC = () => {
                 ))}
               </Select>
             </HStack>
+            <HStack>
+              <Button onClick={() => setStep('upload')} variant="outline" colorScheme="gray" size="sm">
+                Back
+              </Button>
+              <Button colorScheme="teal" onClick={() => setStep('map')} size="sm">
+                Next: Map Columns
+              </Button>
+            </HStack>
             <Box overflowX="auto" maxH="60vh" borderWidth="1px" borderRadius="md" p={2}>
               <Table size="sm">
                 <Thead>
@@ -484,24 +492,20 @@ const CMSGoogleSerpForm: React.FC = () => {
                 onClick={() => setPage(prev => Math.max(1, prev - 1))}
                 isDisabled={page === 1}
                 variant="outline"
+                colorScheme="gray"
+                size="sm"
               >
                 Previous
               </Button>
-              <Text>Page {page}</Text>
+              <Text fontSize="sm">Page {page}</Text>
               <Button
                 onClick={() => setPage(prev => prev + 1)}
                 isDisabled={(page * rowsPerPage) >= excelData.rows.length}
                 variant="outline"
+                colorScheme="gray"
+                size="sm"
               >
                 Next
-              </Button>
-            </HStack>
-            <HStack>
-              <Button onClick={() => setStep('upload')} variant="outline">
-                Back
-              </Button>
-              <Button colorScheme="blue" onClick={() => setStep('map')}>
-                Next: Map Columns
               </Button>
             </HStack>
           </VStack>
@@ -572,7 +576,7 @@ const CMSGoogleSerpForm: React.FC = () => {
                     />
                   </Tooltip>
                   <Button
-                    colorScheme="green"
+                    colorScheme="teal"
                     size="sm"
                     onClick={applyManualBrand}
                     isDisabled={!manualBrand.trim() || columnMapping.brand !== null}
@@ -586,7 +590,7 @@ const CMSGoogleSerpForm: React.FC = () => {
                   )}
                 </HStack>
                 {isManualBrandApplied && (
-                  <Badge colorScheme="green" mt={2}>
+                  <Badge colorScheme="teal" mt={2}>
                     Manual Brand Column Applied
                   </Badge>
                 )}
@@ -633,6 +637,16 @@ const CMSGoogleSerpForm: React.FC = () => {
             </VStack>
 
             <Text fontSize="lg" fontWeight="bold" mt={4}>Data Preview</Text>
+            <HStack justify="space-between">
+              <HStack>
+                <Button onClick={() => setStep('preview')} variant="outline" colorScheme="gray" size="sm">
+                  Back
+                </Button>
+                <Button colorScheme="teal" onClick={() => setStep('submit')} isDisabled={!validateForm.isValid} size="sm">
+                  Next: Submit
+                </Button>
+              </HStack>
+            </HStack>
             <Box overflowX="auto" maxH="40vh" borderWidth="1px" borderRadius="md" p={2}>
               <Table size="sm">
                 <Thead>
@@ -678,6 +692,7 @@ const CMSGoogleSerpForm: React.FC = () => {
                   onClick={() => setPage(prev => Math.max(1, prev - 1))}
                   isDisabled={page === 1}
                   variant="outline"
+                  colorScheme="gray"
                   size="sm"
                 >
                   Previous
@@ -687,17 +702,10 @@ const CMSGoogleSerpForm: React.FC = () => {
                   onClick={() => setPage(prev => prev + 1)}
                   isDisabled={(page * rowsPerPage) >= excelData.rows.length}
                   variant="outline"
+                  colorScheme="gray"
                   size="sm"
                 >
                   Next
-                </Button>
-              </HStack>
-              <HStack>
-                <Button onClick={() => setStep('preview')} variant="outline" size="sm">
-                  Back
-                </Button>
-                <Button colorScheme="blue" onClick={() => setStep('submit')} isDisabled={!validateForm.isValid} size="sm">
-                  Next: Submit
                 </Button>
               </HStack>
             </HStack>
@@ -724,10 +732,10 @@ const CMSGoogleSerpForm: React.FC = () => {
               </Checkbox>
             </VStack>
             <HStack>
-              <Button onClick={() => setStep('map')} variant="outline">
+              <Button onClick={() => setStep('map')} variant="outline" colorScheme="gray" size="sm">
                 Back
               </Button>
-              <Button colorScheme="blue" onClick={handleSubmit} isLoading={isLoading}>
+              <Button colorScheme="teal" onClick={handleSubmit} isLoading={isLoading} size="sm">
                 Submit
               </Button>
             </HStack>
