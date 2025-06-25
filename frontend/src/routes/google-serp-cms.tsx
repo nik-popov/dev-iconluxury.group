@@ -332,12 +332,14 @@ const CMSGoogleSerpForm: React.FC = () => {
       });
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Server error: ${errorText}`);
+        console.error('Server Response:', response.status, errorText); // Log status and response
+        throw new Error(`Server error: ${errorText || response.statusText}`);
       }
       showToast('Success', 'Form submitted successfully', 'success');
       setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
-      showToast('Submission Error', error instanceof Error ? error.message : 'Unknown error', 'error');
+      console.error('Fetch Error:', error); // Log full error
+      showToast('Submission Error', error instanceof Error ? error.message : 'Failed to submit', 'error');
       setStep('map');
     } finally {
       setIsLoading(false);
