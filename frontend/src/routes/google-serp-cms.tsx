@@ -40,7 +40,7 @@ const MAX_FILE_SIZE_MB = 10;
 // Types
 type CellValue = string | number | boolean | null;
 type ExcelData = { headers: string[]; rows: CellValue[][] };
-type ColumnMapping = Record<(typeof ALL_COLUMNS)[number], number | null>;
+type ColumnMapping = Record<typeof ALL_COLUMNS[number], number | null>;
 type ToastFunction = (title: string, description: string, status: 'error' | 'warning' | 'success') => void;
 
 // Helper Functions
@@ -106,7 +106,7 @@ const autoMapColumns = (headers: string[]): ColumnMapping => {
     colorName: /^(color|colour\s*$|color\s*name|colour\s*name)/i,
   };
   headers.forEach((header, index) => {
-    const normalizedHeader: string = String(header ?? '').trim().toUpperCase();
+    const normalizedHeader = header.trim().toUpperCase();
     if (!normalizedHeader) return;
     if (patterns.style.test(normalizedHeader) && mapping.style === null) mapping.style = index;
     else if (patterns.brand.test(normalizedHeader) && mapping.brand === null) mapping.brand = index;
@@ -220,14 +220,14 @@ const CMSGoogleSerpForm: React.FC = () => {
 
   // Column Mapping
   const handleColumnMap = useCallback(
-  (index: number, field: (typeof ALL_COLUMNS)[number] | '') => {
-    if (field && !ALL_COLUMNS.includes(field)) return;
+  (index: number, field: string) => {
+    if (field && !ALL_COLUMNS.includes(field as (typeof ALL_COLUMNS)[number])) return;
     setColumnMapping(prev => {
       const newMapping = { ...prev };
       (Object.keys(newMapping) as (keyof ColumnMapping)[]).forEach(key => {
         if (newMapping[key] === index) newMapping[key] = null;
       });
-      if (field) {
+      if (field && ALL_COLUMNS.includes(field as (typeof ALL_COLUMNS)[number])) {
         newMapping[field as keyof ColumnMapping] = index;
         if (field === 'brand') {
           setManualBrand('');
@@ -239,7 +239,6 @@ const CMSGoogleSerpForm: React.FC = () => {
   },
   []
 );
-
   // Manual Brand
   const applyManualBrand = useCallback(() => {
     if (!manualBrand.trim()) {
