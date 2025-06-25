@@ -144,63 +144,65 @@ const CMSGoogleSerpForm: React.FC = () => {
 
   // File Upload
   const handleFileChange = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const selectedFile = event.target.files?.[0];
-      if (!selectedFile) {
-        showToast('File Error', 'No file selected', 'error');
-        return;
-      }
-      if (!['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'].includes(selectedFile.type)) {
-        showToast('File Error', 'Please upload an Excel file (.xlsx or .xls)', 'error');
-        return;
-      }
-      if (selectedFile.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-        showToast('File Error', `File size exceeds ${MAX_FILE_SIZE_MB}MB`, 'error');
-        return;
-      }
+  async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      showToast('File Error', 'No file selected', 'error');
+      return;
+    }
+    if (!['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'].includes(selectedFile.type)) {
+      showToast('File Error', 'Please upload an Excel file (.xlsx or .xls)', 'error');
+      return;
+    }
+    if (selectedFile.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      showToast('File Error', `File size exceeds ${MAX_FILE_SIZE_MB}MB`, 'error');
+      return;
+    }
 
-      setFile(selectedFile);
-      setIsLoading(true);
-      try {
-        const data = await selectedFile.arrayBuffer();
-        const workbook = XLSX.read(data, { type: 'array' });
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        if (!worksheet) throw new Error('No worksheet found');
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-        if (jsonData.length === 0) throw new Error('Excel file is empty');
+    setFile(selectedFile);
+    setIsLoading(true);
+    try {
+      const data = await selectedFile.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!worksheet) throw new Error('No worksheet found');
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+      if (jsonData.length === 0) throw new Error('Excel file is empty');
 
-        const detectedHeaderIndex = detectHeaderRow(jsonData as CellValue[][]);
-        const patterns = {
-          style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))/i,
-          brand: /^(brand|manufacturer|make|label|designer|vendor)/i,
-        };
-        if (detectedHeaderIndex === 0 && !jsonData[0].some(cell => patterns.style.test(String(cell ?? '')) || patterns.brand.test(String(cell ?? '')))) {
-          showToast('Warning', 'No clear header row detected; using first row. Please verify in the Preview step.', 'warning');
-        }
-        setRawData(jsonData as CellValue[][]);
-        if (jsonData.length <= detectedHeaderIndex || detectedHeaderIndex < 0) {
-          showToast('File Error', 'Invalid header row detected. Please select a header row in the Preview step.', 'error');
-          setHeaderIndex(0);
-          setExcelData({ headers: [], rows: [] });
-          setFile(null);
-          setStep('upload');
-          return;
-        }
-        setHeaderIndex(detectedHeaderIndex);
-        const headers = jsonData[detectedHeaderIndex].map(cell => String(cell ?? ''));
-        const rows = jsonData.slice(detectedHeaderIndex + 1).slice(0, MAX_PREVIEW_ROWS) as CellValue[][];
-        setExcelData({ headers, rows });
-        setColumnMapping(autoMapColumns(headers));
-        setStep('preview');
-      } catch (error) {
-        showToast('File Processing Error', error instanceof Error ? error.message : 'Unknown error', 'error');
+      const detectedHeaderIndex = detectHeaderRow(jsonData as CellValue[][]);
+      const patterns = {
+        style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))/i,
+        brand: /^(brand|manufacturer|make|label|designer|vendor)/i,
+      };
+      // Explicitly map first row to strings
+      const firstRow: string[] = (jsonData[0] as any[]).map(cell => String(cell ?? '').trim());
+      if (detectedHeaderIndex === 0 && !firstRow.some(cell => patterns.style.test(cell) || patterns.brand.test(cell))) {
+        showToast('Warning', 'No clear header row detected; using first row. Please verify in the Preview step.', 'warning');
+      }
+      setRawData(jsonData as CellValue[][]);
+      if (jsonData.length <= detectedHeaderIndex || detectedHeaderIndex < 0) {
+        showToast('File Error', 'Invalid header row detected. Please select a header row in the Preview step.', 'error');
+        setHeaderIndex(0);
+        setExcelData({ headers: [], rows: [] });
         setFile(null);
-      } finally {
-        setIsLoading(false);
+        setStep('upload');
+        return;
       }
-    },
-    [showToast]
-  );
+      setHeaderIndex(detectedHeaderIndex);
+      const headers = (jsonData[detectedHeaderIndex] as any[]).map(cell => String(cell ?? ''));
+      const rows = jsonData.slice(detectedHeaderIndex + 1).slice(0, MAX_PREVIEW_ROWS) as CellValue[][];
+      setExcelData({ headers, rows });
+      setColumnMapping(autoMapColumns(headers));
+      setStep('preview');
+    } catch (error) {
+      showToast('File Processing Error', error instanceof Error ? error.message : 'Unknown error', 'error');
+      setFile(null);
+    } finally {
+      setIsLoading(false);
+    }
+  },
+  [showToast]
+);
 
   // Header Row Selection
   const handleHeaderChange = useCallback(
