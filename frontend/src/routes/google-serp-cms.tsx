@@ -36,7 +36,7 @@ type ColumnType = 'style' | 'brand' | 'category' | 'colorName' | 'readImage' | '
 const REQUIRED_COLUMNS: ColumnType[] = ['style', 'brand'];
 const OPTIONAL_COLUMNS: ColumnType[] = ['category', 'colorName', 'readImage', 'imageAdd'];
 const ALL_COLUMNS: ColumnType[] = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS];
-const SERVER_URL = 'https://backend-dev.iconluxury.group';
+const SERVER_URL = 'https://external.iconluxury.group';
 const MAX_PREVIEW_ROWS = 10;
 const MAX_FILE_SIZE_MB = 10;
 
