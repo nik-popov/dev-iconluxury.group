@@ -318,7 +318,7 @@ const CMSGoogleSerpForm: React.FC = () => {
   }, [columnMapping, manualBrand, isManualBrandApplied, file, excelData.rows.length]);
 
   // Submission
-  const handleSubmit = useCallback(async () => {
+    const handleSubmit = useCallback(async () => {
     if (!validateForm.isValid) {
       showToast('Validation Error', `Missing required columns: ${validateForm.missing.join(', ')}`, 'warning');
       return;
@@ -328,12 +328,24 @@ const CMSGoogleSerpForm: React.FC = () => {
     const formData = new FormData();
     formData.append('fileUploadImage', file!);
     formData.append('searchColImage', indexToColumnLetter(columnMapping.style!));
-    if ((manualBrand.trim() || isManualBrandApplied) && columnMapping.brand === null) {
+
+    // CORRECTED LOGIC BLOCK
+    if (isManualBrandApplied) {
+      // This case handles a manual brand that was applied to the data grid.
+      // It is the primary case that was failing.
       formData.append('brandColImage', 'MANUAL');
-      formData.append('manualBrand', manualBrand.trim() || (excelData.rows[0]?.[excelData.headers.length - 1] as string) || '');
+      const manualBrandValue = (excelData.rows[0]?.[excelData.headers.length - 1] as string) || '';
+      formData.append('manualBrand', manualBrandValue);
     } else if (columnMapping.brand !== null) {
+      // This handles a brand column that was mapped from the original Excel file.
       formData.append('brandColImage', indexToColumnLetter(columnMapping.brand));
+    } else if (manualBrand.trim()) {
+      // This is a fallback to handle if a user types a manual brand but doesn't click "Apply".
+      // It preserves a feature of the original code's intent.
+      formData.append('brandColImage', 'MANUAL');
+      formData.append('manualBrand', manualBrand.trim());
     }
+
     if (columnMapping.readImage || columnMapping.imageAdd) {
       formData.append('imageColumnImage', indexToColumnLetter(columnMapping.readImage || columnMapping.imageAdd!));
     }
