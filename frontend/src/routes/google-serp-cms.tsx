@@ -318,7 +318,7 @@ const CMSGoogleSerpForm: React.FC = () => {
   }, [columnMapping, manualBrand, isManualBrandApplied, file, excelData.rows.length]);
 
   // Submission
-    const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(async () => {
     if (!validateForm.isValid) {
       showToast('Validation Error', `Missing required columns: ${validateForm.missing.join(', ')}`, 'warning');
       return;
@@ -326,45 +326,53 @@ const CMSGoogleSerpForm: React.FC = () => {
 
     setIsLoading(true);
     const formData = new FormData();
+    
+    // Append standard fields
     formData.append('fileUploadImage', file!);
     formData.append('searchColImage', indexToColumnLetter(columnMapping.style!));
-
-    // CORRECTED LOGIC BLOCK
+    
+    // --- START: CORRECTED BRAND LOGIC ---
+    // This logic correctly identifies and sends the manual brand information.
     if (isManualBrandApplied) {
-      // This case handles a manual brand that was applied to the data grid.
-      // It is the primary case that was failing.
+      // Case 1: The user clicked "Apply" for a manual brand.
+      // We send the 'MANUAL' flag and retrieve the brand value from the last column
+      // that was added to the data grid.
       formData.append('brandColImage', 'MANUAL');
       const manualBrandValue = (excelData.rows[0]?.[excelData.headers.length - 1] as string) || '';
       formData.append('manualBrand', manualBrandValue);
     } else if (columnMapping.brand !== null) {
-      // This handles a brand column that was mapped from the original Excel file.
+      // Case 2: The user mapped a brand column from the original Excel file.
       formData.append('brandColImage', indexToColumnLetter(columnMapping.brand));
-    } else if (manualBrand.trim()) {
-      // This is a fallback to handle if a user types a manual brand but doesn't click "Apply".
-      // It preserves a feature of the original code's intent.
-      formData.append('brandColImage', 'MANUAL');
-      formData.append('manualBrand', manualBrand.trim());
     }
+    // --- END: CORRECTED BRAND LOGIC ---
 
+    // Append optional and metadata fields
     if (columnMapping.readImage || columnMapping.imageAdd) {
       formData.append('imageColumnImage', indexToColumnLetter(columnMapping.readImage || columnMapping.imageAdd!));
     }
-    if (columnMapping.colorName) formData.append('ColorColImage', indexToColumnLetter(columnMapping.colorName));
-    if (columnMapping.category) formData.append('CategoryColImage', indexToColumnLetter(columnMapping.category));
+    if (columnMapping.colorName !== null) {
+      formData.append('ColorColImage', indexToColumnLetter(columnMapping.colorName));
+    }
+    if (columnMapping.category !== null) {
+      formData.append('CategoryColImage', indexToColumnLetter(columnMapping.category));
+    }
     formData.append('header_index', String(headerIndex + 1));
     formData.append('sendToEmail', 'nik@luxurymarket.com');
     formData.append('isIconDistro', String(isIconDistro));
 
+    // Perform the API call
     try {
       const response = await fetch(`${SERVER_URL}/submitImage`, {
         method: 'POST',
         body: formData,
       });
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Server Response:', response.status, errorText);
         throw new Error(`Server error: ${errorText || response.statusText}`);
       }
+
       showToast('Success', 'Form submitted successfully', 'success');
       setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
@@ -374,7 +382,16 @@ const CMSGoogleSerpForm: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [validateForm, file, columnMapping, manualBrand, isManualBrandApplied, headerIndex, isIconDistro, showToast, excelData]);
+  }, [
+    validateForm,
+    file,
+    columnMapping,
+    isManualBrandApplied,
+    headerIndex,
+    isIconDistro,
+    showToast,
+    excelData,
+  ]);
 
   // Render
   return (
