@@ -1432,7 +1432,7 @@ const CMSGoogleSerpForm: React.FC = () => {
               </HStack>
             </CardHeader>
             <CardBody>
-              <Text>Scrape images from Google Images.</Text>
+              <Text>Google Images</Text>
             </CardBody>
           </Card>
           <Card cursor="pointer" onClick={() => setSelectedType('data')}>
@@ -1443,7 +1443,7 @@ const CMSGoogleSerpForm: React.FC = () => {
               </HStack>
             </CardHeader>
             <CardBody>
-              <Text>Scrape Images and MSRP from our interal product database</Text>
+              <Text>Interal product database</Text>
             </CardBody>
           </Card>
         </SimpleGrid>
