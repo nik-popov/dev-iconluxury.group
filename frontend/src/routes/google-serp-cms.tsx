@@ -1406,7 +1406,6 @@ const CMSGoogleSerpForm: React.FC = () => {
   return (
     <Container maxW="container.xl" p={4} bg="white" color="black">
       <VStack spacing={6} align="stretch">
-        <Text fontSize="2xl" fontWeight="bold" textAlign="center">Choose Scrape Type</Text>
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
           <Card cursor="pointer" onClick={() => setSelectedType('images')}>
             <CardHeader>
