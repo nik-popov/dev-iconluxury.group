@@ -74,6 +74,8 @@ const CMSGoogleSerpForm: React.FC = () => {
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [excelData, setExcelData] = useState<ExcelData>({ headers: [], rows: [] });
   const [previewRows, setPreviewRows] = useState<(string | number | boolean | null)[][]>([]);
+  const [workbookData, setWorkbookData] = useState<XLSX.WorkBook | null>(null);
+  const [sheetList, setSheetList] = useState<string[]>([]);
   const [isHeaderModalOpen, setIsHeaderModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
@@ -123,6 +125,11 @@ const CMSGoogleSerpForm: React.FC = () => {
       try {
         const data = await readFile(selectedFile);
         const workbook = XLSX.read(data, { type: 'binary' });
+        setWorkbookData(workbook);
+        setSheetList(workbook.SheetNames);
+        if (workbook.SheetNames.length > 1) {
+          showToast('File Upload', 'Multiple sheets detected, each will be processed', 'success');
+        }
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         if (!worksheet) throw new Error('No worksheet found in the Excel file');
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: true, defval: '' });
@@ -303,7 +310,7 @@ const applyManualBrand = useCallback(() => {
     return true;
   }, [columnMapping, manualBrand, manualBrandInfo, file, headerRowIndex, showToast]);
 
-  const prepareFormData = useCallback((): FormData | null => {
+  const prepareFormData = useCallback((sheetName?: string): FormData | null => {
     if (!file) {
       showToast('Error', 'No file selected for submission.', 'error');
       return null;
@@ -315,6 +322,9 @@ const applyManualBrand = useCallback(() => {
 
     const formData = new FormData();
     formData.append('fileUploadImage', file);
+    if (sheetName) {
+      formData.append('sheetName', sheetName);
+    }
 
     const getOriginalColumnLetter = (
       fieldKey: keyof ColumnMapping,
@@ -377,22 +387,25 @@ const applyManualBrand = useCallback(() => {
 
   const handleSubmit = useCallback(async () => {
     if (!validateForm()) return;
-
-    const formData = prepareFormData();
-    if (!formData) return;
+    if (!workbookData) return;
 
     setIsLoadingFile(true);
     try {
-      const response = await fetch(`${SERVER_URL}/submitImage`, {
-        method: 'POST',
-        body: formData,
-      });
+      const sheets = sheetList.length > 0 ? sheetList : workbookData.SheetNames;
+      for (const sheet of sheets) {
+        const formData = prepareFormData(sheet);
+        if (!formData) continue;
+        const response = await fetch(`${SERVER_URL}/submitImage`, {
+          method: 'POST',
+          body: formData,
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Server error: ${response.status} - ${errorText}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Server error: ${response.status} - ${errorText}`);
+        }
+        await response.json();
       }
-      await response.json();
       showToast('Success', 'Form submitted successfully', 'success');
       setTimeout(() => {
         window.location.reload();
@@ -402,7 +415,7 @@ const applyManualBrand = useCallback(() => {
     } finally {
       setIsLoadingFile(false);
     }
-  }, [validateForm, prepareFormData, showToast]);
+  }, [validateForm, prepareFormData, showToast, workbookData, sheetList]);
 
   // Column Mapping
   const handleMappingConfirm = useCallback(
