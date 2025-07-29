@@ -34,7 +34,7 @@ import * as XLSX from 'xlsx';
 import useCustomToast from '../hooks/useCustomToast';
 
 // Shared Constants and Types
-type ColumnType = 'style' | 'brand' | 'category' | 'colorName' | 'msrp' | 'placement';
+type ColumnType = 'style' | 'brand' | 'category' | 'colorName' | 'msrp';
 const SERVER_URL = 'https://external.iconluxury.group';
 const MAX_PREVIEW_ROWS = 10;
 const MAX_FILE_SIZE_MB = 10;
@@ -73,7 +73,6 @@ const detectHeaderRow = (rows: CellValue[][]): number => {
     style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))/i,
     brand: /^(brand|manufacturer|make|label|designer|vendor)/i,
     msrp: /^(msrp|manufacturer\s*suggested\s*retail\s*price|list\s*price|suggested\s*retail)/i,
-    placement: /^(placement|position|rank|location)/i,
   };
   let bestIndex = 0;
   let maxNonEmptyCells = 0;
@@ -109,7 +108,6 @@ const autoMapColumns = (headers: string[]): ColumnMapping => {
     category: null,
     colorName: null,
     msrp: null,
-    placement: null,
     readImage: null,
     imageAdd: null,
   };
@@ -119,7 +117,6 @@ const autoMapColumns = (headers: string[]): ColumnMapping => {
     category: /^(category|type|product\s*type|group)/i,
     colorName: /^(color|colour\s*$|color\s*name|colour\s*name)/i,
     msrp: /^(msrp|manufacturer\s*suggested\s*retail\s*price|list\s*price|suggested\s*retail)/i,
-    placement: /^(placement|position|rank|location)/i,
     image: /^(image|photo|picture|img|readImage|imageAdd)/i,
   };
   headers.forEach((header, index) => {
@@ -130,7 +127,6 @@ const autoMapColumns = (headers: string[]): ColumnMapping => {
     else if (patterns.category.test(normalizedHeader) && mapping.category === null) mapping.category = index;
     else if (patterns.colorName.test(normalizedHeader) && mapping.colorName === null) mapping.colorName = index;
     else if (patterns.msrp.test(normalizedHeader) && mapping.msrp === null) mapping.msrp = index;
-    else if (patterns.placement.test(normalizedHeader) && mapping.placement === null) mapping.placement = index;
     else if (patterns.image.test(normalizedHeader) && mapping.readImage === null && mapping.imageAdd === null) {
       mapping.readImage = index;
       mapping.imageAdd = index;
@@ -156,7 +152,6 @@ const GoogleImagesForm: React.FC = () => {
     category: null,
     colorName: null,
     msrp: null,
-    placement: null,
     readImage: null,
     imageAdd: null,
   });
@@ -464,11 +459,11 @@ const GoogleImagesForm: React.FC = () => {
             {isLoading && <Spinner mt={4} />}
             <Box fontSize="sm" lineHeight="short">
               <Text fontWeight="bold" mb={2}>Required Fields</Text>
-              <Text>Style #: Unique identifier for the product (e.g., SKU, Item #)</Text>
-              <Text>Brand: Manufacturer or designer name</Text>
-              <Text fontWeight="bold" mt={4} mb={2}>Optional Fields</Text>
-              <Text>Category: Product type or group</Text>
-              <Text>Color Name: Color of the product</Text>
+              <Text>Style #: Used to search google</Text>
+              <Text>Brand</Text>
+              <Text fontWeight="bold" mt={4} mb={2}>Optional Fields (Excluded from Search Context)</Text>
+              <Text>Category</Text>
+              <Text>Color Name</Text>
             </Box>
           </VStack>
         )}
@@ -780,7 +775,6 @@ const DataWarehouseForm: React.FC = () => {
     category: null,
     colorName: null,
     msrp: null,
-    placement: null,
     readImage: null,
     imageAdd: null,
   });
@@ -791,7 +785,7 @@ const DataWarehouseForm: React.FC = () => {
   const showToast: ToastFunction = useCustomToast();
 
   const REQUIRED_COLUMNS: ColumnType[] = ['style', 'msrp'];
-  const OPTIONAL_COLUMNS: ColumnType[] = ['brand', 'category', 'colorName', 'placement'];
+  const OPTIONAL_COLUMNS: ColumnType[] = ['brand', 'category', 'colorName'];
   const ALL_COLUMNS: ColumnType[] = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS];
 
   const handleFileChange = useCallback(
@@ -824,10 +818,9 @@ const DataWarehouseForm: React.FC = () => {
         const patterns = {
           style: /^(style|product style|style\s*(#|no|number|id)|sku|item\s*(#|no|number))/i,
           msrp: /^(msrp|manufacturer\s*suggested\s*retail\s*price|list\s*price|suggested\s*retail)/i,
-          placement: /^(placement|position|rank|location)/i,
         };
         const firstRow: string[] = (jsonData[0] as any[]).map(cell => String(cell ?? '').trim());
-        if (detectedHeaderIndex === 0 && !firstRow.some(cell => patterns.style.test(cell) || patterns.msrp.test(cell) || patterns.placement.test(cell))) {
+        if (detectedHeaderIndex === 0 && !firstRow.some(cell => patterns.style.test(cell) || patterns.msrp.test(cell))) {
           showToast('Warning', 'No clear header row detected; using first row. Please verify in the Header Selection step.', 'warning');
         }
         setRawData(jsonData as CellValue[][]);
@@ -963,10 +956,6 @@ const DataWarehouseForm: React.FC = () => {
     formData.append('searchColImage', indexToColumnLetter(columnMapping.style!));
     formData.append('msrpColImage', indexToColumnLetter(columnMapping.msrp!));
     
-    if (columnMapping.placement !== null) {
-      formData.append('placementColImage', indexToColumnLetter(columnMapping.placement));
-    }
-
     if (isManualBrandApplied) {
       formData.append('brandColImage', 'MANUAL');
       const manualBrandValue = (excelData.rows[0]?.[excelData.headers.length - 1] as string) || '';
@@ -1099,11 +1088,10 @@ const DataWarehouseForm: React.FC = () => {
               <Text fontWeight="bold" mb={2}>Required Fields</Text>
               <Text>Style: Used to query database</Text>
               <Text>MSRP: Target column for msrp</Text>
-              <Text fontWeight="bold" mt={4} mb={2}>Optional Fields</Text>
-              <Text>Brand: Manufacturer or designer name</Text>
-              <Text>Category: Product type or group</Text>
-              <Text>Color Name: Color of the product</Text>
-              <Text>Placement: Product placement or position</Text>
+              <Text fontWeight="bold" mt={4} mb={2}>Optional Fields (Excluded from Search Context) </Text>
+              <Text>Brand</Text>
+              <Text>Category</Text>
+              <Text>Color Name</Text>
             </Box>
           </VStack>
         )}
