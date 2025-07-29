@@ -1097,8 +1097,8 @@ const DataWarehouseForm: React.FC = () => {
             {isLoading && <Spinner mt={4} />}
             <Box fontSize="sm" lineHeight="short">
               <Text fontWeight="bold" mb={2}>Required Fields</Text>
-              <Text>Style: Unique identifier for the product (e.g., SKU, Item #)</Text>
-              <Text>MSRP: Manufacturer Suggested Retail Price</Text>
+              <Text>Style: Used to query database</Text>
+              <Text>MSRP: Target column for msrp</Text>
               <Text fontWeight="bold" mt={4} mb={2}>Optional Fields</Text>
               <Text>Brand: Manufacturer or designer name</Text>
               <Text>Category: Product type or group</Text>
