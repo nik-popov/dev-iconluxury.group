@@ -779,8 +779,8 @@ const DataWarehouseForm: React.FC = () => {
   const [currency, setCurrency] = useState<'USD' | 'EUR'>('USD');
   const showToast: ToastFunction = useCustomToast();
 
-  const REQUIRED_COLUMNS: ColumnType[] = ['style', 'msrp', 'placement'];
-  const OPTIONAL_COLUMNS: ColumnType[] = ['brand', 'category', 'colorName'];
+  const REQUIRED_COLUMNS: ColumnType[] = ['style', 'msrp'];
+  const OPTIONAL_COLUMNS: ColumnType[] = ['brand', 'category', 'colorName', 'placement'];
   const ALL_COLUMNS: ColumnType[] = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS];
 
   const handleFileChange = useCallback(
@@ -951,8 +951,11 @@ const DataWarehouseForm: React.FC = () => {
     formData.append('fileUploadImage', file!);
     formData.append('searchColImage', indexToColumnLetter(columnMapping.style!));
     formData.append('msrpColImage', indexToColumnLetter(columnMapping.msrp!));
-    formData.append('placementColImage', indexToColumnLetter(columnMapping.placement!));
     
+    if (columnMapping.placement !== null) {
+      formData.append('placementColImage', indexToColumnLetter(columnMapping.placement));
+    }
+
     if (isManualBrandApplied) {
       formData.append('brandColImage', 'MANUAL');
       const manualBrandValue = (excelData.rows[0]?.[excelData.headers.length - 1] as string) || '';
@@ -1085,11 +1088,11 @@ const DataWarehouseForm: React.FC = () => {
               <Text fontWeight="bold" mb={2}>Required Fields</Text>
               <Text>Style: Unique identifier for the product (e.g., SKU, Item #)</Text>
               <Text>MSRP: Manufacturer Suggested Retail Price</Text>
-              <Text>Placement: Product placement or position</Text>
               <Text fontWeight="bold" mt={4} mb={2}>Optional Fields</Text>
               <Text>Brand: Manufacturer or designer name</Text>
               <Text>Category: Product type or group</Text>
               <Text>Color Name: Color of the product</Text>
+              <Text>Placement: Product placement or position</Text>
             </Box>
           </VStack>
         )}
@@ -1279,7 +1282,7 @@ const DataWarehouseForm: React.FC = () => {
                           maxW="200px"
                           isTruncated
                           bg={
-                            (columnMapping.style === cellIndex || columnMapping.msrp === cellIndex || columnMapping.placement === cellIndex) && !cell
+                            (columnMapping.style === cellIndex || columnMapping.msrp === cellIndex) && !cell
                               ? 'red.100'
                               : undefined
                           }
@@ -1371,7 +1374,7 @@ const DataWarehouseForm: React.FC = () => {
                           maxW="200px"
                           isTruncated
                           bg={
-                            (columnMapping.style === cellIndex || columnMapping.msrp === cellIndex || columnMapping.placement === cellIndex) && !cell
+                            (columnMapping.style === cellIndex || columnMapping.msrp === cellIndex) && !cell
                               ? 'red.100'
                               : undefined
                           }
