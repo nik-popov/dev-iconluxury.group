@@ -1431,7 +1431,7 @@ const CMSGoogleSerpForm: React.FC = () => {
               </HStack>
             </CardHeader>
             <CardBody>
-              <Text>Interal product database</Text>
+              <Text>Internal product database</Text>
             </CardBody>
           </Card>
         </SimpleGrid>
