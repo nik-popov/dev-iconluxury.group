@@ -1423,17 +1423,28 @@ const CMSGoogleSerpForm: React.FC = () => {
               <Text>Google Images</Text>
             </CardBody>
           </Card>
-          <Card cursor="pointer" onClick={() => setSelectedType('data')}>
+          {/* <Card cursor="pointer" onClick={() => setSelectedType('data')}>
             <CardHeader>
               <HStack>
-                <Icon as={FaWarehouse} boxSize={6} color="teal.500" /> {/* Placeholder icon */}
+                <Icon as={FaWarehouse} boxSize={6} color="teal.500" /> 
                 <Text fontSize="xl" fontWeight="bold">Scrape Data Warehouse</Text>
               </HStack>
             </CardHeader>
             <CardBody>
               <Text>Interal product database</Text>
             </CardBody>
-          </Card>
+          </Card> */}
+          <Card opacity={0.5} pointerEvents="none">
+  <CardHeader>
+    <HStack>
+      <Icon as={FaWarehouse} boxSize={6} color="teal.500" />
+      <Text fontSize="xl" fontWeight="bold">Scrape Data Warehouse</Text>
+    </HStack>
+  </CardHeader>
+  <CardBody>
+    <Text>Internal product database</Text>
+  </CardBody>
+</Card>
         </SimpleGrid>
       </VStack>
     </Container>
