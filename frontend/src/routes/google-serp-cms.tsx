@@ -677,9 +677,19 @@ const GoogleImagesForm: React.FC = () => {
           <VStack spacing={4} align="stretch">
             <VStack align="start" spacing={4}>
               <Text>Rows: {excelData.rows.length}</Text>
-              <Checkbox isChecked={isIconDistro} onChange={e => setIsIconDistro(e.target.checked)}>
-                Output on New File
-              </Checkbox>
+              <FormControl>
+                <Checkbox
+                  colorScheme="teal"
+                  size="lg"
+                  isChecked={isIconDistro}
+                  onChange={e => setIsIconDistro(e.target.checked)}
+                >
+                  Output as New Distro
+                </Checkbox>
+                <Text fontSize="sm" color="gray.600" mt={2} pl={8}>
+                  If not selected, results will be populated into the uploaded file.
+                </Text>
+              </FormControl>
               <Text>Mapped Columns:</Text>
               <Table variant="simple" size="sm">
                 <Thead>
@@ -1303,14 +1313,17 @@ const DataWarehouseForm: React.FC = () => {
             <VStack align="start" spacing={4}>
               <Text>Rows: {excelData.rows.length}</Text>
               <FormControl>
-                <FormLabel fontWeight="bold" color="teal.600">Output as New Distro</FormLabel>
                 <Checkbox
+                  colorScheme="teal"
+                  size="lg"
                   isChecked={isNewDistro}
                   onChange={e => setIsNewDistro(e.target.checked)}
-                  colorScheme="teal"
                 >
-                  Enable New Distro Output
+                  Output as New Distro
                 </Checkbox>
+                <Text fontSize="sm" color="gray.600" mt={2} pl={8}>
+                  If not selected, results will be populated into the uploaded file.
+                </Text>
               </FormControl>
               <HStack>
                 <Text>Currency:</Text>
