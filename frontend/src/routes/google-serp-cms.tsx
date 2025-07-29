@@ -27,7 +27,8 @@ import {
   Icon,
   SimpleGrid,
 } from '@chakra-ui/react';
-import { CloseIcon, SearchIcon } from '@chakra-ui/icons'; // Assuming no DatabaseIcon, using SearchIcon as placeholder for data warehouse
+import { CloseIcon, SearchIcon } from '@chakra-ui/icons'; 
+import { FaWarehouse } from 'react-icons/fa';
 import { createFileRoute } from '@tanstack/react-router';
 import * as XLSX from 'xlsx';
 import useCustomToast from '../hooks/useCustomToast';
@@ -1431,18 +1432,18 @@ const CMSGoogleSerpForm: React.FC = () => {
               </HStack>
             </CardHeader>
             <CardBody>
-              <Text>Upload Excel to scrape images from Google.</Text>
+              <Text>Scrape images from Google Images.</Text>
             </CardBody>
           </Card>
           <Card cursor="pointer" onClick={() => setSelectedType('data')}>
             <CardHeader>
               <HStack>
-                <Icon as={SearchIcon} boxSize={6} color="teal.500" /> {/* Placeholder icon */}
+                <Icon as={FaWarehouse} boxSize={6} color="teal.500" /> {/* Placeholder icon */}
                 <Text fontSize="xl" fontWeight="bold">Scrape Data Warehouse</Text>
               </HStack>
             </CardHeader>
             <CardBody>
-              <Text>Upload Excel to scrape from data warehouse.</Text>
+              <Text>Scrape Images and MSRP from our interal product database</Text>
             </CardBody>
           </Card>
         </SimpleGrid>
