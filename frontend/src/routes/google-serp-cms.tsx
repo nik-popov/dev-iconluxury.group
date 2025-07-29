@@ -678,7 +678,7 @@ const GoogleImagesForm: React.FC = () => {
             <VStack align="start" spacing={4}>
               <Text>Rows: {excelData.rows.length}</Text>
               <Checkbox isChecked={isIconDistro} onChange={e => setIsIconDistro(e.target.checked)}>
-                Output as Icon Distro
+                Output on New File
               </Checkbox>
               <Text>Mapped Columns:</Text>
               <Table variant="simple" size="sm">
