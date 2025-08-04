@@ -16,6 +16,7 @@ import { Route as ResetPasswordImport } from './routes/reset-password'
 import { Route as RecoverPasswordImport } from './routes/recover-password'
 import { Route as LoginImport } from './routes/login'
 import { Route as GoogleSerpCmsImport } from './routes/google-serp-cms'
+import { Route as DataWarehouseImport } from './routes/data-warehouse'
 import { Route as LayoutImport } from './routes/_layout'
 import { Route as LayoutIndexImport } from './routes/_layout/index'
 import { Route as ProgressJobIdImport } from './routes/progress/$jobId'
@@ -66,6 +67,12 @@ const LoginRoute = LoginImport.update({
 const GoogleSerpCmsRoute = GoogleSerpCmsImport.update({
   id: '/google-serp-cms',
   path: '/google-serp-cms',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DataWarehouseRoute = DataWarehouseImport.update({
+  id: '/data-warehouse',
+  path: '/data-warehouse',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -201,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: ''
       preLoaderRoute: typeof LayoutImport
+      parentRoute: typeof rootRoute
+    }
+    '/data-warehouse': {
+      id: '/data-warehouse'
+      path: '/data-warehouse'
+      fullPath: '/data-warehouse'
+      preLoaderRoute: typeof DataWarehouseImport
       parentRoute: typeof rootRoute
     }
     '/google-serp-cms': {
@@ -425,6 +439,7 @@ const LayoutRouteWithChildren =
 
 export interface FileRoutesByFullPath {
   '': typeof LayoutRouteWithChildren
+  '/data-warehouse': typeof DataWarehouseRoute
   '/google-serp-cms': typeof GoogleSerpCmsRoute
   '/login': typeof LoginRoute
   '/recover-password': typeof RecoverPasswordRoute
@@ -452,6 +467,7 @@ export interface FileRoutesByFullPath {
 }
 
 export interface FileRoutesByTo {
+  '/data-warehouse': typeof DataWarehouseRoute
   '/google-serp-cms': typeof GoogleSerpCmsRoute
   '/login': typeof LoginRoute
   '/recover-password': typeof RecoverPasswordRoute
@@ -481,6 +497,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/_layout': typeof LayoutRouteWithChildren
+  '/data-warehouse': typeof DataWarehouseRoute
   '/google-serp-cms': typeof GoogleSerpCmsRoute
   '/login': typeof LoginRoute
   '/recover-password': typeof RecoverPasswordRoute
@@ -511,6 +528,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | ''
+    | '/data-warehouse'
     | '/google-serp-cms'
     | '/login'
     | '/recover-password'
@@ -537,6 +555,7 @@ export interface FileRouteTypes {
     | '/scraping-api/scraping-jobs'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/data-warehouse'
     | '/google-serp-cms'
     | '/login'
     | '/recover-password'
@@ -564,6 +583,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_layout'
+    | '/data-warehouse'
     | '/google-serp-cms'
     | '/login'
     | '/recover-password'
@@ -593,6 +613,7 @@ export interface FileRouteTypes {
 
 export interface RootRouteChildren {
   LayoutRoute: typeof LayoutRouteWithChildren
+  DataWarehouseRoute: typeof DataWarehouseRoute
   GoogleSerpCmsRoute: typeof GoogleSerpCmsRoute
   LoginRoute: typeof LoginRoute
   RecoverPasswordRoute: typeof RecoverPasswordRoute
@@ -603,6 +624,7 @@ export interface RootRouteChildren {
 
 const rootRouteChildren: RootRouteChildren = {
   LayoutRoute: LayoutRouteWithChildren,
+  DataWarehouseRoute: DataWarehouseRoute,
   GoogleSerpCmsRoute: GoogleSerpCmsRoute,
   LoginRoute: LoginRoute,
   RecoverPasswordRoute: RecoverPasswordRoute,
@@ -622,6 +644,7 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/_layout",
+        "/data-warehouse",
         "/google-serp-cms",
         "/login",
         "/recover-password",
@@ -652,6 +675,9 @@ export const routeTree = rootRoute
         "/_layout/supplier/offer/$fileId",
         "/_layout/scraping-api/scraping-jobs/"
       ]
+    },
+    "/data-warehouse": {
+      "filePath": "data-warehouse.tsx"
     },
     "/google-serp-cms": {
       "filePath": "google-serp-cms.tsx"
