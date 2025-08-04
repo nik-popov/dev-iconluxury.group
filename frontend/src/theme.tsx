@@ -1,4 +1,6 @@
+// src/theme.ts
 import { extendTheme, ThemeConfig } from "@chakra-ui/react";
+import { mode } from "@chakra-ui/theme-tools";
 
 const config: ThemeConfig = {
   initialColorMode: "light",
@@ -8,29 +10,29 @@ const config: ThemeConfig = {
 const theme = extendTheme({
   config,
   styles: {
-    global: {
+    global: (props: any) => ({
       "html, body": {
         fontFamily: '"42dot Sans", "Helvetica", "Arial", sans-serif',
         lineHeight: "1.7",
-        bg: "gray.50",
-        color: "gray.800",
+        bg: mode("gray.50", "gray.900")(props),
+        color: mode("gray.800", "whiteAlpha.900")(props),
         padding: "20px",
       },
       ".sidebar": {
-        bg: "gray.100",
+        bg: mode("gray.100", "gray.800")(props),
         minHeight: "100vh",
         p: 4,
       },
-    },
+    }),
   },
   colors: {
     ui: {
-      main: "#FFD700", // Gold
-      secondary: "#FFF8E1", // Light cream
-      success: "#38A169", // Green
-      danger: "#E53E3E", // Red
-      light: "#FFFFFF", // White
-      dim: "#A0AEC0", // Light gray
+      main: "#FFD700",
+      secondary: "#FFF8E1",
+      success: "#38A169",
+      danger: "#E53E3E",
+      light: "#FFFFFF",
+      dim: "#A0AEC0",
     },
   },
   shadows: {
