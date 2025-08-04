@@ -64,7 +64,7 @@ const JobProgressPage = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const apiUrl = `https://external.iconluxury.group/api/scraping-jobs/${jobId}`;
+        const apiUrl = `https://external.iconluxury.today/api/scraping-jobs/${jobId}`;
         const response = await fetch(apiUrl);
         if (!response.ok) {
           throw new Error(`Failed to fetch job data: ${response.status} - ${response.statusText}`);
@@ -96,7 +96,7 @@ const JobProgressPage = () => {
 
     const fetchProgress = async () => {
       try {
-        const response = await fetch(`https://external.iconluxury.group/api/scraping-jobs/${jobId}/progress`);
+        const response = await fetch(`https://external.iconluxury.today/api/scraping-jobs/${jobId}/progress`);
         if (response.ok) {
           const data: ProgressData = await response.json();
           if (!isCancelled) {
@@ -105,7 +105,7 @@ const JobProgressPage = () => {
             // If progress hits 100%, refetch the main job data to get the final `fileEnd` timestamp
             // This ensures the UI updates to "Completed" without a manual refresh.
             if (data.step1Progress >= 100) {
-              const jobResponse = await fetch(`https://external.iconluxury.group/api/scraping-jobs/${jobId}`);
+              const jobResponse = await fetch(`https://external.iconluxury.today/api/scraping-jobs/${jobId}`);
               if (jobResponse.ok) {
                 const updatedJobData: JobDetails = await jobResponse.json();
                 if (updatedJobData.fileEnd) {

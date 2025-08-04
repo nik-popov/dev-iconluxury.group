@@ -211,7 +211,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ job, fetchJobData, setActiveT
 
     const fetchProgress = async () => {
       try {
-        const response = await fetch(`https://external.iconluxury.group/api/scraping-jobs/${job.id}/progress`);
+        const response = await fetch(`https://external.iconluxury.today/api/scraping-jobs/${job.id}/progress`);
         if (response.ok) {
           const data: ProgressData = await response.json();
           if (!isCancelled) {
@@ -1653,7 +1653,7 @@ const JobsDetailPage = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const apiUrl = `https://external.iconluxury.group/api/scraping-jobs/${jobId}`;
+      const apiUrl = `https://external.iconluxury.today/api/scraping-jobs/${jobId}`;
       const response = await fetch(apiUrl, { method: "GET", headers: { "Content-Type": "application/json" } });
       if (!response.ok) throw new Error(`Failed to fetch job data: ${response.status} - ${response.statusText}`);
       const data: JobDetails = await response.json();

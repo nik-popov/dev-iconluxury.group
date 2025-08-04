@@ -39,7 +39,7 @@ const getAuthToken = (): string | null => {
 
 async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
   const token = getAuthToken();
-  const response = await fetch("https://api.iconluxury.group/api/v1/subscription-status/serp", {
+  const response = await fetch("https://api.iconluxury.today/api/v1/subscription-status/serp", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -57,7 +57,7 @@ async function fetchSubscriptionStatus(): Promise<SubscriptionStatus> {
 
 async function fetchJobs(page: number): Promise<JobSummary[]> {
   const token = getAuthToken();
-  const response = await fetch(`https://external.iconluxury.group/api/scraping-jobs?page=${page}&page_size=10`, {
+  const response = await fetch(`https://external.iconluxury.today/api/scraping-jobs?page=${page}&page_size=10`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -301,7 +301,7 @@ function Explore() {
               </Button>
               <Button
                 as="a"
-                href="https://github.com/iconluxurygroup"
+                href="https://github.com/iconluxurytoday"
                 leftIcon={<FiGithub />}
                 variant="outline"
                 size="sm"

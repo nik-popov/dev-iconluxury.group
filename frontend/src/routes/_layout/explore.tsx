@@ -50,7 +50,7 @@ import * as XLSX from 'xlsx';
 import ExcelDataTable, { ExcelData } from '../../components/ExcelDataTable.tsx';
 
 // API Configuration
-const API_BASE_URL = 'https://api.iconluxury.group/api/v1';
+const API_BASE_URL = 'https://api.iconluxury.today/api/v1';
 const DEFAULT_EXPIRES_IN = 900; // Reduced to 15 minutes for security
 
 // Interfaces
@@ -109,7 +109,7 @@ async function listS3Objects(
     };
   } catch (error: any) {
     const message = error.message?.includes('CORS')
-      ? 'CORS error: Ensure the FastAPI server allows requests from https://dashboard.iconluxury.group.'
+      ? 'CORS error: Ensure the FastAPI server allows requests from https://dashboard.iconluxury.today.'
       : error.message || 'Network error fetching S3 objects';
     throw new Error(message);
   }

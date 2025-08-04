@@ -33,7 +33,7 @@ s3_client = client(
 )
 
 # Constants
-BUCKET_NAME = "iconluxurygroup"
+BUCKET_NAME = "iconluxurytoday"
 MAX_UPLOAD_SIZE = 100 * 1024 * 1024  # 100 MB
 JSON_STORE_PATH = "file_store/file_store.json"
 
