@@ -59,7 +59,7 @@ function Login() {
   // Social media logo components
   const GitHubLogo = () => (
     <Link
-      href="https://github.com/iconluxurygroup"
+      href="https://github.com/iconluxurytoday"
       target="_blank"
       rel="noopener noreferrer"
     >
@@ -73,7 +73,7 @@ function Login() {
 
   const LinkedInLogo = () => (
     <Link
-      href="https://www.linkedin.com/company/iconluxurygroup"
+      href="https://www.linkedin.com/company/iconluxurytoday"
       target="_blank"
       rel="noopener noreferrer"
     >
@@ -87,7 +87,7 @@ function Login() {
 
   const XLogo = () => (
     <Link
-      href="https://twitter.com/iconluxurygroup"
+      href="https://twitter.com/iconluxurytoday"
       target="_blank"
       rel="noopener noreferrer"
      >
@@ -113,10 +113,10 @@ function Login() {
       height="100vh"
       gap={6}
     >
-      <Link href="https://iconluxury.group" target="_blank" rel="noopener noreferrer">
+      <Link href="https://iconluxury.today" target="_blank" rel="noopener noreferrer">
         <Image
           src={Logo}
-          alt="iconluxurygroup logo"
+          alt="iconluxurytoday logo"
           height="auto"
           maxW="180px"
           p={6}

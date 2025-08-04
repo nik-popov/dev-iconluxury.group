@@ -118,8 +118,8 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-public"
       - "traefik.constraint-label=traefik-public"     
-      # ✅ API HTTP Router (Fix for api.iconluxury.group)
-      - "traefik.http.routers.api-http.rule=Host(`api.iconluxury.group`)"
+      # ✅ API HTTP Router (Fix for api.iconluxury.today)
+      - "traefik.http.routers.api-http.rule=Host(`api.iconluxury.today`)"
       - "traefik.http.routers.api-http.entrypoints=http"
       - "traefik.http.services.api-service.loadbalancer.server.port=8000"
   frontend:
@@ -140,7 +140,7 @@ services:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
       - traefik.constraint-label=traefik-public
-      - traefik.http.routers.dashboard.rule=Host(`dashboard.iconluxury.group`)       
+      - traefik.http.routers.dashboard.rule=Host(`dashboard.iconluxury.today`)       
       - traefik.http.routers.dashboard.entrypoints=http
       - traefik.http.services.dashboard.loadbalancer.server.port=80
 

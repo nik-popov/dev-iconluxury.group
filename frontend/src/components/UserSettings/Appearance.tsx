@@ -1,5 +1,5 @@
 // src/components/Appearance.tsx
-import React, { useEffect } from "react";
+import React from "react";
 import {
   Badge,
   Container,
@@ -11,25 +11,29 @@ import {
 } from "@chakra-ui/react";
 
 const Appearance: React.FC = () => {
-  const { colorMode, setColorMode, toggleColorMode } = useColorMode();
-
-  // Force light mode on mount and clear localStorage
-  useEffect(() => {
-    setColorMode("light");
-    localStorage.removeItem("chakra-ui-color-mode"); // Clear stored preference
-  }, [setColorMode]);
+  // Get the current color mode and the toggle function from Chakra UI
+  const { colorMode, toggleColorMode } = useColorMode();
 
   return (
     <Container maxW="full">
       <Heading size="sm" py={4}>
         Appearance
       </Heading>
+      {/* The RadioGroup value is bound to the current color mode,
+          and toggling a radio will trigger toggleColorMode */}
       <RadioGroup onChange={toggleColorMode} value={colorMode}>
         <Stack direction="column">
-          <Radio value="dark">Dark Mode</Radio>
+          {/* If you have configured your theme to use a custom color scheme (for example, "ui"),
+              you can either update the Radio props below or remove the explicit scheme so that
+              the theme defaults apply. */}
+          <Radio value="dark">
+            Dark Mode
+          </Radio>
           <Radio value="light">
             Light Mode
-            <Badge ml="1">Default</Badge>
+            <Badge ml="1">
+              Default
+            </Badge>
           </Radio>
         </Stack>
       </RadioGroup>

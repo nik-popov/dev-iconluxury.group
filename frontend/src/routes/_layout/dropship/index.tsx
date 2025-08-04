@@ -28,7 +28,7 @@ import { FaFileImage, FaFilePdf, FaFileWord, FaFileExcel } from 'react-icons/fa'
 import { debounce } from 'lodash';
 
 // API Configuration
-const API_BASE_URL = 'https://api.iconluxury.group/api/v1';
+const API_BASE_URL = 'https://api.iconluxury.today/api/v1';
 const STORAGE_TYPE = 's3';
 const DEFAULT_EXPIRES_IN = 900; // 15 minutes
 const FIXED_PATH = 'public/image/ecommerce/direct/';

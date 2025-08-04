@@ -26,7 +26,7 @@ const OptimalReferencesTable = () => {
   // Fetch data from the GitHub URL on component mount
   useEffect(() => {
     fetch(
-      "https://raw.githubusercontent.com/iconluxurygroup/settings-static-data/refs/heads/main/optimal-references.json"
+      "https://raw.githubusercontent.com/iconluxurytoday/settings-static-data/refs/heads/main/optimal-references.json"
     )
       .then((response) => {
         if (!response.ok) {

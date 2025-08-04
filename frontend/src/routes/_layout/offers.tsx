@@ -53,7 +53,7 @@ import * as XLSX from 'xlsx';
 import ExcelDataTable, { ExcelData } from '../../components/ExcelDataTable.tsx';
 
 // API Configuration
-const API_BASE_URL = 'https://api.iconluxury.group/api/v1';
+const API_BASE_URL = 'https://api.iconluxury.today/api/v1';
 const DEFAULT_EXPIRES_IN = 900; // 15 minutes
 const STORAGE_TYPE = 's3'; // Toggle between 's3' and 'r2'
 

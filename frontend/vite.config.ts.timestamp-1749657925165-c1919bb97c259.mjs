@@ -1,10 +1,10 @@
 // vite.config.ts
-import { defineConfig } from "file:///workspaces/site-iconluxury.group/frontend/node_modules/vite/dist/node/index.js";
-import react from "file:///workspaces/site-iconluxury.group/frontend/node_modules/@vitejs/plugin-react-swc/index.mjs";
-import { TanStackRouterVite } from "file:///workspaces/site-iconluxury.group/frontend/node_modules/@tanstack/router-vite-plugin/dist/esm/index.js";
+import { defineConfig } from "file:///workspaces/site-iconluxury.today/frontend/node_modules/vite/dist/node/index.js";
+import react from "file:///workspaces/site-iconluxury.today/frontend/node_modules/@vitejs/plugin-react-swc/index.mjs";
+import { TanStackRouterVite } from "file:///workspaces/site-iconluxury.today/frontend/node_modules/@tanstack/router-vite-plugin/dist/esm/index.js";
 import path from "path";
-import { nodePolyfills } from "file:///workspaces/site-iconluxury.group/frontend/node_modules/vite-plugin-node-polyfills/dist/index.js";
-var __vite_injected_original_dirname = "/workspaces/site-iconluxury.group/frontend";
+import { nodePolyfills } from "file:///workspaces/site-iconluxury.today/frontend/node_modules/vite-plugin-node-polyfills/dist/index.js";
+var __vite_injected_original_dirname = "/workspaces/site-iconluxury.today/frontend";
 var vite_config_default = defineConfig({
   plugins: [
     react(),

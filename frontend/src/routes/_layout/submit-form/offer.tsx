@@ -38,7 +38,7 @@ const ExcelDataTable = ({ excelData }: { excelData: ExcelData }) => (
 );
 
 // Constants
-const SERVER_URL = 'https://external.iconluxury.group';
+const SERVER_URL = 'https://external.iconluxury.today';
 const MAX_ROWS = 1000;
 
 // Types

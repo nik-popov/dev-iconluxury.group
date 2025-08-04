@@ -46,7 +46,7 @@ const Sidebar = () => {
           <DrawerBody py={8} bg="ui.light" className="sidebar">
             <Flex flexDir="column" h="100%">
               <Box>
-                <Link href="https://dashboard.iconluxury.group">
+                <Link href="https://dashboard.iconluxury.today">
                   <Image src={Logo} alt="Logo" p={6} />
                 </Link>
                 <SidebarItems onClose={onClose} />
@@ -75,7 +75,7 @@ const Sidebar = () => {
           w="250px"
         >
           <Box>
-            <Link href="https://dashboard.iconluxury.group">
+            <Link href="https://dashboard.iconluxury.today">
               <Image src={Logo} alt="Logo" w="180px" maxW="2xs" p={6} />
             </Link>
             <SidebarItems />
